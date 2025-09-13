@@ -46,28 +46,25 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { taskId, machineId, operatorId, scheduledAt } = body;
+    const { taskId, machineId, operatorId, scheduledAt, durationMin } = body;
 
-    if (!taskId || !scheduledAt) {
-      return NextResponse.json({ error: 'taskId and scheduledAt are required' }, { status: 400 });
+    if (!taskId || !scheduledAt || durationMin === undefined) {
+      return NextResponse.json({ error: 'taskId, scheduledAt and durationMin are required' }, { status: 400 });
     }
 
-    // Fetch task to get duration
-    const taskToSchedule = await prisma.task.findUnique({
-      where: { id: taskId },
-    });
-
+    // Fetch task to validate
+    const taskToSchedule = await prisma.task.findUnique({ where: { id: taskId } });
     if (!taskToSchedule) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
     const startTime = new Date(scheduledAt);
-    const endTime = new Date(startTime.getTime() + (taskToSchedule.durationMin || 60) * 60 * 1000);
+    const endTime = new Date(startTime.getTime() + durationMin * 60 * 1000);
 
-    // overlap check
+    // Overlap check
     const overlaps = (startA: Date, endA: Date, startB: Date, endB: Date) => startA < endB && endA > startB;
 
-    // Machine conflict check
+    // Machine conflict
     if (machineId) {
       const machineConflicts = await prisma.task.findMany({
         where: {
@@ -104,15 +101,10 @@ export async function POST(req: Request) {
       }
     }
 
-    // Operator conflict check
+    // Operator conflict
     if (operatorId) {
       const operatorConflicts = await prisma.task.findMany({
-        where: {
-          operatorId,
-          id: { not: taskId },
-          scheduledAt: { not: null },
-        },
-        include: { operator: true },
+        where: { operatorId, id: { not: taskId }, scheduledAt: { not: null } },
       });
 
       const conflict = operatorConflicts.find((t) =>
@@ -125,29 +117,18 @@ export async function POST(req: Request) {
       );
 
       if (conflict) {
-        return NextResponse.json(
-          {
-            error: 'Operator is already booked at this time',
-            conflict: {
-              taskId: conflict.id,
-              title: conflict.title,
-              scheduledAt: conflict.scheduledAt,
-              durationMin: conflict.durationMin,
-              operator: conflict.operator,
-            },
-          },
-          { status: 400 },
-        );
+        return NextResponse.json({ error: 'Operator is already booked at this time', conflict }, { status: 400 });
       }
     }
 
-    // ✅ Update task
+    // ✅ Update task including durationMin
     const task = await prisma.task.update({
       where: { id: taskId },
       data: {
         machineId: machineId ?? null,
         operatorId: operatorId ?? null,
         scheduledAt: startTime,
+        durationMin,
         status: 'SCHEDULED',
       },
       include: {
@@ -157,7 +138,7 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(task);
-    //BUG fix this
+    //BUG fix
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error(error);

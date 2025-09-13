@@ -96,6 +96,14 @@ Highlight conflicts if a task is double-booked (use API conflict info).
 
 If you want, I can extend this calendar to support drag-and-drop scheduling directly and call your /api/schedule endpoint to update assignments live.
 
+Next Enhancements
+
+Highlight conflicts: Use /api/schedule conflict response to visually mark blocked tasks.
+
+Drag by machine/operator lanes: Show multiple machines as separate rows (like a Gantt chart).
+
+Resize events: Allow changing duration by dragging edges (onEventResize).
+
 ---
 
 DEV
