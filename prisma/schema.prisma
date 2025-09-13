@@ -1,0 +1,67 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// A machine in the workshop
+model Machine {
+  id        String        @id @default(cuid())
+  name      String
+  type      String
+  status    MachineStatus @default(AVAILABLE)
+  tasks     Task[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+enum MachineStatus {
+  AVAILABLE
+  IN_USE
+  MAINTENANCE
+  BROKEN
+}
+
+// Operator (person who works on machines/tasks)
+model Operator {
+  id           String   @id @default(cuid())
+  name         String
+  skills       String[] // e.g. ["CNC", "Welding"]
+  availability Json // e.g. shift times { mon: "08-16", tue: "08-16" }
+  tasks        Task[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// A task/job that must be assigned
+model Task {
+  id          String     @id @default(cuid())
+  title       String
+  description String?
+  durationMin Int
+  status      TaskStatus @default(PENDING)
+  machine     Machine?   @relation(fields: [machineId], references: [id])
+  machineId   String?
+  operator    Operator?  @relation(fields: [operatorId], references: [id])
+  operatorId  String?
+  scheduledAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+enum TaskStatus {
+  PENDING
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  BLOCKED
+}
