@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Calendar, dateFnsLocalizer, Event } from 'react-big-calendar';
+import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale'; // ✅ Named import
+import TaskModal from './task/TaskModal';
 
 interface Task {
   id: string;
@@ -17,14 +18,24 @@ interface Task {
   operator: { id: string; name: string } | null;
 }
 
+interface CalendarEvent {
+  id: string;
+  title: string;
+  start: Date;
+  end: Date;
+  allDay?: boolean;
+}
+
 const locales = { 'en-US': enUS };
 const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales });
 
 // Wrap the base Calendar with drag-and-drop HOC
-const DnDCalendar = withDragAndDrop<Event, object>(Calendar);
+const DnDCalendar = withDragAndDrop<CalendarEvent, object>(Calendar);
 
 export default function ScheduleCalendar() {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     fetch('/api/schedule')
@@ -33,7 +44,7 @@ export default function ScheduleCalendar() {
       .catch(console.error);
   }, []);
 
-  const events: Event[] = tasks.map((task) => {
+  const events: CalendarEvent[] = tasks.map((task) => {
     const start = new Date(task.scheduledAt);
     const end = new Date(start.getTime() + task.durationMin * 60 * 1000);
     return {
@@ -122,6 +133,31 @@ export default function ScheduleCalendar() {
     }
   };
 
+  // ✅ Save updates from modal
+  const handleSaveAssignment = async (update: { machineId: string | null; operatorId: string | null }) => {
+    if (!selectedTask) return;
+
+    const res = await fetch('/api/schedule', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        taskId: selectedTask.id,
+        scheduledAt: selectedTask.scheduledAt,
+        durationMin: selectedTask.durationMin,
+        machineId: update.machineId,
+        operatorId: update.operatorId,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      setTasks((prev) => prev.map((t) => (t.id === data.id ? data : t)));
+    } else {
+      alert(data.error || 'Failed to update assignment');
+    }
+  };
+
   return (
     <div className="p-4">
       <h2 className="text-xl font-bold mb-4">Schedule</h2>
@@ -137,6 +173,20 @@ export default function ScheduleCalendar() {
         onEventResize={handleEventResize} // resizing events
         resizable={true}
         draggableAccessor={() => true}
+        onSelectEvent={(event) => {
+          const task = tasks.find((t) => t.id === event.id);
+          if (task) {
+            setSelectedTask(task);
+            setIsModalOpen(true);
+          }
+        }}
+      />
+
+      <TaskModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        task={selectedTask}
+        onSave={handleSaveAssignment}
       />
     </div>
   );
