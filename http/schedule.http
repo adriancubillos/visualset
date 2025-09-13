@@ -1,3 +1,11 @@
+### find all scheduled tasks
+GET http://localhost:3000/api/schedule
+
+### find scheduled tasks with date range
+GET http://localhost:3000/api/schedule?start=2025-09-12T00:00:00Z&end=2025-09-18T23:59:59Z
+
+
+
 ### Schedule a task
 POST http://localhost:3000/api/schedule
 Content-Type: application/json
