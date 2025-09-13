@@ -1,0 +1,9 @@
+### Create a Task
+POST http://localhost:3000/api/tasks
+Content-Type: application/json
+
+{
+  "title": "task01",
+  "description": "descripcion tarea",
+  "durationMin": 60
+}

@@ -1,0 +1,10 @@
+### Schedule a task
+POST http://localhost:3000/api/schedule
+Content-Type: application/json
+
+{
+  "taskId": "cmfhma4ol0004qfjld09x5rse",
+  "machineId": "cmfhkxhqi0000qfaciqzll5rs",
+  "operatorId": "cmfhlujox0000qfjlv22j5ucw",
+  "scheduledAt": "2025-09-12T10:00:00Z"
+}

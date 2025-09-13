@@ -1,0 +1,9 @@
+### Create Operator
+POST http://localhost:3000/api/operators
+Content-Type: application/json
+
+{
+  "name": "John",
+  "skills": ["welding"],
+  "availability": { "mon": "08-16", "tue": "08-16" }
+}
