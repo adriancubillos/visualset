@@ -14,6 +14,7 @@ interface Task {
   title: string;
   scheduledAt: string;
   durationMin: number;
+  project: { id: string; name: string } | null;
   machine: { id: string; name: string } | null;
   operator: { id: string; name: string } | null;
 }
@@ -40,6 +41,7 @@ export default function ScheduleCalendar() {
   // New filter state
   const [selectedMachine, setSelectedMachine] = useState<string>('all');
   const [selectedOperator, setSelectedOperator] = useState<string>('all');
+  const [selectedProject, setSelectedProject] = useState<string>('all');
 
   const [machines, setMachines] = useState<{ id: string; name: string }[]>([]);
   const [operators, setOperators] = useState<{ id: string; name: string }[]>([]);
@@ -79,7 +81,8 @@ export default function ScheduleCalendar() {
   const filteredTasks = tasks.filter((task) => {
     const machineMatch = selectedMachine === 'all' || task.machine?.id === selectedMachine;
     const operatorMatch = selectedOperator === 'all' || task.operator?.id === selectedOperator;
-    return machineMatch && operatorMatch;
+    const projectMatch = selectedProject === 'all' || task.project?.id === selectedProject;
+    return machineMatch && operatorMatch && projectMatch;
   });
 
   const events: CalendarEvent[] = filteredTasks.map((task) => {
@@ -87,7 +90,7 @@ export default function ScheduleCalendar() {
     const end = new Date(start.getTime() + task.durationMin * 60 * 1000);
     return {
       id: task.id,
-      title: `${task.title} (${task.machine?.name ?? 'No machine'})`,
+      title: `${task.title} - ${task.project?.name ?? 'No project'} (${task.machine?.name ?? 'No machine'})`,
       start,
       end,
       allDay: false,
@@ -206,6 +209,20 @@ export default function ScheduleCalendar() {
 
       {/* ✅ Filters */}
       <div className="flex gap-4 mb-4">
+        <select
+          value={selectedProject}
+          onChange={(e) => setSelectedProject(e.target.value)}
+          className="border rounded p-2">
+          <option value="all">All Projects</option>
+          {projects.map((p) => (
+            <option
+              key={p.id}
+              value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+
         <select
           value={selectedMachine}
           onChange={(e) => setSelectedMachine(e.target.value)}
