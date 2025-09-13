@@ -1,36 +1,84 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# visualset
 
-## Getting Started
+Frontend & Backend (Combined)
+• Next.js (TypeScript, App Router)
+• Pages: dashboards, machine/operator management, scheduling board.
+• API routes: /api/machines, /api/operators, /api/tasks, /api/schedule.
+• Realtime: integrate with Socket.IO, Ably, or Supabase Realtime for live updates.
 
-First, run the development server:
+Scheduling / Optimization
+• If rules are simple (availability, shifts, skills) → handle directly in Next.js backend API routes.
+• If rules are complex (setup times, optimization, what-ifs) →
+• Deploy a Java microservice with OptaPlanner (best for advanced scheduling),
+• Or a Python FastAPI service with OR-Tools (Google’s optimization library).
+• Next.js just calls these services when scheduling is requested.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Database
+• PostgreSQL (via Prisma ORM) → structured data (operators, machines, tasks).
+• Redis → caching + task queue (rescheduling, real-time dashboards).
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Hosting / Infra
+• Vercel (for the Next.js frontend + APIs) if you want quick deployment.
+• OR Docker/Kubernetes if you want to run everything in a factory-controlled environment (local or AWS/GCP/Azure).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+⸻
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+🚀 Example MVP Flow (with Next.js) 1. Machine CRUD
+• /machines → table of machines with status (available, in maintenance, etc.).
+• API: GET /api/machines, POST /api/machines. 2. Operator CRUD
+• /operators → list with skills + shift availability.
+• API: GET /api/operators, POST /api/operators. 3. Task Assignment
+• /schedule → Gantt view with drag-and-drop tasks onto machines/operators.
+• API: POST /api/schedule → triggers scheduling engine (manual or auto). 4. Real-time
+• If a machine goes down, WebSocket event pushes to /schedule view → affected tasks flash in red. 5. Reports
+• /dashboard → operator utilization %, machine OEE (Overall Equipment Effectiveness), upcoming maintenance.
 
-## Learn More
+🌐 API Endpoints (Next.js App Router)
 
-To learn more about Next.js, take a look at the following resources:
+We’ll expose REST-style endpoints under /api.
+Later we can add GraphQL if needed.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Machines
+• GET /api/machines → list all machines
+• POST /api/machines → add new machine
+• PUT /api/machines/:id → update machine (e.g. status → MAINTENANCE)
+• DELETE /api/machines/:id
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Operators
+• GET /api/operators → list all operators
+• POST /api/operators → add new operator
+• PUT /api/operators/:id → update operator (skills, availability)
+• DELETE /api/operators/:id
 
-## Deploy on Vercel
+Tasks
+• GET /api/tasks → list all tasks
+• POST /api/tasks → create task
+• PUT /api/tasks/:id → update task (status, assignment, scheduledAt)
+• DELETE /api/tasks/:id
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+📊 Frontend Views (Next.js Pages)
+• /machines → List & manage machines (status indicators).
+• /operators → List operators with skills + availability.
+• /tasks → Task backlog.
+• /schedule → Gantt/Calendar view with drag-and-drop (e.g., using react-big-calendar or dhtmlx-scheduler).
+• /dashboard → KPIs: machine utilization %, operator load, task progress.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+🔮 Next Steps
+• Scaffold a Next.js project (npx create-next-app@latest --ts).
+• Add Prisma + PostgreSQL.
+• Implement API routes for CRUD.
+• Build /machines, /operators, /tasks views with simple tables.
+• Add /schedule with drag-and-drop assignment.
+
+DEV
+to run db locally using docker:
+docker run --name workshop-db -e POSTGRES_USER=admin -e POSTGRES_PASSWORD=admin -e POSTGRES_DB=workshop -p 5432:5432 -d postgres:latest
+
+To add prisma to the project:
+npm install prisma @prisma/client
+
+To start Prisma:
+npx prisma init
+
+Apply migration (Creates tables from schema.prisma)
+npx prisma migrate dev --name init
