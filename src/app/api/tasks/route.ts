@@ -7,6 +7,7 @@ const prisma = new PrismaClient();
 export async function GET() {
   const tasks = await prisma.task.findMany({
     include: {
+      project: true,
       machine: true,
       operator: true,
     },
@@ -23,11 +24,13 @@ export async function POST(req: Request) {
       description: body.description,
       durationMin: body.durationMin,
       status: body.status ?? 'PENDING',
+      projectId: body.projectId ?? null,
       machineId: body.machineId ?? null,
       operatorId: body.operatorId ?? null,
       scheduledAt: body.scheduledAt ?? null,
     },
     include: {
+      project: true,
       machine: true,
       operator: true,
     },

@@ -43,6 +43,7 @@ export default function ScheduleCalendar() {
 
   const [machines, setMachines] = useState<{ id: string; name: string }[]>([]);
   const [operators, setOperators] = useState<{ id: string; name: string }[]>([]);
+  const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
     fetch('/api/machines')
@@ -53,6 +54,11 @@ export default function ScheduleCalendar() {
     fetch('/api/operators')
       .then((res) => res.json())
       .then(setOperators)
+      .catch(console.error);
+
+    fetch('/api/projects')
+      .then((res) => res.json())
+      .then(setProjects)
       .catch(console.error);
   }, []);
 
@@ -165,7 +171,7 @@ export default function ScheduleCalendar() {
   };
 
   // ✅ Save updates from modal
-  const handleSaveAssignment = async (update: { machineId: string | null; operatorId: string | null }) => {
+  const handleSaveAssignment = async (update: { projectId: string | null; machineId: string | null; operatorId: string | null }) => {
     if (!selectedTask) return;
 
     const res = await fetch('/api/schedule', {
@@ -175,6 +181,7 @@ export default function ScheduleCalendar() {
         taskId: selectedTask.id,
         scheduledAt: selectedTask.scheduledAt,
         durationMin: selectedTask.durationMin,
+        projectId: update.projectId,
         machineId: update.machineId,
         operatorId: update.operatorId,
       }),
@@ -254,6 +261,7 @@ export default function ScheduleCalendar() {
         onClose={() => setIsModalOpen(false)}
         task={selectedTask}
         onSave={handleSaveAssignment}
+        projects={projects}
         machines={machines}
         operators={operators}
       />

@@ -13,6 +13,26 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// A project containing multiple tasks
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  status      ProjectStatus @default(ACTIVE)
+  startDate   DateTime?
+  endDate     DateTime?
+  tasks       Task[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum ProjectStatus {
+  ACTIVE
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
+
 // A machine in the workshop
 model Machine {
   id        String        @id @default(cuid())
@@ -49,6 +69,8 @@ model Task {
   description String?
   durationMin Int
   status      TaskStatus @default(PENDING)
+  project     Project?   @relation(fields: [projectId], references: [id])
+  projectId   String?
   machine     Machine?   @relation(fields: [machineId], references: [id])
   machineId   String?
   operator    Operator?  @relation(fields: [operatorId], references: [id])

@@ -24,6 +24,7 @@ export async function GET(req: Request) {
     const tasks = await prisma.task.findMany({
       where,
       include: {
+        project: true,
         machine: true,
         operator: true,
       },
@@ -46,7 +47,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { taskId, machineId, operatorId, scheduledAt, durationMin } = body;
+    const { taskId, projectId, machineId, operatorId, scheduledAt, durationMin } = body;
 
     if (!taskId || !scheduledAt || durationMin === undefined) {
       return NextResponse.json({ error: 'taskId, scheduledAt and durationMin are required' }, { status: 400 });
@@ -75,7 +76,7 @@ export async function POST(req: Request) {
         include: { machine: true },
       });
 
-      const conflict = machineConflicts.find((t) =>
+      const conflict = machineConflicts.find((t: any) =>
         overlaps(
           startTime,
           endTime,
@@ -107,7 +108,7 @@ export async function POST(req: Request) {
         where: { operatorId, id: { not: taskId }, scheduledAt: { not: null } },
       });
 
-      const conflict = operatorConflicts.find((t) =>
+      const conflict = operatorConflicts.find((t: any) =>
         overlaps(
           startTime,
           endTime,
@@ -125,6 +126,7 @@ export async function POST(req: Request) {
     const task = await prisma.task.update({
       where: { id: taskId },
       data: {
+        projectId: projectId ?? null,
         machineId: machineId ?? null,
         operatorId: operatorId ?? null,
         scheduledAt: startTime,
@@ -132,6 +134,7 @@ export async function POST(req: Request) {
         status: 'SCHEDULED',
       },
       include: {
+        project: true,
         machine: true,
         operator: true,
       },
