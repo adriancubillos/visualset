@@ -123,6 +123,12 @@ async function main() {
   tomorrow.setDate(today.getDate() + 1);
   const dayAfter = new Date(today);
   dayAfter.setDate(today.getDate() + 2);
+  const nextWeek = new Date(today);
+  nextWeek.setDate(today.getDate() + 7);
+  const nextWeekPlus1 = new Date(today);
+  nextWeekPlus1.setDate(today.getDate() + 8);
+  const nextWeekPlus2 = new Date(today);
+  nextWeekPlus2.setDate(today.getDate() + 9);
 
   // Automotive Parts Manufacturing tasks
   const automotiveTasks = await Promise.all([
@@ -155,6 +161,48 @@ async function main() {
         title: 'Weld Exhaust Manifold',
         description: 'TIG welding of stainless steel exhaust manifold',
         durationMin: 120, // 2 hours
+        status: 'PENDING',
+        projectId: projects[0].id,
+      },
+    }),
+    // Additional automotive tasks
+    prisma.task.create({
+      data: {
+        title: 'Machine Cylinder Head',
+        description: 'Precision machining of aluminum cylinder head',
+        durationMin: 300, // 5 hours
+        status: 'SCHEDULED',
+        projectId: projects[0].id,
+        machineId: machines[1].id, // CNC Mill #2
+        operatorId: operators[1].id, // Sarah Johnson
+        scheduledAt: new Date(nextWeek.setHours(8, 0, 0, 0)),
+      },
+    }),
+    prisma.task.create({
+      data: {
+        title: 'Drill Oil Passages',
+        description: 'Drilling precision oil passages in engine block',
+        durationMin: 90,
+        status: 'PENDING',
+        projectId: projects[0].id,
+      },
+    }),
+    prisma.task.create({
+      data: {
+        title: 'Assemble Intake Manifold',
+        description: 'Assembly of intake manifold components',
+        durationMin: 150,
+        status: 'SCHEDULED',
+        projectId: projects[0].id,
+        operatorId: operators[2].id, // Mike Davis
+        scheduledAt: new Date(nextWeekPlus1.setHours(10, 0, 0, 0)),
+      },
+    }),
+    prisma.task.create({
+      data: {
+        title: 'Quality Check Engine Parts',
+        description: 'Comprehensive quality inspection of machined parts',
+        durationMin: 120,
         status: 'PENDING',
         projectId: projects[0].id,
       },
@@ -196,6 +244,38 @@ async function main() {
         projectId: projects[1].id,
       },
     }),
+    // Additional furniture tasks
+    prisma.task.create({
+      data: {
+        title: 'Sand Table Surfaces',
+        description: 'Fine sanding of hardwood table surfaces',
+        durationMin: 180,
+        status: 'SCHEDULED',
+        projectId: projects[1].id,
+        operatorId: operators[0].id, // John Smith
+        scheduledAt: new Date(dayAfter.setHours(9, 0, 0, 0)),
+      },
+    }),
+    prisma.task.create({
+      data: {
+        title: 'Apply Wood Finish',
+        description: 'Application of protective wood finish coating',
+        durationMin: 120,
+        status: 'PENDING',
+        projectId: projects[1].id,
+      },
+    }),
+    prisma.task.create({
+      data: {
+        title: 'Assemble Chair Components',
+        description: 'Final assembly of chair frame and seat components',
+        durationMin: 90,
+        status: 'SCHEDULED',
+        projectId: projects[1].id,
+        operatorId: operators[2].id, // Mike Davis
+        scheduledAt: new Date(nextWeekPlus2.setHours(13, 0, 0, 0)),
+      },
+    }),
   ]);
 
   // Prototype Development tasks
@@ -226,6 +306,49 @@ async function main() {
         title: 'Quality Testing',
         description: 'Comprehensive quality testing of prototype',
         durationMin: 120,
+        status: 'PENDING',
+        projectId: projects[2].id,
+      },
+    }),
+    // Additional prototype tasks
+    prisma.task.create({
+      data: {
+        title: 'Mill Prototype Housing',
+        description: 'Precision milling of prototype housing components',
+        durationMin: 240,
+        status: 'SCHEDULED',
+        projectId: projects[2].id,
+        machineId: machines[1].id, // CNC Mill #2
+        operatorId: operators[0].id, // John Smith
+        scheduledAt: new Date(nextWeek.setHours(14, 0, 0, 0)),
+      },
+    }),
+    prisma.task.create({
+      data: {
+        title: 'Weld Prototype Frame',
+        description: 'Welding of prototype structural frame',
+        durationMin: 180,
+        status: 'SCHEDULED',
+        projectId: projects[2].id,
+        machineId: machines[2].id, // Welding Station A
+        operatorId: operators[2].id, // Mike Davis
+        scheduledAt: new Date(nextWeekPlus1.setHours(14, 30, 0, 0)),
+      },
+    }),
+    prisma.task.create({
+      data: {
+        title: 'Machine Precision Gears',
+        description: 'CNC machining of precision gear components',
+        durationMin: 360, // 6 hours
+        status: 'PENDING',
+        projectId: projects[2].id,
+      },
+    }),
+    prisma.task.create({
+      data: {
+        title: 'Calibrate Test Equipment',
+        description: 'Calibration of testing equipment for prototype validation',
+        durationMin: 90,
         status: 'PENDING',
         projectId: projects[2].id,
       },
