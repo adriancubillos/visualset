@@ -34,7 +34,7 @@ enum MachineStatus {
 // Operator (person who works on machines/tasks)
 model Operator {
   id           String   @id @default(cuid())
-  name         String
+  name         String   @unique
   skills       String[] // e.g. ["CNC", "Welding"]
   availability Json // e.g. shift times { mon: "08-16", tue: "08-16" }
   tasks        Task[]
