@@ -24,51 +24,53 @@ export default function TaskModal({ isOpen, onClose, task, onSave, machines, ope
   if (!isOpen || !task) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/30 flex items-center justify-center">
-      <div className="bg-white p-6 rounded shadow-md w-96">
-        <h3 className="text-lg font-bold mb-4">Update Assignment</h3>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white p-8 rounded-lg shadow-xl w-96 max-w-md mx-4 border">
+        <h3 className="text-xl font-bold mb-6 text-gray-900">Update Assignment</h3>
 
         {/* Machine Dropdown */}
-        <label className="block mb-2">Machine</label>
+        <label className="block mb-2 text-sm font-semibold text-gray-700">Machine</label>
         <select
-          className="w-full border p-2 mb-4"
+          className="w-full border-2 border-gray-300 rounded-md p-3 mb-4 text-gray-900 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
           value={machineId ?? ''}
           onChange={(e) => setMachineId(e.target.value || null)}>
-          <option value="">-- None --</option>
+          <option value="" className="text-gray-500">-- None --</option>
           {machines.map((m) => (
             <option
               key={m.id}
-              value={m.id}>
+              value={m.id}
+              className="text-gray-900">
               {m.name}
             </option>
           ))}
         </select>
 
         {/* Operator Dropdown */}
-        <label className="block mb-2">Operator</label>
+        <label className="block mb-2 text-sm font-semibold text-gray-700">Operator</label>
         <select
-          className="w-full border p-2 mb-4"
+          className="w-full border-2 border-gray-300 rounded-md p-3 mb-6 text-gray-900 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
           value={operatorId ?? ''}
           onChange={(e) => setOperatorId(e.target.value || null)}>
-          <option value="">-- None --</option>
+          <option value="" className="text-gray-500">-- None --</option>
           {operators.map((o) => (
             <option
               key={o.id}
-              value={o.id}>
+              value={o.id}
+              className="text-gray-900">
               {o.name}
             </option>
           ))}
         </select>
 
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-gray-300 rounded">
+            className="px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors font-medium">
             Cancel
           </button>
           <button
             onClick={() => onSave({ machineId, operatorId })}
-            className="px-4 py-2 bg-blue-600 text-white rounded">
+            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium shadow-sm">
             Save
           </button>
         </div>
