@@ -37,6 +37,25 @@ export default function ScheduleCalendar() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // New filter state
+  const [selectedMachine, setSelectedMachine] = useState<string>('all');
+  const [selectedOperator, setSelectedOperator] = useState<string>('all');
+
+  const [machines, setMachines] = useState<{ id: string; name: string }[]>([]);
+  const [operators, setOperators] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    fetch('/api/machines')
+      .then((res) => res.json())
+      .then(setMachines)
+      .catch(console.error);
+
+    fetch('/api/operators')
+      .then((res) => res.json())
+      .then(setOperators)
+      .catch(console.error);
+  }, []);
+
   useEffect(() => {
     fetch('/api/schedule')
       .then((res) => res.json())
@@ -44,7 +63,20 @@ export default function ScheduleCalendar() {
       .catch(console.error);
   }, []);
 
-  const events: CalendarEvent[] = tasks.map((task) => {
+  // // ✅ Unique machines/operators for dropdown
+  // const machines = Array.from(new Map(tasks.filter((t) => t.machine).map((t) => [t.machine!.id, t.machine!])).values());
+  // const operators = Array.from(
+  //   new Map(tasks.filter((t) => t.operator).map((t) => [t.operator!.id, t.operator!])).values(),
+  // );
+
+  // ✅ Apply filters
+  const filteredTasks = tasks.filter((task) => {
+    const machineMatch = selectedMachine === 'all' || task.machine?.id === selectedMachine;
+    const operatorMatch = selectedOperator === 'all' || task.operator?.id === selectedOperator;
+    return machineMatch && operatorMatch;
+  });
+
+  const events: CalendarEvent[] = filteredTasks.map((task) => {
     const start = new Date(task.scheduledAt);
     const end = new Date(start.getTime() + task.durationMin * 60 * 1000);
     return {
@@ -56,7 +88,6 @@ export default function ScheduleCalendar() {
     };
   });
 
-  //BUG fix
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleEventDrop = async ({ event, start }: any) => {
     const updatedTask = tasks.find((t) => t.id === event.id);
@@ -72,7 +103,7 @@ export default function ScheduleCalendar() {
         body: JSON.stringify({
           taskId: updatedTask.id,
           scheduledAt: start.toISOString(),
-          durationMin: duration, // ✅ always send
+          durationMin: duration,
           machineId: updatedTask.machine?.id ?? null,
           operatorId: updatedTask.operator?.id ?? null,
         }),
@@ -152,7 +183,11 @@ export default function ScheduleCalendar() {
     const data = await res.json();
 
     if (res.ok) {
+      // Update task state
       setTasks((prev) => prev.map((t) => (t.id === data.id ? data : t)));
+
+      // ✅ Close modal after save
+      setIsModalOpen(false);
     } else {
       alert(data.error || 'Failed to update assignment');
     }
@@ -161,6 +196,38 @@ export default function ScheduleCalendar() {
   return (
     <div className="p-4">
       <h2 className="text-xl font-bold mb-4">Schedule</h2>
+
+      {/* ✅ Filters */}
+      <div className="flex gap-4 mb-4">
+        <select
+          value={selectedMachine}
+          onChange={(e) => setSelectedMachine(e.target.value)}
+          className="border rounded p-2">
+          <option value="all">All Machines</option>
+          {machines.map((m) => (
+            <option
+              key={m.id}
+              value={m.id}>
+              {m.name}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={selectedOperator}
+          onChange={(e) => setSelectedOperator(e.target.value)}
+          className="border rounded p-2">
+          <option value="all">All Operators</option>
+          {operators.map((o) => (
+            <option
+              key={o.id}
+              value={o.id}>
+              {o.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <DnDCalendar
         localizer={localizer}
         events={events}
@@ -170,7 +237,7 @@ export default function ScheduleCalendar() {
         defaultView="week"
         views={['week', 'day', 'agenda']}
         onEventDrop={handleEventDrop}
-        onEventResize={handleEventResize} // resizing events
+        onEventResize={handleEventResize}
         resizable={true}
         draggableAccessor={() => true}
         onSelectEvent={(event) => {
@@ -187,6 +254,8 @@ export default function ScheduleCalendar() {
         onClose={() => setIsModalOpen(false)}
         task={selectedTask}
         onSave={handleSaveAssignment}
+        machines={machines}
+        operators={operators}
       />
     </div>
   );
