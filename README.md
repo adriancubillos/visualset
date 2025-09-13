@@ -70,6 +70,34 @@ Tasks
 • Build /machines, /operators, /tasks views with simple tables.
 • Add /schedule with drag-and-drop assignment.
 
+---
+
+4️⃣ Features You Now Have
+
+Weekly / daily calendar view of scheduled tasks
+
+Tasks show title + assigned machine
+
+Respects scheduledAt and durationMin
+
+Ready for drag & drop or click to assign extensions
+
+5️⃣ Next Steps / Enhancements
+
+Color-code tasks by machine or operator.
+
+Add drag-and-drop to reschedule tasks interactively.
+
+Click event → open modal to update assignment (/api/schedule POST).
+
+Filter by machine/operator using dropdowns.
+
+Highlight conflicts if a task is double-booked (use API conflict info).
+
+If you want, I can extend this calendar to support drag-and-drop scheduling directly and call your /api/schedule endpoint to update assignments live.
+
+---
+
 DEV
 to run db locally using docker:
 docker run --name workshop-db -e POSTGRES_USER=admin -e POSTGRES_PASSWORD=admin -e POSTGRES_DB=workshop -p 5432:5432 -d postgres:latest
