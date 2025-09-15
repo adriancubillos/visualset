@@ -1,6 +1,13 @@
 # visualset
 
-Frontend & Backend (Combined)
+# Prisma Commands
+    
+# Force reset the DB
+    npx prisma db push --force-reset
+# Run seed script
+    npx tsx prisma/scripts/seed.ts
+
+# Frontend & Backend (Combined)
 • Next.js (TypeScript, App Router)
 • Pages: dashboards, machine/operator management, scheduling board.
 • API routes: /api/machines, /api/operators, /api/tasks, /api/schedule.
