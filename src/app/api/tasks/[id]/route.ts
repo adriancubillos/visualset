@@ -13,11 +13,13 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       description: body.description,
       durationMin: body.durationMin,
       status: body.status,
+      projectId: body.projectId,
       machineId: body.machineId,
       operatorId: body.operatorId,
       scheduledAt: body.scheduledAt,
     },
     include: {
+      project: true,
       machine: true,
       operator: true,
     },
