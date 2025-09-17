@@ -5,6 +5,7 @@ import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
+import '../styles/calendar.css';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale'; // ✅ Named import
 import TaskModal from './task/TaskModal';
@@ -298,50 +299,6 @@ export default function ScheduleCalendar() {
       </div>
 
       <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
-        <style jsx global>{`
-          .rbc-header {
-            background: #f1f5f9 !important;
-            color: #1e293b !important;
-            font-weight: 700 !important;
-            padding: 0.75rem 0.5rem !important;
-            border-bottom: 1px solid #e2e8f0 !important;
-            font-size: 0.875rem !important;
-          }
-          
-          .rbc-label {
-            color: #374151 !important;
-            font-weight: 600 !important;
-            font-size: 0.75rem !important;
-            padding-right: 0.5rem !important;
-          }
-          
-          .rbc-time-slot {
-            color: #4b5563 !important;
-            font-size: 0.75rem !important;
-            border-top: 1px solid #f1f5f9 !important;
-            font-weight: 500 !important;
-          }
-          
-          .rbc-toolbar-label {
-            font-size: 1.125rem !important;
-            font-weight: 700 !important;
-            color: #1f2937 !important;
-          }
-          
-          .rbc-today {
-            background-color: #dbeafe !important;
-          }
-          
-          .rbc-off-range-bg {
-            background: #f9fafb !important;
-          }
-          
-          .rbc-current-time-indicator {
-            background-color: #ef4444 !important;
-            height: 2px !important;
-            z-index: 3 !important;
-          }
-        `}</style>
         <DnDCalendar
           localizer={localizer}
           events={events}
