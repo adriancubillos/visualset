@@ -372,43 +372,168 @@ export default function GanttChart() {
         </div>
 
         {/* Machine lanes */}
-        <div 
-          className="max-h-96 overflow-auto"
-          onScroll={handleScroll}
-          ref={(el) => {
-            if (el && el.scrollLeft !== scrollLeft) {
-              el.scrollLeft = scrollLeft;
-            }
-          }}
-        >
-          <div style={{ width: `${48 + 24 * 60 * pixelsPerMinute}px` }}>
-            {machines.map(machine => (
-              <MachineLane
-                key={machine.id}
-                machine={machine}
-                tasks={tasks}
-                dayStart={dayStart}
-                pixelsPerMinute={pixelsPerMinute}
-                onTaskClick={(task) => {
-                  setSelectedTask(task);
-                  setIsModalOpen(true);
-                }}
-                onTaskDrop={handleTaskDrop}
-              />
-            ))}
+        <div className="flex max-h-96 overflow-hidden">
+          {/* Fixed machine names column */}
+          <div className="w-48 bg-white border-r border-slate-200 overflow-y-auto">
+            {machines.map(machine => {
+              const isUnassigned = machine.id === 'unassigned';
+              return (
+                <div 
+                  key={machine.id}
+                  className={`p-4 border-b border-gray-100 flex items-center h-14 ${
+                    isUnassigned 
+                      ? 'bg-red-100 text-red-800 font-semibold' 
+                      : 'bg-slate-50 text-slate-700 font-medium'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    {!isUnassigned && (
+                      <div className="w-3 h-3 bg-green-400 rounded-full shadow-sm"></div>
+                    )}
+                    {isUnassigned && (
+                      <div className="w-3 h-3 bg-red-400 rounded-full shadow-sm"></div>
+                    )}
+                    <span>{machine.name}</span>
+                  </div>
+                </div>
+              );
+            })}
             
-            {/* Unassigned tasks lane */}
-            <MachineLane
-              machine={{ id: 'unassigned', name: 'Unassigned Tasks' }}
-              tasks={tasks.filter(task => !task.machine)}
-              dayStart={dayStart}
-              pixelsPerMinute={pixelsPerMinute}
-              onTaskClick={(task) => {
-                setSelectedTask(task);
-                setIsModalOpen(true);
-              }}
-              onTaskDrop={handleTaskDrop}
-            />
+            {/* Unassigned tasks lane header */}
+            <div className="p-4 border-b border-gray-100 flex items-center h-14 bg-red-100 text-red-800 font-semibold">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-red-400 rounded-full shadow-sm"></div>
+                <span>Unassigned Tasks</span>
+              </div>
+            </div>
+          </div>
+          
+          {/* Scrollable timeline area */}
+          <div 
+            className="flex-1 overflow-auto"
+            onScroll={handleScroll}
+            ref={(el) => {
+              if (el && el.scrollLeft !== scrollLeft) {
+                el.scrollLeft = scrollLeft;
+              }
+            }}
+          >
+            <div style={{ width: `${24 * 60 * pixelsPerMinute}px` }}>
+              {machines.map(machine => {
+                const machineTasks = tasks.filter(task => task.machine?.id === machine.id);
+                const isUnassigned = machine.id === 'unassigned';
+                
+                return (
+                  <div 
+                    key={machine.id}
+                    className={`border-b border-gray-100 h-14 relative transition-colors duration-200 ${
+                      isUnassigned ? 'bg-red-50 hover:bg-red-100' : 'bg-white hover:bg-slate-50'
+                    }`}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const x = e.clientX - rect.left;
+                      const minutesFromStart = x / pixelsPerMinute;
+                      const newStart = new Date(dayStart.getTime() + minutesFromStart * 60 * 1000);
+                      handleTaskDrop(data.taskId, newStart, machine.id);
+                    }}
+                    onDragOver={(e) => e.preventDefault()}
+                  >
+                    {/* Hour grid lines */}
+                    {Array.from({ length: 24 }, (_, i) => {
+                      const isWorkingHour = i >= 7 && i < 19;
+                      return (
+                        <div
+                          key={i}
+                          className={`absolute top-0 bottom-0 ${
+                            isWorkingHour ? 'border-l border-slate-200' : 'border-l border-gray-100'
+                          }`}
+                          style={{ left: `${i * 60 * pixelsPerMinute}px` }}
+                        />
+                      );
+                    })}
+                    
+                    {/* Working hours background */}
+                    <div 
+                      className="absolute top-0 bottom-0 bg-blue-50/30"
+                      style={{
+                        left: `${7 * 60 * pixelsPerMinute}px`,
+                        width: `${12 * 60 * pixelsPerMinute}px`
+                      }}
+                    />
+                    
+                    {/* Tasks */}
+                    {machineTasks.map(task => (
+                      <GanttTask
+                        key={task.id}
+                        task={task}
+                        dayStart={dayStart}
+                        pixelsPerMinute={pixelsPerMinute}
+                        onTaskClick={(task) => {
+                          setSelectedTask(task);
+                          setIsModalOpen(true);
+                        }}
+                        onTaskDrop={handleTaskDrop}
+                      />
+                    ))}
+                  </div>
+                );
+              })}
+              
+              {/* Unassigned tasks lane */}
+              <div 
+                className="border-b border-gray-100 h-14 relative bg-red-50 hover:bg-red-100 transition-colors duration-200"
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const x = e.clientX - rect.left;
+                  const minutesFromStart = x / pixelsPerMinute;
+                  const newStart = new Date(dayStart.getTime() + minutesFromStart * 60 * 1000);
+                  handleTaskDrop(data.taskId, newStart, 'unassigned');
+                }}
+                onDragOver={(e) => e.preventDefault()}
+              >
+                {/* Hour grid lines */}
+                {Array.from({ length: 24 }, (_, i) => {
+                  const isWorkingHour = i >= 7 && i < 19;
+                  return (
+                    <div
+                      key={i}
+                      className={`absolute top-0 bottom-0 ${
+                        isWorkingHour ? 'border-l border-slate-200' : 'border-l border-gray-100'
+                      }`}
+                      style={{ left: `${i * 60 * pixelsPerMinute}px` }}
+                    />
+                  );
+                })}
+                
+                {/* Working hours background */}
+                <div 
+                  className="absolute top-0 bottom-0 bg-blue-50/30"
+                  style={{
+                    left: `${7 * 60 * pixelsPerMinute}px`,
+                    width: `${12 * 60 * pixelsPerMinute}px`
+                  }}
+                />
+                
+                {/* Unassigned tasks */}
+                {tasks.filter(task => !task.machine).map(task => (
+                  <GanttTask
+                    key={task.id}
+                    task={task}
+                    dayStart={dayStart}
+                    pixelsPerMinute={pixelsPerMinute}
+                    onTaskClick={(task) => {
+                      setSelectedTask(task);
+                      setIsModalOpen(true);
+                    }}
+                    onTaskDrop={handleTaskDrop}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
