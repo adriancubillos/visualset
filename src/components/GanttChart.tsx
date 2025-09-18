@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import TaskModal from './task/TaskModal';
-import { formatDateTimeGMTMinus5 } from '@/utils/timezone';
+import { formatDateTimeGMTMinus5, convertTaskTimeForGantt } from '@/utils/timezone';
 import { addDays, format } from 'date-fns';
 import { handleTaskAssignmentUpdate, TaskAssignmentUpdate } from '@/utils/taskAssignment';
 
@@ -30,8 +30,8 @@ interface GanttTaskProps {
 }
 
 function GanttTask({ task, dayStart, pixelsPerMinute, onTaskClick, onTaskDrop }: GanttTaskProps) {
-  const taskStart = new Date(task.scheduledAt);
-  const taskEnd = new Date(taskStart.getTime() + task.durationMin * 60 * 1000);
+  // Use GanttChart-specific utility for UTC-based positioning
+  const taskStart = convertTaskTimeForGantt(task.scheduledAt);
   
   // Calculate position and width
   const minutesFromDayStart = (taskStart.getTime() - dayStart.getTime()) / (1000 * 60);
@@ -98,101 +98,6 @@ function GanttTask({ task, dayStart, pixelsPerMinute, onTaskClick, onTaskDrop }:
   );
 }
 
-interface MachineLaneProps {
-  machine: Machine;
-  tasks: Task[];
-  dayStart: Date;
-  pixelsPerMinute: number;
-  onTaskClick: (task: Task) => void;
-  onTaskDrop: (taskId: string, newStart: Date, machineId: string) => void;
-}
-
-function MachineLane({ machine, tasks, dayStart, pixelsPerMinute, onTaskClick, onTaskDrop }: MachineLaneProps) {
-  const machineTasks = tasks.filter(task => task.machine?.id === machine.id);
-  const isUnassigned = machine.id === 'unassigned';
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    const data = JSON.parse(e.dataTransfer.getData('text/plain'));
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const minutesFromStart = x / pixelsPerMinute;
-    const newStart = new Date(dayStart.getTime() + minutesFromStart * 60 * 1000);
-    
-    onTaskDrop(data.taskId, newStart, machine.id);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
-  return (
-    <div className={`border-b border-gray-100 ${isUnassigned ? 'bg-red-50' : ''}`}>
-      <div className="flex">
-        {/* Machine name column */}
-        <div className={`w-48 p-4 border-r border-gray-200 flex items-center ${
-          isUnassigned 
-            ? 'bg-red-100 text-red-800 font-semibold' 
-            : 'bg-slate-50 text-slate-700 font-medium'
-        }`}>
-          <div className="flex items-center gap-2">
-            {!isUnassigned && (
-              <div className="w-3 h-3 bg-green-400 rounded-full shadow-sm"></div>
-            )}
-            {isUnassigned && (
-              <div className="w-3 h-3 bg-red-400 rounded-full shadow-sm"></div>
-            )}
-            <span>{machine.name}</span>
-          </div>
-        </div>
-        
-        {/* Timeline area */}
-        <div 
-          className={`flex-1 relative h-14 transition-colors duration-200 ${
-            isUnassigned ? 'bg-red-50 hover:bg-red-100' : 'bg-white hover:bg-slate-50'
-          }`}
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-        >
-          {/* Hour grid lines */}
-          {Array.from({ length: 24 }, (_, i) => {
-            const isWorkingHour = i >= 7 && i < 19;
-            return (
-              <div
-                key={i}
-                className={`absolute top-0 bottom-0 ${
-                  isWorkingHour ? 'border-l border-slate-200' : 'border-l border-gray-100'
-                }`}
-                style={{ left: `${i * 60 * pixelsPerMinute}px` }}
-              />
-            );
-          })}
-          
-          {/* Working hours background */}
-          <div 
-            className="absolute top-0 bottom-0 bg-blue-50/30"
-            style={{
-              left: `${7 * 60 * pixelsPerMinute}px`,
-              width: `${12 * 60 * pixelsPerMinute}px`
-            }}
-          />
-          
-          {/* Tasks */}
-          {machineTasks.map(task => (
-            <GanttTask
-              key={task.id}
-              task={task}
-              dayStart={dayStart}
-              pixelsPerMinute={pixelsPerMinute}
-              onTaskClick={onTaskClick}
-              onTaskDrop={onTaskDrop}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function GanttChart() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -206,8 +111,9 @@ export default function GanttChart() {
 
   // Gantt settings
   const pixelsPerMinute = 2; // 2 pixels per minute
+  // Create dayStart at midnight UTC for consistent positioning
   const dayStart = new Date(currentDate);
-  dayStart.setHours(0, 0, 0, 0);
+  dayStart.setUTCHours(0, 0, 0, 0);
   
   // Working hours: 7 AM to 7 PM
   const workingStartHour = 7;

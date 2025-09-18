@@ -9,7 +9,7 @@ import '../styles/calendar.css';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale'; // ✅ Named import
 import TaskModal from './task/TaskModal';
-import { formatDateTimeGMTMinus5 } from '@/utils/timezone';
+import { formatDateTimeGMTMinus5, convertTaskTimeForDisplay } from '@/utils/timezone';
 import { handleTaskAssignmentUpdate, TaskAssignmentUpdate } from '@/utils/taskAssignment';
 
 interface Task {
@@ -118,8 +118,7 @@ export default function ScheduleCalendar() {
   };
 
   const events: CalendarEvent[] = filteredTasks.map((task) => {
-    const start = new Date(task.scheduledAt);
-    const end = new Date(start.getTime() + task.durationMin * 60 * 1000);
+    const { start, end } = convertTaskTimeForDisplay(task.scheduledAt, task.durationMin);
     return {
       id: task.id,
       title: `${task.title} - ${task.project?.name ?? 'No project'}`,

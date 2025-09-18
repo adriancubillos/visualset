@@ -66,3 +66,43 @@ export function parseGMTMinus5DateTime(dateStr: string, timeStr: string): Date {
   
   return utcDate;
 }
+
+/**
+ * Convert UTC task time to proper Date object for calendar/gantt positioning
+ * Ensures consistent timezone handling across all components
+ */
+export function convertTaskTimeForDisplay(scheduledAt: string, durationMin: number): { start: Date; end: Date } {
+  // Convert UTC task time to GMT-5 for display consistency
+  const taskStartUTC = new Date(scheduledAt);
+  const { date: dateStr, time: timeStr } = formatDateTimeGMTMinus5(taskStartUTC);
+  
+  // Create proper GMT-5 date object preserving the original date
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  
+  // For calendar components, create local time dates (not UTC)
+  const start = new Date(year, month - 1, day, hours, minutes, 0, 0);
+  
+  // Calculate end time
+  const end = new Date(start.getTime() + durationMin * 60 * 1000);
+  
+  return { start, end };
+}
+
+/**
+ * Convert UTC task time for GanttChart positioning (needs UTC for day comparison)
+ */
+export function convertTaskTimeForGantt(scheduledAt: string): Date {
+  const taskStartUTC = new Date(scheduledAt);
+  const { date: dateStr, time: timeStr } = formatDateTimeGMTMinus5(taskStartUTC);
+  
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  
+  // For gantt positioning, use UTC dates for proper day comparison
+  const start = new Date();
+  start.setUTCFullYear(year, month - 1, day);
+  start.setUTCHours(hours, minutes, 0, 0);
+  
+  return start;
+}
