@@ -3,12 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import ColorPicker from '@/components/ui/ColorPicker';
 
 interface Project {
   id: string;
   name: string;
   description: string;
   status: string;
+  color?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -20,48 +22,59 @@ export default function EditProjectPage() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    status: 'PLANNING',
+    status: 'ACTIVE',
+    color: '',
   });
+  const [usedColors, setUsedColors] = useState<string[]>([]);
+  const [colorError, setColorError] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const fetchProject = async () => {
+    const fetchData = async () => {
       try {
-        // Mock data - replace with actual API call
-        const mockProject: Project = {
-          id: params.id as string,
-          name: 'Engine Block Series',
-          description: 'Manufacturing engine blocks for automotive client. This project involves precision machining of aluminum engine blocks with tight tolerances and high-quality surface finishes.',
-          status: 'ACTIVE',
-          createdAt: '2024-01-15',
-          updatedAt: '2024-01-20',
-        };
+        // Fetch project data and used colors in parallel
+        const [projectResponse, colorsResponse] = await Promise.all([
+          fetch(`/api/projects/${params.id}`),
+          fetch('/api/projects')
+        ]);
 
-        setTimeout(() => {
-          setProject(mockProject);
-          setFormData({
-            name: mockProject.name,
-            description: mockProject.description,
-            status: mockProject.status,
-          });
-          setLoading(false);
-        }, 500);
+        if (!projectResponse.ok) {
+          throw new Error('Failed to fetch project');
+        }
+
+        const projectData = await projectResponse.json();
+        const allProjects = colorsResponse.ok ? await colorsResponse.json() : [];
+        
+        // Get used colors excluding current project
+        const usedColorsList = allProjects
+          .filter((p: any) => p.id !== params.id && p.color)
+          .map((p: any) => p.color);
+
+        setProject(projectData);
+        setUsedColors(usedColorsList);
+        setFormData({
+          name: projectData.name,
+          description: projectData.description || '',
+          status: projectData.status,
+          color: projectData.color || '',
+        });
+        setLoading(false);
       } catch (error) {
         console.error('Error fetching project:', error);
         setLoading(false);
       }
     };
 
-    fetchProject();
+    fetchData();
   }, [params.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    setColorError('');
 
     try {
-      // TODO: Replace with actual API call
       const response = await fetch(`/api/projects/${params.id}`, {
         method: 'PUT',
         headers: {
@@ -73,7 +86,12 @@ export default function EditProjectPage() {
       if (response.ok) {
         router.push(`/projects/${params.id}`);
       } else {
-        console.error('Failed to update project');
+        const errorData = await response.json();
+        if (response.status === 400 && errorData.error.includes('color')) {
+          setColorError(errorData.error);
+        } else {
+          console.error('Failed to update project:', errorData.error);
+        }
       }
     } catch (error) {
       console.error('Error updating project:', error);
@@ -196,12 +214,23 @@ export default function EditProjectPage() {
               onChange={handleChange}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="PLANNING">Planning</option>
               <option value="ACTIVE">Active</option>
               <option value="ON_HOLD">On Hold</option>
               <option value="COMPLETED">Completed</option>
+              <option value="CANCELLED">Cancelled</option>
             </select>
           </div>
+
+          {/* Color Picker */}
+          <ColorPicker
+            selectedColor={formData.color}
+            usedColors={usedColors}
+            onColorChange={(color) => {
+              setFormData(prev => ({ ...prev, color }));
+              setColorError('');
+            }}
+            error={colorError}
+          />
 
           {/* Actions */}
           <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">

@@ -29,15 +29,35 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 
 // PUT /api/projects/[id]
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
-  const body = await req.json();
-  
   try {
+    const body = await req.json();
+    
+    // Check if color is being updated and validate uniqueness
+    if (body.color) {
+      const existingProject = await prisma.project.findFirst({
+        where: {
+          color: body.color,
+          NOT: {
+            id: params.id
+          }
+        }
+      });
+      
+      if (existingProject) {
+        return NextResponse.json(
+          { error: 'This color is already used by another project' },
+          { status: 400 }
+        );
+      }
+    }
+    
     const project = await prisma.project.update({
       where: { id: params.id },
       data: {
         name: body.name,
         description: body.description,
         status: body.status,
+        color: body.color,
         startDate: body.startDate ? new Date(body.startDate) : null,
         endDate: body.endDate ? new Date(body.endDate) : null,
       },
@@ -52,7 +72,8 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     });
     return NextResponse.json(project);
   } catch (error) {
-    return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    console.error('Error updating project:', error);
+    return NextResponse.json({ error: 'Failed to update project' }, { status: 500 });
   }
 }
 
