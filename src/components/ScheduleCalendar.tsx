@@ -156,6 +156,7 @@ export default function ScheduleCalendar() {
           durationMin: duration,
           machineId: updatedTask.machine?.id ?? null,
           operatorId: updatedTask.operator?.id ?? null,
+          projectId: updatedTask.project?.id ?? null,
         }),
       });
 
@@ -198,6 +199,7 @@ export default function ScheduleCalendar() {
           durationMin: newDuration,
           machineId: updatedTask.machine?.id ?? null,
           operatorId: updatedTask.operator?.id ?? null,
+          projectId: updatedTask.project?.id ?? null,
         }),
       });
 
