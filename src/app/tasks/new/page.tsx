@@ -243,18 +243,52 @@ export default function NewTaskPage() {
           {/* Scheduled Date and Duration */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label htmlFor="scheduledAt" className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Scheduled Date & Time
               </label>
-              <input
-                type="datetime-local"
-                id="scheduledAt"
-                name="scheduledAt"
-                value={formData.scheduledAt}
-                onChange={handleChange}
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                min={new Date().toISOString().slice(0, 16)}
-              />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label htmlFor="scheduledDate" className="block text-xs text-gray-500 mb-1">
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    id="scheduledDate"
+                    name="scheduledDate"
+                    value={formData.scheduledAt ? formData.scheduledAt.split('T')[0] : ''}
+                    onChange={(e) => {
+                      const date = e.target.value;
+                      const time = formData.scheduledAt ? formData.scheduledAt.split('T')[1] : '09:00';
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        scheduledAt: date ? `${date}T${time}` : ''
+                      }));
+                    }}
+                    className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="scheduledTime" className="block text-xs text-gray-500 mb-1">
+                    Time
+                  </label>
+                  <input
+                    type="time"
+                    id="scheduledTime"
+                    name="scheduledTime"
+                    value={formData.scheduledAt ? formData.scheduledAt.split('T')[1] || '09:00' : '09:00'}
+                    onChange={(e) => {
+                      const time = e.target.value;
+                      const date = formData.scheduledAt ? formData.scheduledAt.split('T')[0] : new Date().toISOString().split('T')[0];
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        scheduledAt: date ? `${date}T${time}` : ''
+                      }));
+                    }}
+                    className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              </div>
               <p className="mt-1 text-xs text-gray-500">
                 Leave empty if no specific schedule is required
               </p>
