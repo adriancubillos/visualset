@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { parseGMTMinus5DateTime } from '@/utils/timezone';
 
 export default function NewTaskPage() {
   const router = useRouter();
@@ -60,6 +61,13 @@ export default function NewTaskPage() {
     setLoading(true);
 
     try {
+      // Convert scheduledAt from form format to UTC using GMT-5 utilities
+      let scheduledAtUTC = null;
+      if (formData.scheduledAt) {
+        const [dateStr, timeStr] = formData.scheduledAt.split('T');
+        scheduledAtUTC = parseGMTMinus5DateTime(dateStr, timeStr).toISOString();
+      }
+
       const response = await fetch('/api/tasks', {
         method: 'POST',
         headers: {
@@ -70,7 +78,7 @@ export default function NewTaskPage() {
           projectId: formData.projectId || null,
           machineId: formData.machineId || null,
           operatorId: formData.operatorId || null,
-          scheduledAt: formData.scheduledAt || null,
+          scheduledAt: scheduledAtUTC,
         }),
       });
 

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { formatDateTimeGMTMinus5, parseGMTMinus5DateTime } from '@/utils/timezone';
 
 interface Task {
   id: string;
@@ -60,10 +61,13 @@ export default function EditTaskPage() {
         const taskData = await taskResponse.json();
         setTask(taskData);
         
-        // Format scheduledAt for datetime-local input
-        const scheduledAt = taskData.scheduledAt 
-          ? new Date(taskData.scheduledAt).toISOString().slice(0, 16)
-          : '';
+        // Format scheduledAt using GMT-5 timezone utilities
+        let scheduledAt = '';
+        if (taskData.scheduledAt) {
+          const date = new Date(taskData.scheduledAt);
+          const { date: dateStr, time: timeStr } = formatDateTimeGMTMinus5(date);
+          scheduledAt = `${dateStr}T${timeStr}`;
+        }
 
         setFormData({
           title: taskData.title,
@@ -108,6 +112,13 @@ export default function EditTaskPage() {
     setSaving(true);
 
     try {
+      // Convert scheduledAt from form format to UTC using GMT-5 utilities
+      let scheduledAtUTC = null;
+      if (formData.scheduledAt) {
+        const [dateStr, timeStr] = formData.scheduledAt.split('T');
+        scheduledAtUTC = parseGMTMinus5DateTime(dateStr, timeStr).toISOString();
+      }
+
       const response = await fetch(`/api/tasks/${params.id}`, {
         method: 'PUT',
         headers: {
@@ -118,7 +129,7 @@ export default function EditTaskPage() {
           projectId: formData.projectId || null,
           machineId: formData.machineId || null,
           operatorId: formData.operatorId || null,
-          scheduledAt: formData.scheduledAt || null,
+          scheduledAt: scheduledAtUTC,
         }),
       });
 

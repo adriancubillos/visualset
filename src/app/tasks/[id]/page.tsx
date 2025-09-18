@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import StatusBadge from '@/components/ui/StatusBadge';
+import { formatDateTimeGMTMinus5 } from '@/utils/timezone';
 
 interface Task {
   id: string;
@@ -251,7 +252,10 @@ export default function TaskDetailPage() {
               <div>
                 <dt className="text-sm font-medium text-gray-500">Scheduled At</dt>
                 <dd className="mt-1 text-sm text-gray-900">
-                  {new Date(task.scheduledAt).toLocaleString()}
+                  {(() => {
+                    const { date, time } = formatDateTimeGMTMinus5(new Date(task.scheduledAt));
+                    return `${date} ${time}`;
+                  })()}
                 </dd>
               </div>
             )}

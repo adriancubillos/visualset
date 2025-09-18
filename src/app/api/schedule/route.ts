@@ -72,6 +72,19 @@ export async function POST(req: Request) {
           machineId,
           id: { not: taskId },
           scheduledAt: { not: null },
+          AND: [
+            {
+              scheduledAt: {
+                lt: endTime, // Task starts before our end time
+              },
+            },
+            {
+              // Task ends after our start time (calculated field)
+              scheduledAt: {
+                gte: new Date(startTime.getTime() - 24 * 60 * 60 * 1000), // Look back max 24 hours
+              },
+            },
+          ],
         },
         include: { machine: true },
       });
@@ -105,7 +118,25 @@ export async function POST(req: Request) {
     // Operator conflict
     if (operatorId) {
       const operatorConflicts = await prisma.task.findMany({
-        where: { operatorId, id: { not: taskId }, scheduledAt: { not: null } },
+        where: {
+          operatorId,
+          id: { not: taskId },
+          scheduledAt: { not: null },
+          AND: [
+            {
+              scheduledAt: {
+                lt: endTime, // Task starts before our end time
+              },
+            },
+            {
+              // Task ends after our start time (calculated field)
+              scheduledAt: {
+                gte: new Date(startTime.getTime() - 24 * 60 * 60 * 1000), // Look back max 24 hours
+              },
+            },
+          ],
+        },
+        include: { operator: true },
       });
 
       const conflict = operatorConflicts.find((t: any) =>

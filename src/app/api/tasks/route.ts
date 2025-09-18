@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { parseGMTMinus5DateTime } from '@/utils/timezone';
 
 const prisma = new PrismaClient();
 
@@ -20,10 +21,16 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     
-    // Convert scheduledAt to proper ISO format if provided
+    // Handle scheduledAt with GMT-5 timezone
     let scheduledAt = null;
     if (body.scheduledAt && body.scheduledAt.trim() !== '') {
-      scheduledAt = new Date(body.scheduledAt).toISOString();
+      // If date and time are provided separately, parse as GMT-5
+      if (body.scheduledDate && body.startTime) {
+        scheduledAt = parseGMTMinus5DateTime(body.scheduledDate, body.startTime).toISOString();
+      } else {
+        // Fallback to direct parsing
+        scheduledAt = new Date(body.scheduledAt).toISOString();
+      }
     }
     
     const task = await prisma.task.create({

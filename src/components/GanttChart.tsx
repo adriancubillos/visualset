@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { format, addDays, startOfWeek, eachDayOfInterval, endOfWeek } from 'date-fns';
+import { useState, useEffect } from 'react';
 import TaskModal from './task/TaskModal';
+import { formatDateTimeGMTMinus5 } from '@/utils/timezone';
+import { addDays, format } from 'date-fns';
 
 interface Task {
   id: string;
