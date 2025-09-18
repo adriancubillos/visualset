@@ -9,7 +9,7 @@ import '../styles/calendar.css';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale'; // ✅ Named import
 import TaskModal from './task/TaskModal';
-import { formatDateTimeGMTMinus5, convertTaskTimeForDisplay, adjustDragPositionForTimezone } from '@/utils/timezone';
+import { formatDateTimeGMTMinus5, convertTaskTimeForDisplay, adjustDragPositionForTimezone, getProjectColor } from '@/utils/timezone';
 import { handleTaskAssignmentUpdate, TaskAssignmentUpdate } from '@/utils/taskAssignment';
 
 interface Task {
@@ -17,7 +17,7 @@ interface Task {
   title: string;
   scheduledAt: string;
   durationMin: number;
-  project: { id: string; name: string } | null;
+  project: { id: string; name: string; color?: string | null } | null;
   machine: { id: string; name: string } | null;
   operator: { id: string; name: string } | null;
 }
@@ -96,25 +96,10 @@ export default function ScheduleCalendar() {
     return machineMatch && operatorMatch && projectMatch;
   });
 
-  // Color coding function similar to GanttChart
+  // Color coding function using consistent project color system
   const getEventColor = (task: Task) => {
     if (!task.project) return '#6b7280'; // gray-500
-    
-    const colors = [
-      '#3b82f6', // blue-500
-      '#10b981', // green-500
-      '#8b5cf6', // purple-500
-      '#f59e0b', // orange-500
-      '#ec4899', // pink-500
-      '#6366f1', // indigo-500
-    ];
-    
-    const hash = task.project.id.split('').reduce((a, b) => {
-      a = ((a << 5) - a) + b.charCodeAt(0);
-      return a & a;
-    }, 0);
-    
-    return colors[Math.abs(hash) % colors.length];
+    return getProjectColor(task.project).hex;
   };
 
   const events: CalendarEvent[] = filteredTasks.map((task) => {

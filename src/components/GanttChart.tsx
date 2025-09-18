@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import TaskModal from './task/TaskModal';
-import { convertTaskTimeForGantt, convertDragPositionToUTC, adjustDragPositionForTimezone } from '@/utils/timezone';
+import { convertTaskTimeForGantt, convertDragPositionToUTC, adjustDragPositionForTimezone, getProjectColor } from '@/utils/timezone';
 import { addDays, format } from 'date-fns';
 import { handleTaskAssignmentUpdate, TaskAssignmentUpdate } from '@/utils/taskAssignment';
 
@@ -11,7 +11,7 @@ interface Task {
   title: string;
   scheduledAt: string;
   durationMin: number;
-  project: { id: string; name: string } | null;
+  project: { id: string; name: string; color?: string | null } | null;
   machine: { id: string; name: string } | null;
   operator: { id: string; name: string } | null;
 }
@@ -50,25 +50,10 @@ function GanttTask({ task, dayStart, pixelsPerMinute, onTaskClick, onTaskDrop }:
     }));
   };
 
-  // Color coding based on project or status
+  // Color coding based on project using consistent color system
   const getTaskColor = () => {
     if (!task.project) return 'bg-gray-500 border-gray-600 hover:bg-gray-600';
-    
-    const colors = [
-      'bg-blue-500 border-blue-600 hover:bg-blue-600',
-      'bg-green-500 border-green-600 hover:bg-green-600',
-      'bg-purple-500 border-purple-600 hover:bg-purple-600',
-      'bg-orange-500 border-orange-600 hover:bg-orange-600',
-      'bg-pink-500 border-pink-600 hover:bg-pink-600',
-      'bg-indigo-500 border-indigo-600 hover:bg-indigo-600',
-    ];
-    
-    const hash = task.project.id.split('').reduce((a, b) => {
-      a = ((a << 5) - a) + b.charCodeAt(0);
-      return a & a;
-    }, 0);
-    
-    return colors[Math.abs(hash) % colors.length];
+    return getProjectColor(task.project).tailwind;
   };
 
   return (
