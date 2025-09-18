@@ -8,17 +8,66 @@ async function main() {
 
     // --- Machines ---
     const machines = await Promise.all([
-        prisma.machine.create({ data: { name: 'CNC Lathe #1', type: 'CNC', status: 'AVAILABLE' } }),
-        prisma.machine.create({ data: { name: 'CNC Mill #2', type: 'CNC', status: 'AVAILABLE' } }),
-        prisma.machine.create({ data: { name: 'Welding Station A', type: 'Welding', status: 'AVAILABLE' } }),
-        prisma.machine.create({ data: { name: 'Drill Press #3', type: 'Drilling', status: 'AVAILABLE' } }),
+        prisma.machine.create({ data: { name: 'Cortadora CNC-001', type: 'CNC', status: 'AVAILABLE', location: 'Workshop A - Bay 1' } }),
+        prisma.machine.create({ data: { name: 'Impresora 3D Prusa', type: '3D_Printer', status: 'AVAILABLE', location: 'Workshop B - Station 3' } }),
+        prisma.machine.create({ data: { name: 'Soldadora MIG-200', type: 'Welding', status: 'AVAILABLE', location: 'Workshop A - Bay 2' } }),
+        prisma.machine.create({ data: { name: 'Taladro Industrial', type: 'Drilling', status: 'AVAILABLE', location: 'Workshop A - Bay 3' } }),
+        prisma.machine.create({ data: { name: 'Fresadora CNC-002', type: 'CNC', status: 'MAINTENANCE', location: 'Workshop A - Bay 4' } }),
+        prisma.machine.create({ data: { name: 'Cortadora Laser', type: 'Laser', status: 'AVAILABLE', location: 'Workshop B - Station 1' } }),
     ]);
 
     // --- Operators ---
     const operators = await Promise.all([
-        prisma.operator.create({ data: { name: 'John Smith', skills: ['CNC', 'Welding'], availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' } } }),
-        prisma.operator.create({ data: { name: 'Sarah Johnson', skills: ['CNC', 'Drilling', 'Assembly'], availability: { mon: '09-17', tue: '09-17', wed: '09-17', thu: '09-17', fri: '09-17' } } }),
-        prisma.operator.create({ data: { name: 'Mike Davis', skills: ['Welding', 'Assembly'], availability: { mon: '07-15', tue: '07-15', wed: '07-15', thu: '07-15', fri: '07-15' } } }),
+        prisma.operator.create({
+            data: {
+                name: 'Paula Castillo',
+                email: 'paula.castillo@workshop.com',
+                skills: ['CNC_MILL', 'WELDING'],
+                status: 'ACTIVE',
+                shift: 'DAY',
+                availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' }
+            }
+        }),
+        prisma.operator.create({
+            data: {
+                name: 'Jorge Gonzalez',
+                email: 'jorge.gonzalez@workshop.com',
+                skills: ['CNC_MILL', 'DRILL_PRESS', 'ASSEMBLY'],
+                status: 'ACTIVE',
+                shift: 'DAY',
+                availability: { mon: '09-17', tue: '09-17', wed: '09-17', thu: '09-17', fri: '09-17' }
+            }
+        }),
+        prisma.operator.create({
+            data: {
+                name: 'Mike Davis',
+                email: 'mike.davis@workshop.com',
+                skills: ['WELDING', 'ASSEMBLY'],
+                status: 'ACTIVE',
+                shift: 'EVENING',
+                availability: { mon: '07-15', tue: '07-15', wed: '07-15', thu: '07-15', fri: '07-15' }
+            }
+        }),
+        prisma.operator.create({
+            data: {
+                name: 'Ana Rodriguez',
+                email: 'ana.rodriguez@workshop.com',
+                skills: ['3D_PRINTING', 'QUALITY_CONTROL'],
+                status: 'ACTIVE',
+                shift: 'DAY',
+                availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' }
+            }
+        }),
+        prisma.operator.create({
+            data: {
+                name: 'Carlos Mendez',
+                email: 'carlos.mendez@workshop.com',
+                skills: ['LASER_CUTTING', 'SHEET_METAL'],
+                status: 'ON_LEAVE',
+                shift: 'DAY',
+                availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' }
+            }
+        }),
     ]);
 
     console.log(`✅ Created ${machines.length} machines`);
@@ -26,9 +75,56 @@ async function main() {
 
     // --- Projects ---
     const projects = await Promise.all([
-        prisma.project.create({ data: { name: 'Automotive Parts', description: 'Precision automotive components', status: 'ACTIVE', startDate: new Date('2025-01-01'), endDate: new Date('2025-03-31') } }),
-        prisma.project.create({ data: { name: 'Furniture Project', description: 'Luxury furniture production', status: 'ACTIVE', startDate: new Date('2025-01-15'), endDate: new Date('2025-04-15') } }),
-        prisma.project.create({ data: { name: 'Prototype Dev', description: 'New product R&D', status: 'ACTIVE', startDate: new Date('2025-02-01'), endDate: new Date('2025-05-01') } }),
+        prisma.project.create({
+            data: {
+                name: 'CORAZON DOS AND DONTS',
+                description: 'Precision automotive components manufacturing',
+                status: 'ACTIVE',
+                color: '#3B82F6', // Blue
+                startDate: new Date('2025-01-01'),
+                endDate: new Date('2025-03-31')
+            }
+        }),
+        prisma.project.create({
+            data: {
+                name: 'BANCA EXAGONAL',
+                description: 'Luxury hexagonal furniture production',
+                status: 'ACTIVE',
+                color: '#10B981', // Green
+                startDate: new Date('2025-01-15'),
+                endDate: new Date('2025-04-15')
+            }
+        }),
+        prisma.project.create({
+            data: {
+                name: 'ALGODONES',
+                description: 'Cotton processing equipment R&D',
+                status: 'ACTIVE',
+                color: '#F59E0B', // Amber
+                startDate: new Date('2025-02-01'),
+                endDate: new Date('2025-05-01')
+            }
+        }),
+        prisma.project.create({
+            data: {
+                name: 'TUNEL ARCOS',
+                description: 'Architectural arch tunnel construction components',
+                status: 'ON_HOLD',
+                color: '#EF4444', // Red
+                startDate: new Date('2025-02-01'),
+                endDate: new Date('2025-05-01')
+            }
+        }),
+        prisma.project.create({
+            data: {
+                name: 'PROTOTIPO MESA',
+                description: 'Custom table prototype development',
+                status: 'COMPLETED',
+                color: '#8B5CF6', // Purple
+                startDate: new Date('2024-12-01'),
+                endDate: new Date('2024-12-31')
+            }
+        }),
     ]);
 
     console.log(`✅ Created ${projects.length} projects`);
@@ -37,11 +133,11 @@ async function main() {
     const scheduledTasks: any[] = [];
     const startOfDay = 8; // 8 AM
     const endOfDay = 17; // 5 PM
-    
+
     // Track machine and operator schedules to prevent conflicts
-    const machineSchedules = new Map<string, Array<{start: Date, end: Date}>>();
-    const operatorSchedules = new Map<string, Array<{start: Date, end: Date}>>();
-    
+    const machineSchedules = new Map<string, Array<{ start: Date, end: Date }>>();
+    const operatorSchedules = new Map<string, Array<{ start: Date, end: Date }>>();
+
     // Initialize schedule maps
     machines.forEach(machine => machineSchedules.set(machine.id, []));
     operators.forEach(operator => operatorSchedules.set(operator.id, []));
@@ -98,7 +194,7 @@ async function main() {
                     title: `Task ${day}-${taskNum}`,
                     description: `Automated task for day ${day}, task ${taskNum}`,
                     durationMin: duration,
-                    status: 'SCHEDULED',
+                    status: 'IN_PROGRESS',
                     projectId: projects[(taskNum - 1) % projects.length].id,
                     machineId: machine.id,
                     operatorId: operator.id,
@@ -138,7 +234,7 @@ async function main() {
     });
 
     await prisma.task.createMany({ data: scheduledTasks, skipDuplicates: true });
-    console.log(`✅ Created ${scheduledTasks.length} tasks (${scheduledTasks.filter(t => t.status === 'SCHEDULED').length} scheduled, ${scheduledTasks.filter(t => t.status === 'PENDING').length} pending)`);
+    console.log(`✅ Created ${scheduledTasks.length} tasks (${scheduledTasks.filter(t => t.status === 'IN_PROGRESS').length} In Progress, ${scheduledTasks.filter(t => t.status === 'PENDING').length} pending)`);
 
     console.log('🎉 Database seeding completed successfully!');
 }
