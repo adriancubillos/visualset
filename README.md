@@ -7,121 +7,124 @@
 # Run seed script
     npx tsx prisma/scripts/seed.ts
 
-# Frontend & Backend (Combined)
-• Next.js (TypeScript, App Router)
-• Pages: dashboards, machine/operator management, scheduling board.
-• API routes: /api/machines, /api/operators, /api/tasks, /api/schedule.
-• Realtime: integrate with Socket.IO, Ably, or Supabase Realtime for live updates.
+# DEV
+# To run db locally using docker:
+    docker run --name workshop-db -e POSTGRES_USER=admin -e POSTGRES_PASSWORD=admin -e POSTGRES_DB=workshop -p 5432:5432 -d postgres:latest
 
-Scheduling / Optimization
-• If rules are simple (availability, shifts, skills) → handle directly in Next.js backend API routes.
-• If rules are complex (setup times, optimization, what-ifs) →
-• Deploy a Java microservice with OptaPlanner (best for advanced scheduling),
-• Or a Python FastAPI service with OR-Tools (Google’s optimization library).
-• Next.js just calls these services when scheduling is requested.
+# To add prisma to the project:
+    npm install prisma @prisma/client
 
-Database
-• PostgreSQL (via Prisma ORM) → structured data (operators, machines, tasks).
-• Redis → caching + task queue (rescheduling, real-time dashboards).
+# To start Prisma:
+    npx prisma init
 
-Hosting / Infra
-• Vercel (for the Next.js frontend + APIs) if you want quick deployment.
-• OR Docker/Kubernetes if you want to run everything in a factory-controlled environment (local or AWS/GCP/Azure).
+# Apply migration (Creates tables from schema.prisma)
+    npx prisma migrate dev --name init
 
-⸻
 
-🚀 Example MVP Flow (with Next.js) 1. Machine CRUD
-• /machines → table of machines with status (available, in maintenance, etc.).
-• API: GET /api/machines, POST /api/machines. 2. Operator CRUD
-• /operators → list with skills + shift availability.
-• API: GET /api/operators, POST /api/operators. 3. Task Assignment
-• /schedule → Gantt view with drag-and-drop tasks onto machines/operators.
-• API: POST /api/schedule → triggers scheduling engine (manual or auto). 4. Real-time
-• If a machine goes down, WebSocket event pushes to /schedule view → affected tasks flash in red. 5. Reports
-• /dashboard → operator utilization %, machine OEE (Overall Equipment Effectiveness), upcoming maintenance.
+# 🏗️ Proposed Page Organization Strategy
+1. Routing Structure
+/src/app/
+├── schedule/           # Existing - Gantt & Calendar views
+├── projects/
+│   ├── page.tsx       # Projects list/table
+│   ├── new/page.tsx   # Create new project
+│   └── [id]/
+│       ├── page.tsx   # View/Edit project
+│       └── edit/page.tsx
+├── tasks/
+│   ├── page.tsx       # Tasks list with filters
+│   ├── new/page.tsx   # Create new task
+│   └── [id]/
+│       ├── page.tsx   # View task details
+│       └── edit/page.tsx
+├── machines/
+│   ├── page.tsx       # Machines list with status
+│   ├── new/page.tsx   # Add new machine
+│   └── [id]/
+│       ├── page.tsx   # Machine details & maintenance
+│       └── edit/page.tsx
+└── operators/
+    ├── page.tsx       # Operators list with skills
+    ├── new/page.tsx   # Add new operator
+    └── [id]/
+        ├── page.tsx   # Operator profile & schedule
+        └── edit/page.tsx
+2. Component Architecture Pattern
+Reusable Components:
 
-🌐 API Endpoints (Next.js App Router)
+DataTable - Generic table with sorting, filtering, pagination
+FormModal - Reusable modal for create/edit operations
+StatusBadge - Consistent status indicators
+SearchFilter - Universal search and filter component
+ActionButton - Standardized action buttons (Edit, Delete, View)
+Entity-Specific Components:
 
-We’ll expose REST-style endpoints under /api.
-Later we can add GraphQL if needed.
+ProjectCard, TaskCard, MachineCard, OperatorCard
+ProjectForm, TaskForm, MachineForm, OperatorForm
+ProjectStats, MachineStatus, OperatorSkills
+3. Data Flow & State Management
+API Integration Pattern:
 
-Machines
-• GET /api/machines → list all machines
-• POST /api/machines → add new machine
-• PUT /api/machines/:id → update machine (e.g. status → MAINTENANCE)
-• DELETE /api/machines/:id
+Consistent CRUD operations for each entity
+Optimistic updates for better UX
+Error handling with toast notifications
+Loading states and skeleton components
+State Management:
 
-Operators
-• GET /api/operators → list all operators
-• POST /api/operators → add new operator
-• PUT /api/operators/:id → update operator (skills, availability)
-• DELETE /api/operators/:id
+React Query/TanStack Query for server state
+Local state for forms and UI interactions
+Context for global app state (user, theme, etc.)
+4. Navigation & UX Flow
+Main Navigation:
 
-Tasks
-• GET /api/tasks → list all tasks
-• POST /api/tasks → create task
-• PUT /api/tasks/:id → update task (status, assignment, scheduledAt)
-• DELETE /api/tasks/:id
+Dashboard → Schedule → Projects → Tasks → Machines → Operators
+Breadcrumb Navigation:
 
-📊 Frontend Views (Next.js Pages)
-• /machines → List & manage machines (status indicators).
-• /operators → List operators with skills + availability.
-• /tasks → Task backlog.
-• /schedule → Gantt/Calendar view with drag-and-drop (e.g., using react-big-calendar or dhtmlx-scheduler).
-• /dashboard → KPIs: machine utilization %, operator load, task progress.
+Projects > Project Name > Edit
+Tasks > Task #123 > Assign Machine
+Quick Actions:
 
-🔮 Next Steps
-• Scaffold a Next.js project (npx create-next-app@latest --ts).
-• Add Prisma + PostgreSQL.
-• Implement API routes for CRUD.
-• Build /machines, /operators, /tasks views with simple tables.
-• Add /schedule with drag-and-drop assignment.
+"Add New" buttons on each list page
+Bulk operations (delete, status change)
+Quick filters and search
+Export functionality
+5. Page Layout Consistency
+Standard Page Structure:
 
----
+Header: Title, breadcrumbs, primary actions
+Filters: Search, status filters, date ranges
+Content: Table/cards with data
+Pagination: Standard pagination controls
+Modals: Create/edit forms in modals or separate pages
+6. Implementation Priority
+Phase 1: Foundation
 
-4️⃣ Features You Now Have
+Generic DataTable and FormModal components
+Basic CRUD pages for Projects (simplest entity)
+Navigation structure
+Phase 2: Core Entities
 
-Weekly / daily calendar view of scheduled tasks
+Machines management (status tracking important)
+Operators management (skills & availability)
+Enhanced filtering and search
+Phase 3: Advanced Features
 
-Tasks show title + assigned machine
+Tasks management (complex relationships)
+Bulk operations
+Advanced reporting and analytics
+7. Technical Considerations
+Performance:
 
-Respects scheduledAt and durationMin
+Server-side pagination for large datasets
+Virtualized tables for 1000+ rows
+Image optimization for operator photos/machine images
+Accessibility:
 
-Ready for drag & drop or click to assign extensions
+Keyboard navigation
+Screen reader support
+High contrast mode support
+Mobile Responsiveness:
 
-5️⃣ Next Steps / Enhancements
-
-Color-code tasks by machine or operator.
-
-Add drag-and-drop to reschedule tasks interactively.
-
-Click event → open modal to update assignment (/api/schedule POST).
-
-Filter by machine/operator using dropdowns.
-
-Highlight conflicts if a task is double-booked (use API conflict info).
-
-If you want, I can extend this calendar to support drag-and-drop scheduling directly and call your /api/schedule endpoint to update assignments live.
-
-Next Enhancements
-
-Highlight conflicts: Use /api/schedule conflict response to visually mark blocked tasks.
-
-Drag by machine/operator lanes: Show multiple machines as separate rows (like a Gantt chart).
-
-Resize events: Allow changing duration by dragging edges (onEventResize).
-
----
-
-DEV
-to run db locally using docker:
-docker run --name workshop-db -e POSTGRES_USER=admin -e POSTGRES_PASSWORD=admin -e POSTGRES_DB=workshop -p 5432:5432 -d postgres:latest
-
-To add prisma to the project:
-npm install prisma @prisma/client
-
-To start Prisma:
-npx prisma init
-
-Apply migration (Creates tables from schema.prisma)
-npx prisma migrate dev --name init
+Responsive tables (stack on mobile)
+Touch-friendly buttons
+Simplified mobile navigation
