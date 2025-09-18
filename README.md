@@ -1,5 +1,8 @@
 # visualset
 
+# Ngork
+    ngrok http 3000
+
 # server commands
     pkill -f "next dev"
 
