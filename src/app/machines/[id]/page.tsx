@@ -157,7 +157,7 @@ export default function MachineDetailPage() {
           <h1 className="text-3xl font-bold text-gray-900">{machine.name}</h1>
           <div className="mt-2 flex items-center space-x-4">
             <StatusBadge 
-              status={machine.status.replace(/_/g, ' ')} 
+              status={machine.status ? machine.status.replace(/_/g, ' ') : 'Unknown'} 
               variant={getStatusVariant(machine.status)} 
             />
             <span className="text-gray-500">
@@ -199,7 +199,7 @@ export default function MachineDetailPage() {
                   : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
               }`}
             >
-              Mark as {status.replace(/_/g, ' ')}
+              Mark as {status ? status.replace(/_/g, ' ') : 'Unknown'}
             </button>
           ))}
         </div>
@@ -224,7 +224,7 @@ export default function MachineDetailPage() {
               <dt className="text-sm font-medium text-gray-500">Current Status</dt>
               <dd className="mt-1">
                 <StatusBadge 
-                  status={machine.status.replace(/_/g, ' ')} 
+                  status={machine.status ? machine.status.replace(/_/g, ' ') : 'Unknown'} 
                   variant={getStatusVariant(machine.status)} 
                 />
               </dd>

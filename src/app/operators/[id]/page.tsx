@@ -157,11 +157,11 @@ export default function OperatorDetailPage() {
           <h1 className="text-3xl font-bold text-gray-900">{operator.name}</h1>
           <div className="mt-2 flex items-center space-x-4">
             <StatusBadge 
-              status={operator.status.replace(/_/g, ' ')} 
+              status={operator.status ? operator.status.replace(/_/g, ' ') : 'Unknown'} 
               variant={getStatusVariant(operator.status)} 
             />
             <span className="text-gray-500">
-              {operator.shift.charAt(0) + operator.shift.slice(1).toLowerCase()} Shift
+              {operator.shift ? operator.shift.charAt(0) + operator.shift.slice(1).toLowerCase() : 'Unknown'} Shift
             </span>
             <span className="text-gray-500">
               {operator.email}
@@ -199,7 +199,7 @@ export default function OperatorDetailPage() {
                   : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
               }`}
             >
-              Mark as {status.replace(/_/g, ' ')}
+              Mark as {status ? status.replace(/_/g, ' ') : 'Unknown'}
             </button>
           ))}
         </div>
@@ -224,7 +224,7 @@ export default function OperatorDetailPage() {
               <dt className="text-sm font-medium text-gray-500">Current Status</dt>
               <dd className="mt-1">
                 <StatusBadge 
-                  status={operator.status.replace(/_/g, ' ')} 
+                  status={operator.status ? operator.status.replace(/_/g, ' ') : 'Unknown'} 
                   variant={getStatusVariant(operator.status)} 
                 />
               </dd>
@@ -232,7 +232,7 @@ export default function OperatorDetailPage() {
             <div>
               <dt className="text-sm font-medium text-gray-500">Shift</dt>
               <dd className="mt-1 text-sm text-gray-900">
-                {operator.shift.charAt(0) + operator.shift.slice(1).toLowerCase()}
+                {operator.shift ? operator.shift.charAt(0) + operator.shift.slice(1).toLowerCase() : 'Unknown'}
               </dd>
             </div>
             <div className="sm:col-span-2">

@@ -106,7 +106,7 @@ export default function MachinesPage() {
       header: 'Status',
       sortable: true,
       render: (status: string) => (
-        <StatusBadge status={status.replace(/_/g, ' ')} variant={getStatusVariant(status)} />
+        <StatusBadge status={status ? status.replace(/_/g, ' ') : 'Unknown'} variant={getStatusVariant(status)} />
       ),
     },
     {

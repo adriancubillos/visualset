@@ -116,7 +116,7 @@ export default function OperatorsPage() {
       header: 'Status',
       sortable: true,
       render: (status: string) => (
-        <StatusBadge status={status.replace(/_/g, ' ')} variant={getStatusVariant(status)} />
+        <StatusBadge status={status ? status.replace(/_/g, ' ') : 'Unknown'} variant={getStatusVariant(status)} />
       ),
     },
     {
@@ -124,7 +124,7 @@ export default function OperatorsPage() {
       header: 'Shift',
       sortable: true,
       render: (shift: string) => (
-        <span className="capitalize">{shift.toLowerCase()}</span>
+        <span className="capitalize">{shift ? shift.toLowerCase() : 'Unknown'}</span>
       ),
     },
   ];
