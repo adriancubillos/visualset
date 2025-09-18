@@ -46,10 +46,33 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 // DELETE /api/operators/[id]
 export async function DELETE(_: Request, { params }: { params: { id: string } }) {
   try {
+    // First, check if operator exists
+    const operator = await prisma.operator.findUnique({
+      where: { id: params.id },
+      include: { tasks: true }
+    });
+
+    if (!operator) {
+      return NextResponse.json({ error: 'Operator not found' }, { status: 404 });
+    }
+
+    // Check if operator has assigned tasks
+    if (operator.tasks.length > 0) {
+      // Update tasks to remove operator assignment before deleting
+      await prisma.task.updateMany({
+        where: { operatorId: params.id },
+        data: { operatorId: null }
+      });
+    }
+
+    // Now delete the operator
     await prisma.operator.delete({ where: { id: params.id } });
     return NextResponse.json({ message: 'Operator deleted successfully' });
   } catch (error) {
     console.error('Error deleting operator:', error);
-    return NextResponse.json({ error: 'Failed to delete operator' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Failed to delete operator', 
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }

@@ -166,6 +166,64 @@ export default function OperatorsPage() {
     window.location.href = `/operators/${operator.id}`;
   };
 
+  const handleDelete = async (operatorId: string, operatorName: string) => {
+    if (confirm(`Are you sure you want to delete operator "${operatorName}"?`)) {
+      try {
+        const response = await fetch(`/api/operators/${operatorId}`, {
+          method: 'DELETE',
+        });
+
+        if (response.ok) {
+          // Remove operator from local state to update UI immediately
+          const updatedOperators = operators.filter(op => op.id !== operatorId);
+          setOperators(updatedOperators);
+          setFilteredOperators(updatedOperators);
+        } else {
+          const errorData = await response.json();
+          console.error('Failed to delete operator:', errorData.error);
+          alert('Failed to delete operator: ' + (errorData.error || 'Unknown error'));
+        }
+      } catch (error) {
+        console.error('Error deleting operator:', error);
+        alert('Error deleting operator. Please try again.');
+      }
+    }
+  };
+
+  const handleStatusChange = async (operatorId: string, newStatus: string) => {
+    try {
+      const operator = operators.find(op => op.id === operatorId);
+      if (!operator) return;
+
+      const response = await fetch(`/api/operators/${operatorId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          ...operator,
+          status: newStatus 
+        }),
+      });
+
+      if (response.ok) {
+        const updatedOperator = await response.json();
+        const updatedOperators = operators.map(op => 
+          op.id === operatorId ? updatedOperator : op
+        );
+        setOperators(updatedOperators);
+        setFilteredOperators(updatedOperators);
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to update operator status:', errorData.error);
+        alert('Failed to update operator status: ' + (errorData.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error updating operator status:', error);
+      alert('Error updating operator status. Please try again.');
+    }
+  };
+
   const renderActions = (operator: Operator) => (
     <div className="flex space-x-2">
       <Link
@@ -174,21 +232,22 @@ export default function OperatorsPage() {
       >
         Edit
       </Link>
+      <div className="relative group">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            const newStatus = operator.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+            handleStatusChange(operator.id, newStatus);
+          }}
+          className="text-green-600 hover:text-green-900 text-sm font-medium"
+        >
+          {operator.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+        </button>
+      </div>
       <button
         onClick={(e) => {
           e.stopPropagation();
-          // Handle status change
-          console.log('Change status:', operator.id);
-        }}
-        className="text-green-600 hover:text-green-900 text-sm font-medium"
-      >
-        Status
-      </button>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          // Handle delete
-          console.log('Delete operator:', operator.id);
+          handleDelete(operator.id, operator.name);
         }}
         className="text-red-600 hover:text-red-900 text-sm font-medium"
       >
