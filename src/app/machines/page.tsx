@@ -224,18 +224,6 @@ export default function MachinesPage() {
       >
         Edit
       </Link>
-      <div className="relative group">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            const newStatus = machine.status === 'AVAILABLE' ? 'MAINTENANCE' : 'AVAILABLE';
-            handleStatusChange(machine.id, newStatus);
-          }}
-          className="text-green-600 hover:text-green-900 text-sm font-medium"
-        >
-          {machine.status === 'AVAILABLE' ? 'Maintenance' : 'Available'}
-        </button>
-      </div>
       <button
         onClick={(e) => {
           e.stopPropagation();
