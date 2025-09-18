@@ -1,20 +1,106 @@
+'use client';
+
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
 import StatusBadge from '@/components/ui/StatusBadge';
 
+interface DashboardStats {
+  activeProjects: number;
+  runningTasks: number;
+  availableMachines: number;
+  activeOperators: number;
+}
+
 export default function Dashboard() {
-  // Mock data for dashboard
-  const stats = [
-    { label: 'Active Projects', value: '12', change: '+2', changeType: 'increase' },
-    { label: 'Running Tasks', value: '8', change: '-1', changeType: 'decrease' },
-    { label: 'Available Machines', value: '15', change: '0', changeType: 'neutral' },
-    { label: 'Active Operators', value: '6', change: '+1', changeType: 'increase' },
+  const [stats, setStats] = useState<DashboardStats>({
+    activeProjects: 0,
+    runningTasks: 0,
+    availableMachines: 0,
+    activeOperators: 0,
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboardStats = async () => {
+      try {
+        const [projectsRes, tasksRes, machinesRes, operatorsRes] = await Promise.all([
+          fetch('/api/projects'),
+          fetch('/api/tasks'),
+          fetch('/api/machines'),
+          fetch('/api/operators')
+        ]);
+
+        const [projects, tasks, machines, operators] = await Promise.all([
+          projectsRes.json(),
+          tasksRes.json(),
+          machinesRes.json(),
+          operatorsRes.json()
+        ]);
+
+        setStats({
+          activeProjects: projects.filter((p: any) => p.status === 'ACTIVE').length,
+          runningTasks: tasks.filter((t: any) => t.status === 'IN_PROGRESS').length,
+          availableMachines: machines.filter((m: any) => m.status === 'AVAILABLE').length,
+          activeOperators: operators.filter((o: any) => o.status === 'ACTIVE').length,
+        });
+      } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardStats();
+  }, []);
+
+  const statsDisplay = [
+    { label: 'Active Projects', value: stats.activeProjects.toString(), change: '', changeType: 'neutral' },
+    { label: 'Running Tasks', value: stats.runningTasks.toString(), change: '', changeType: 'neutral' },
+    { label: 'Available Machines', value: stats.availableMachines.toString(), change: '', changeType: 'neutral' },
+    { label: 'Active Operators', value: stats.activeOperators.toString(), change: '', changeType: 'neutral' },
   ];
 
+  const [recentTasks, setRecentTasks] = useState<any[]>([]);
+  const [recentProjects, setRecentProjects] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchRecentData = async () => {
+      try {
+        const [tasksRes, projectsRes] = await Promise.all([
+          fetch('/api/tasks'),
+          fetch('/api/projects')
+        ]);
+
+        if (tasksRes.ok) {
+          const tasks = await tasksRes.json();
+          setRecentTasks(tasks.slice(0, 3)); // Get 3 most recent tasks
+        }
+
+        if (projectsRes.ok) {
+          const projects = await projectsRes.json();
+          setRecentProjects(projects.slice(0, 2)); // Get 2 most recent projects
+        }
+      } catch (error) {
+        console.error('Error fetching recent data:', error);
+      }
+    };
+
+    fetchRecentData();
+  }, []);
+
   const recentActivity = [
-    { id: '1', type: 'task', message: 'Task "CNC Milling Part A" completed', time: '2 minutes ago' },
-    { id: '2', type: 'machine', message: 'Machine "CNC-001" went offline', time: '15 minutes ago' },
-    { id: '3', type: 'project', message: 'New project "Engine Block Series" created', time: '1 hour ago' },
-    { id: '4', type: 'operator', message: 'Operator John Smith started shift', time: '2 hours ago' },
+    ...recentTasks.map((task: any) => ({
+      id: task.id,
+      type: 'task',
+      message: `Task "${task.title}" - ${task.status}`,
+      time: new Date(task.updatedAt).toLocaleDateString()
+    })),
+    ...recentProjects.map((project: any) => ({
+      id: project.id,
+      type: 'project', 
+      message: `Project "${project.name}" - ${project.status}`,
+      time: new Date(project.updatedAt).toLocaleDateString()
+    }))
   ];
 
   const quickActions = [
@@ -34,7 +120,15 @@ export default function Dashboard() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat) => (
+        {loading ? (
+          Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="bg-white rounded-lg shadow p-6 animate-pulse">
+              <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+              <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+            </div>
+          ))
+        ) : (
+          statsDisplay.map((stat) => (
           <div key={stat.label} className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -49,7 +143,8 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-        ))}
+          ))
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
