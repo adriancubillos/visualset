@@ -5,8 +5,9 @@ const prisma = new PrismaClient();
 
 // GET /api/projects/[id]
 export async function GET(req: Request, { params }: { params: { id: string } }) {
+  const { id } = await params;
   const project = await prisma.project.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       tasks: {
         include: {
@@ -30,6 +31,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 // PUT /api/projects/[id]
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
   try {
+    const { id } = await params;
     const body = await req.json();
     
     // Check if color is being updated and validate uniqueness
@@ -38,7 +40,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         where: {
           color: body.color,
           NOT: {
-            id: params.id
+            id
           }
         }
       });
@@ -52,7 +54,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     }
     
     const project = await prisma.project.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         name: body.name,
         description: body.description,
@@ -80,8 +82,9 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 // DELETE /api/projects/[id]
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   try {
+    const { id } = await params;
     await prisma.project.delete({
-      where: { id: params.id },
+      where: { id },
     });
     return NextResponse.json({ message: 'Project deleted successfully' });
   } catch (error) {

@@ -6,8 +6,9 @@ const prisma = new PrismaClient();
 // GET /api/tasks/[id]
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
+    const { id } = await params;
     const task = await prisma.task.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         project: true,
         machine: true,
@@ -29,6 +30,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 // PUT /api/tasks/[id]
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
   try {
+    const { id } = await params;
     const body = await req.json();
     
     // Convert scheduledAt to proper ISO format if provided
@@ -38,7 +40,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     }
     
     const task = await prisma.task.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         title: body.title,
         description: body.description,
@@ -62,10 +64,33 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
+// PATCH /api/tasks/[id] - For partial updates like status changes
+export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+  try {
+    const { id } = await params;
+    const body = await req.json();
+    
+    const task = await prisma.task.update({
+      where: { id },
+      data: body,
+      include: {
+        project: true,
+        machine: true,
+        operator: true,
+      },
+    });
+    return NextResponse.json(task);
+  } catch (error) {
+    console.error('Error updating task:', error);
+    return NextResponse.json({ error: 'Failed to update task' }, { status: 500 });
+  }
+}
+
 // DELETE /api/tasks/[id]
 export async function DELETE(_: Request, { params }: { params: { id: string } }) {
   try {
-    await prisma.task.delete({ where: { id: params.id } });
+    const { id } = await params;
+    await prisma.task.delete({ where: { id } });
     return NextResponse.json({ message: 'Task deleted successfully' });
   } catch (error) {
     console.error('Error deleting task:', error);

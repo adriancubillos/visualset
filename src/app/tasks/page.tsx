@@ -118,12 +118,6 @@ export default function TasksPage() {
       sortable: true,
     },
     {
-      key: 'project' as keyof Task,
-      header: 'Project',
-      sortable: false,
-      render: (project: any) => project?.name || 'No Project',
-    },
-    {
       key: 'status' as keyof Task,
       header: 'Status',
       sortable: true,
@@ -132,36 +126,28 @@ export default function TasksPage() {
       ),
     },
     {
-      key: 'priority' as keyof Task,
-      header: 'Priority',
-      sortable: true,
-      render: (priority: string) => (
-        <StatusBadge status={priority} variant={getPriorityVariant(priority)} size="sm" />
+      key: 'project' as keyof Task,
+      header: 'Project',
+      sortable: false,
+      render: (project: any) => (
+        <span className="text-sm">{project?.name || 'No Project'}</span>
       ),
     },
     {
       key: 'operator' as keyof Task,
       header: 'Operator',
       sortable: false,
-      render: (operator: any) => operator?.name || 'Unassigned',
-    },
-    {
-      key: 'machine' as keyof Task,
-      header: 'Machine',
-      sortable: false,
-      render: (machine: any) => machine?.name || 'No Machine',
-    },
-    {
-      key: 'durationMin' as keyof Task,
-      header: 'Duration',
-      sortable: true,
-      render: (duration: number) => formatDuration(duration),
+      render: (operator: any) => (
+        <span className="text-sm">{operator?.name || 'Unassigned'}</span>
+      ),
     },
     {
       key: 'scheduledAt' as keyof Task,
       header: 'Scheduled',
       sortable: true,
-      render: (date: string) => new Date(date).toLocaleDateString(),
+      render: (date: string) => (
+        <span className="text-sm">{new Date(date).toLocaleDateString()}</span>
+      ),
     },
   ];
 
@@ -200,6 +186,63 @@ export default function TasksPage() {
     window.location.href = `/tasks/${task.id}`;
   };
 
+  const handleStatusChange = async (taskId: string, currentStatus: string) => {
+    const statusFlow = {
+      'PENDING': 'IN_PROGRESS',
+      'IN_PROGRESS': 'COMPLETED',
+      'COMPLETED': 'PENDING',
+      'CANCELLED': 'PENDING'
+    };
+    
+    const newStatus = statusFlow[currentStatus as keyof typeof statusFlow] || 'PENDING';
+    
+    try {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      
+      if (response.ok) {
+        // Update local state
+        const updatedTasks = tasks.map(task => 
+          task.id === taskId ? { ...task, status: newStatus } : task
+        );
+        setTasks(updatedTasks);
+        setFilteredTasks(updatedTasks);
+      } else {
+        console.error('Failed to update task status');
+      }
+    } catch (error) {
+      console.error('Error updating task status:', error);
+    }
+  };
+
+  const handleDelete = async (taskId: string) => {
+    if (!confirm('Are you sure you want to delete this task?')) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: 'DELETE',
+      });
+      
+      if (response.ok) {
+        // Update local state
+        const updatedTasks = tasks.filter(task => task.id !== taskId);
+        setTasks(updatedTasks);
+        setFilteredTasks(updatedTasks);
+      } else {
+        console.error('Failed to delete task');
+      }
+    } catch (error) {
+      console.error('Error deleting task:', error);
+    }
+  };
+
   const renderActions = (task: Task) => (
     <div className="flex space-x-2">
       <Link
@@ -211,18 +254,7 @@ export default function TasksPage() {
       <button
         onClick={(e) => {
           e.stopPropagation();
-          // Handle status change
-          console.log('Change status:', task.id);
-        }}
-        className="text-green-600 hover:text-green-900 text-sm font-medium"
-      >
-        Status
-      </button>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          // Handle delete
-          console.log('Delete task:', task.id);
+          handleDelete(task.id);
         }}
         className="text-red-600 hover:text-red-900 text-sm font-medium"
       >

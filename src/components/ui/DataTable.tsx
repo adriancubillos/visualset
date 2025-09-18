@@ -70,7 +70,8 @@ export default function DataTable<T extends { id: string }>({
 
   return (
     <div className="bg-white shadow rounded-lg overflow-hidden">
-      <table className="min-w-full divide-y divide-gray-200">
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
             {columns.map((column) => (
@@ -92,7 +93,7 @@ export default function DataTable<T extends { id: string }>({
               </th>
             ))}
             {actions && (
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="sticky right-0 bg-gray-50 px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider border-l border-gray-200">
                 Actions
               </th>
             )}
@@ -115,7 +116,7 @@ export default function DataTable<T extends { id: string }>({
                 </td>
               ))}
               {actions && (
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <td className="sticky right-0 bg-white px-6 py-4 whitespace-nowrap text-right text-sm font-medium border-l border-gray-200">
                   {actions(item)}
                 </td>
               )}
@@ -123,6 +124,7 @@ export default function DataTable<T extends { id: string }>({
           ))}
         </tbody>
       </table>
+      </div>
       
       {data.length === 0 && (
         <div className="text-center py-12">

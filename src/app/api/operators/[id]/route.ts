@@ -6,8 +6,9 @@ const prisma = new PrismaClient();
 // GET /api/operators/[id]
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
+    const { id } = await params;
     const operator = await prisma.operator.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!operator) {
@@ -24,9 +25,10 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 // PUT /api/operators/[id]
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
   try {
+    const { id } = await params;
     const body = await req.json();
     const operator = await prisma.operator.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         name: body.name,
         email: body.email,
@@ -46,9 +48,10 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 // DELETE /api/operators/[id]
 export async function DELETE(_: Request, { params }: { params: { id: string } }) {
   try {
+    const { id } = await params;
     // First, check if operator exists
     const operator = await prisma.operator.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { tasks: true }
     });
 
@@ -60,13 +63,13 @@ export async function DELETE(_: Request, { params }: { params: { id: string } })
     if (operator.tasks.length > 0) {
       // Update tasks to remove operator assignment before deleting
       await prisma.task.updateMany({
-        where: { operatorId: params.id },
+        where: { operatorId: id },
         data: { operatorId: null }
       });
     }
 
     // Now delete the operator
-    await prisma.operator.delete({ where: { id: params.id } });
+    await prisma.operator.delete({ where: { id } });
     return NextResponse.json({ message: 'Operator deleted successfully' });
   } catch (error) {
     console.error('Error deleting operator:', error);

@@ -6,8 +6,9 @@ const prisma = new PrismaClient();
 // GET /api/schedule/:id
 export async function GET(_: Request, { params }: { params: { id: string } }) {
   try {
+    const { id } = await params;
     const task = await prisma.task.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         machine: true,
         operator: true,
