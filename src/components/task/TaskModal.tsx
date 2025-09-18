@@ -27,7 +27,7 @@ export default function TaskModal({ isOpen, onClose, task, onSave, projects, mac
   if (!isOpen || !task) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-gray-500/50 flex items-center justify-center z-50">
       <div className="bg-white p-8 rounded-lg shadow-xl w-96 max-w-md mx-4 border">
         <h3 className="text-xl font-bold mb-6 text-gray-900">Update Assignment</h3>
 

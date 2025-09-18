@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Workshop Manager",
-  description: "Manufacturing workshop management system",
+  title: "VisualSet",
+  description: "Sistema de Administracion de Proyectos, Tareas, Maquinas y Operadores",
 };
 
 export default function RootLayout({
