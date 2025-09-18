@@ -17,6 +17,7 @@ export async function POST(req: Request) {
       name: body.name,
       type: body.type,
       status: body.status ?? 'AVAILABLE',
+      location: body.location,
     },
   });
   return NextResponse.json(machine);

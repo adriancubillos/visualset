@@ -38,10 +38,10 @@ export default function EditMachinePage() {
         const machineData = await response.json();
         setMachine(machineData);
         setFormData({
-          name: machineData.name,
-          type: machineData.type,
-          status: machineData.status,
-          location: machineData.location,
+          name: machineData.name || '',
+          type: machineData.type || MACHINE_TYPES[0].value,
+          status: machineData.status || 'AVAILABLE',
+          location: machineData.location || '',
         });
         setLoading(false);
       } catch (error) {
@@ -233,9 +233,9 @@ export default function EditMachinePage() {
             </Link>
             <button
               type="submit"
-              disabled={saving || !formData.name.trim() || !formData.location.trim()}
+              disabled={saving || !formData.name.trim() || !formData.location?.trim()}
               className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                saving || !formData.name.trim() || !formData.location.trim()
+                saving || !formData.name.trim() || !formData.location?.trim()
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700'
               }`}

@@ -158,6 +158,64 @@ export default function MachinesPage() {
     window.location.href = `/machines/${machine.id}`;
   };
 
+  const handleDelete = async (machineId: string, machineName: string) => {
+    if (confirm(`Are you sure you want to delete machine "${machineName}"?`)) {
+      try {
+        const response = await fetch(`/api/machines/${machineId}`, {
+          method: 'DELETE',
+        });
+
+        if (response.ok) {
+          // Remove machine from local state to update UI immediately
+          const updatedMachines = machines.filter(m => m.id !== machineId);
+          setMachines(updatedMachines);
+          setFilteredMachines(updatedMachines);
+        } else {
+          const errorData = await response.json();
+          console.error('Failed to delete machine:', errorData.error);
+          alert('Failed to delete machine: ' + (errorData.error || 'Unknown error'));
+        }
+      } catch (error) {
+        console.error('Error deleting machine:', error);
+        alert('Error deleting machine. Please try again.');
+      }
+    }
+  };
+
+  const handleStatusChange = async (machineId: string, newStatus: string) => {
+    try {
+      const machine = machines.find(m => m.id === machineId);
+      if (!machine) return;
+
+      const response = await fetch(`/api/machines/${machineId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          ...machine,
+          status: newStatus 
+        }),
+      });
+
+      if (response.ok) {
+        const updatedMachine = await response.json();
+        const updatedMachines = machines.map(m => 
+          m.id === machineId ? updatedMachine : m
+        );
+        setMachines(updatedMachines);
+        setFilteredMachines(updatedMachines);
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to update machine status:', errorData.error);
+        alert('Failed to update machine status: ' + (errorData.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error updating machine status:', error);
+      alert('Error updating machine status. Please try again.');
+    }
+  };
+
   const renderActions = (machine: Machine) => (
     <div className="flex space-x-2">
       <Link
@@ -166,21 +224,22 @@ export default function MachinesPage() {
       >
         Edit
       </Link>
+      <div className="relative group">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            const newStatus = machine.status === 'AVAILABLE' ? 'MAINTENANCE' : 'AVAILABLE';
+            handleStatusChange(machine.id, newStatus);
+          }}
+          className="text-green-600 hover:text-green-900 text-sm font-medium"
+        >
+          {machine.status === 'AVAILABLE' ? 'Maintenance' : 'Available'}
+        </button>
+      </div>
       <button
         onClick={(e) => {
           e.stopPropagation();
-          // Handle status change
-          console.log('Change status:', machine.id);
-        }}
-        className="text-green-600 hover:text-green-900 text-sm font-medium"
-      >
-        Status
-      </button>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          // Handle delete
-          console.log('Delete machine:', machine.id);
+          handleDelete(machine.id, machine.name);
         }}
         className="text-red-600 hover:text-red-900 text-sm font-medium"
       >
