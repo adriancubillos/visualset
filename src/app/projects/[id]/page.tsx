@@ -10,8 +10,10 @@ interface Project {
   name: string;
   description: string;
   status: string;
+  color?: string;
   createdAt: string;
   updatedAt: string;
+  tasks?: any[];
 }
 
 export default function ProjectDetailPage() {
@@ -23,20 +25,13 @@ export default function ProjectDetailPage() {
   useEffect(() => {
     const fetchProject = async () => {
       try {
-        // Mock data - replace with actual API call
-        const mockProject: Project = {
-          id: params.id as string,
-          name: 'Engine Block Series',
-          description: 'Manufacturing engine blocks for automotive client. This project involves precision machining of aluminum engine blocks with tight tolerances and high-quality surface finishes.',
-          status: 'ACTIVE',
-          createdAt: '2024-01-15',
-          updatedAt: '2024-01-20',
-        };
-
-        setTimeout(() => {
-          setProject(mockProject);
-          setLoading(false);
-        }, 500);
+        const response = await fetch(`/api/projects/${params.id}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch project');
+        }
+        const projectData = await response.json();
+        setProject(projectData);
+        setLoading(false);
       } catch (error) {
         console.error('Error fetching project:', error);
         setLoading(false);
@@ -202,9 +197,27 @@ export default function ProjectDetailPage() {
           </div>
         </div>
         <div className="px-6 py-4">
-          <div className="text-center py-8 text-gray-500">
-            No tasks assigned to this project yet.
-          </div>
+          {project.tasks && project.tasks.length > 0 ? (
+            <div className="space-y-4">
+              {project.tasks.map((task: any) => (
+                <div key={task.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                  <div>
+                    <h3 className="font-medium text-gray-900">{task.title}</h3>
+                    <p className="text-sm text-gray-500">{task.description}</p>
+                    <div className="mt-2 flex items-center space-x-4 text-xs text-gray-500">
+                      {task.machine && <span>Machine: {task.machine.name}</span>}
+                      {task.operator && <span>Operator: {task.operator.name}</span>}
+                    </div>
+                  </div>
+                  <StatusBadge status={task.status} variant={getStatusVariant(task.status)} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              No tasks assigned to this project yet.
+            </div>
+          )}
         </div>
       </div>
 
@@ -219,7 +232,7 @@ export default function ProjectDetailPage() {
             </div>
             <div className="ml-4">
               <div className="text-sm font-medium text-gray-500">Total Tasks</div>
-              <div className="text-2xl font-bold text-gray-900">0</div>
+              <div className="text-2xl font-bold text-gray-900">{project.tasks?.length || 0}</div>
             </div>
           </div>
         </div>
@@ -233,7 +246,9 @@ export default function ProjectDetailPage() {
             </div>
             <div className="ml-4">
               <div className="text-sm font-medium text-gray-500">Machines Used</div>
-              <div className="text-2xl font-bold text-gray-900">0</div>
+              <div className="text-2xl font-bold text-gray-900">
+                {project.tasks ? new Set(project.tasks.filter(t => t.machine).map(t => t.machine.id)).size : 0}
+              </div>
             </div>
           </div>
         </div>
@@ -247,7 +262,9 @@ export default function ProjectDetailPage() {
             </div>
             <div className="ml-4">
               <div className="text-sm font-medium text-gray-500">Operators Assigned</div>
-              <div className="text-2xl font-bold text-gray-900">0</div>
+              <div className="text-2xl font-bold text-gray-900">
+                {project.tasks ? new Set(project.tasks.filter(t => t.operator).map(t => t.operator.id)).size : 0}
+              </div>
             </div>
           </div>
         </div>

@@ -25,22 +25,13 @@ export default function OperatorDetailPage() {
   useEffect(() => {
     const fetchOperator = async () => {
       try {
-        // Mock data - replace with actual API call
-        const mockOperator: Operator = {
-          id: params.id as string,
-          name: 'John Smith',
-          email: 'john.smith@workshop.com',
-          skills: ['CNC_MILL', 'CNC_LATHE', 'QUALITY_CONTROL'],
-          status: 'ACTIVE',
-          shift: 'DAY',
-          createdAt: '2024-01-10',
-          updatedAt: '2024-01-20',
-        };
-
-        setTimeout(() => {
-          setOperator(mockOperator);
-          setLoading(false);
-        }, 500);
+        const response = await fetch(`/api/operators/${params.id}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch operator');
+        }
+        const operatorData = await response.json();
+        setOperator(operatorData);
+        setLoading(false);
       } catch (error) {
         console.error('Error fetching operator:', error);
         setLoading(false);

@@ -30,27 +30,19 @@ export default function EditMachinePage() {
   useEffect(() => {
     const fetchMachine = async () => {
       try {
-        // Mock data - replace with actual API call
-        const mockMachine: Machine = {
-          id: params.id as string,
-          name: 'CNC-001',
-          type: 'CNC_MILL',
-          status: 'AVAILABLE',
-          location: 'Workshop A, Bay 1',
-          createdAt: '2024-01-10',
-          updatedAt: '2024-01-20',
-        };
-
-        setTimeout(() => {
-          setMachine(mockMachine);
-          setFormData({
-            name: mockMachine.name,
-            type: mockMachine.type,
-            status: mockMachine.status,
-            location: mockMachine.location,
-          });
-          setLoading(false);
-        }, 500);
+        const response = await fetch(`/api/machines/${params.id}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch machine');
+        }
+        const machineData = await response.json();
+        setMachine(machineData);
+        setFormData({
+          name: machineData.name,
+          type: machineData.type,
+          status: machineData.status,
+          location: machineData.location,
+        });
+        setLoading(false);
       } catch (error) {
         console.error('Error fetching machine:', error);
         setLoading(false);

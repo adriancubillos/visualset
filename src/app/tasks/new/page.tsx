@@ -70,16 +70,20 @@ export default function NewTaskPage() {
           projectId: formData.projectId || null,
           machineId: formData.machineId || null,
           operatorId: formData.operatorId || null,
+          scheduledAt: formData.scheduledAt || null,
         }),
       });
 
       if (response.ok) {
         router.push('/tasks');
       } else {
-        console.error('Failed to create task');
+        const errorData = await response.json();
+        console.error('Failed to create task:', errorData.error);
+        alert('Failed to create task: ' + (errorData.error || 'Unknown error'));
       }
     } catch (error) {
       console.error('Error creating task:', error);
+      alert('Error creating task. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -249,7 +253,11 @@ export default function NewTaskPage() {
                 value={formData.scheduledAt}
                 onChange={handleChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                min={new Date().toISOString().slice(0, 16)}
               />
+              <p className="mt-1 text-xs text-gray-500">
+                Leave empty if no specific schedule is required
+              </p>
             </div>
 
             <div>
