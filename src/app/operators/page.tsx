@@ -5,6 +5,7 @@ import Link from 'next/link';
 import DataTable from '@/components/ui/DataTable';
 import SearchFilter from '@/components/ui/SearchFilter';
 import StatusBadge from '@/components/ui/StatusBadge';
+import TableActions from '@/components/ui/TableActions';
 
 interface Operator {
   id: string;
@@ -166,8 +167,8 @@ export default function OperatorsPage() {
     window.location.href = `/operators/${operator.id}`;
   };
 
-  const handleDelete = async (operatorId: string, operatorName: string) => {
-    if (confirm(`Are you sure you want to delete operator "${operatorName}"?`)) {
+  const handleDelete = async (operatorId: string, operatorName?: string) => {
+    if (confirm(`Are you sure you want to delete operator "${operatorName || 'this operator'}"?`)) {
       try {
         const response = await fetch(`/api/operators/${operatorId}`, {
           method: 'DELETE',
@@ -225,14 +226,12 @@ export default function OperatorsPage() {
   };
 
   const renderActions = (operator: Operator) => (
-    <div className="flex space-x-2">
-      <Link
-        href={`/operators/${operator.id}/edit`}
-        className="text-blue-600 hover:text-blue-900 text-sm font-medium"
-      >
-        Edit
-      </Link>
-      <div className="relative group">
+    <TableActions
+      itemId={operator.id}
+      itemName={operator.name}
+      editPath={`/operators/${operator.id}/edit`}
+      onDelete={handleDelete}
+      extraActions={
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -243,17 +242,8 @@ export default function OperatorsPage() {
         >
           {operator.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
         </button>
-      </div>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          handleDelete(operator.id, operator.name);
-        }}
-        className="text-red-600 hover:text-red-900 text-sm font-medium"
-      >
-        Delete
-      </button>
-    </div>
+      }
+    />
   );
 
   // Calculate statistics

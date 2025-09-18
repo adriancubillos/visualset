@@ -5,6 +5,7 @@ import Link from 'next/link';
 import DataTable from '@/components/ui/DataTable';
 import SearchFilter from '@/components/ui/SearchFilter';
 import StatusBadge from '@/components/ui/StatusBadge';
+import TableActions from '@/components/ui/TableActions';
 
 interface Task {
   id: string;
@@ -220,8 +221,8 @@ export default function TasksPage() {
     }
   };
 
-  const handleDelete = async (taskId: string) => {
-    if (!confirm('Are you sure you want to delete this task?')) {
+  const handleDelete = async (taskId: string, taskName?: string) => {
+    if (!confirm(`Are you sure you want to delete task "${taskName || 'this task'}"?`)) {
       return;
     }
     
@@ -244,23 +245,12 @@ export default function TasksPage() {
   };
 
   const renderActions = (task: Task) => (
-    <div className="flex space-x-2">
-      <Link
-        href={`/tasks/${task.id}/edit`}
-        className="text-blue-600 hover:text-blue-900 text-sm font-medium"
-      >
-        Edit
-      </Link>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          handleDelete(task.id);
-        }}
-        className="text-red-600 hover:text-red-900 text-sm font-medium"
-      >
-        Delete
-      </button>
-    </div>
+    <TableActions
+      itemId={task.id}
+      itemName={task.title}
+      editPath={`/tasks/${task.id}/edit`}
+      onDelete={handleDelete}
+    />
   );
 
   // Calculate statistics

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import DataTable from '@/components/ui/DataTable';
 import SearchFilter from '@/components/ui/SearchFilter';
 import StatusBadge from '@/components/ui/StatusBadge';
+import TableActions from '@/components/ui/TableActions';
 
 interface Project {
   id: string;
@@ -132,25 +133,37 @@ export default function ProjectsPage() {
     window.location.href = `/projects/${project.id}`;
   };
 
+  const handleDelete = async (projectId: string, projectName?: string) => {
+    if (confirm(`Are you sure you want to delete project "${projectName || 'this project'}"?`)) {
+      try {
+        const response = await fetch(`/api/projects/${projectId}`, {
+          method: 'DELETE',
+        });
+
+        if (response.ok) {
+          // Remove project from local state to update UI immediately
+          const updatedProjects = projects.filter(p => p.id !== projectId);
+          setProjects(updatedProjects);
+          setFilteredProjects(updatedProjects);
+        } else {
+          const errorData = await response.json();
+          console.error('Failed to delete project:', errorData.error);
+          alert('Failed to delete project: ' + (errorData.error || 'Unknown error'));
+        }
+      } catch (error) {
+        console.error('Error deleting project:', error);
+        alert('Error deleting project. Please try again.');
+      }
+    }
+  };
+
   const renderActions = (project: Project) => (
-    <div className="flex space-x-2">
-      <Link
-        href={`/projects/${project.id}/edit`}
-        className="text-blue-600 hover:text-blue-900 text-sm font-medium"
-      >
-        Edit
-      </Link>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          // Handle delete
-          console.log('Delete project:', project.id);
-        }}
-        className="text-red-600 hover:text-red-900 text-sm font-medium"
-      >
-        Delete
-      </button>
-    </div>
+    <TableActions
+      itemId={project.id}
+      itemName={project.name}
+      editPath={`/projects/${project.id}/edit`}
+      onDelete={handleDelete}
+    />
   );
 
   return (

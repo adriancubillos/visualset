@@ -5,6 +5,7 @@ import Link from 'next/link';
 import DataTable from '@/components/ui/DataTable';
 import SearchFilter from '@/components/ui/SearchFilter';
 import StatusBadge from '@/components/ui/StatusBadge';
+import TableActions from '@/components/ui/TableActions';
 
 interface Machine {
   id: string;
@@ -158,8 +159,8 @@ export default function MachinesPage() {
     window.location.href = `/machines/${machine.id}`;
   };
 
-  const handleDelete = async (machineId: string, machineName: string) => {
-    if (confirm(`Are you sure you want to delete machine "${machineName}"?`)) {
+  const handleDelete = async (machineId: string, machineName?: string) => {
+    if (confirm(`Are you sure you want to delete machine "${machineName || 'this machine'}"?`)) {
       try {
         const response = await fetch(`/api/machines/${machineId}`, {
           method: 'DELETE',
@@ -217,23 +218,12 @@ export default function MachinesPage() {
   };
 
   const renderActions = (machine: Machine) => (
-    <div className="flex space-x-2">
-      <Link
-        href={`/machines/${machine.id}/edit`}
-        className="text-blue-600 hover:text-blue-900 text-sm font-medium"
-      >
-        Edit
-      </Link>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          handleDelete(machine.id, machine.name);
-        }}
-        className="text-red-600 hover:text-red-900 text-sm font-medium"
-      >
-        Delete
-      </button>
-    </div>
+    <TableActions
+      itemId={machine.id}
+      itemName={machine.name}
+      editPath={`/machines/${machine.id}/edit`}
+      onDelete={handleDelete}
+    />
   );
 
   // Calculate statistics
