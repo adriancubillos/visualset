@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import TaskModal from './task/TaskModal';
-import { convertTaskTimeForGantt, convertDragPositionToUTC, adjustDragPositionForTimezone, getProjectColor } from '@/utils/timezone';
+import { convertTaskTimeForGantt, convertDragPositionToUTC, adjustDragPositionForTimezone } from '@/utils/timezone';
+import { getProjectColor } from '@/utils/colors';
 import { addDays, format } from 'date-fns';
 import { handleTaskAssignmentUpdate, TaskAssignmentUpdate } from '@/utils/taskAssignment';
 
@@ -53,7 +54,14 @@ function GanttTask({ task, dayStart, pixelsPerMinute, onTaskClick, onTaskDrop }:
   // Color coding based on project using consistent color system
   const getTaskColor = () => {
     if (!task.project) return 'bg-gray-500 border-gray-600 hover:bg-gray-600';
-    return getProjectColor(task.project).tailwind;
+    const color = getProjectColor(task.project);
+    return color.tailwind;
+  };
+
+  const getTaskStyle = () => {
+    if (!task.project) return {};
+    const color = getProjectColor(task.project);
+    return color.style || {};
   };
 
   return (
@@ -64,7 +72,8 @@ function GanttTask({ task, dayStart, pixelsPerMinute, onTaskClick, onTaskDrop }:
         width: `${Math.max(width, 100)}px`,
         height: '32px',
         zIndex: 10,
-        top: '6px'
+        top: '6px',
+        ...getTaskStyle()
       }}
       draggable
       onDragStart={handleDragStart}

@@ -9,7 +9,8 @@ import '../styles/calendar.css';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale'; // ✅ Named import
 import TaskModal from './task/TaskModal';
-import { formatDateTimeGMTMinus5, convertTaskTimeForDisplay, adjustDragPositionForTimezone, getProjectColor } from '@/utils/timezone';
+import { formatDateTimeGMTMinus5, convertTaskTimeForDisplay, adjustDragPositionForTimezone } from '@/utils/timezone';
+import { getProjectColor } from '@/utils/colors';
 import { handleTaskAssignmentUpdate, TaskAssignmentUpdate } from '@/utils/taskAssignment';
 
 interface Task {

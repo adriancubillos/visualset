@@ -3,16 +3,8 @@
  * @param project - Project object with optional color field
  * @returns Object with hex and tailwind color values
  */
-export function getProjectColor(project: { id: string; color?: string | null }): { hex: string; tailwind: string } {
-  // Use project's assigned color if available
-  if (project.color) {
-    return {
-      hex: project.color,
-      tailwind: `bg-[${project.color}] border-[${project.color}] hover:bg-[${project.color}]/80`
-    };
-  }
-  
-  // Fallback to hash-based color assignment
+export function getProjectColor(project: { id: string; color?: string | null }): { hex: string; tailwind: string; style?: React.CSSProperties } {
+  // Fallback to hash-based color assignment first
   const colors = [
     { hex: '#3b82f6', tailwind: 'bg-blue-500 border-blue-600 hover:bg-blue-600' },    // blue
     { hex: '#10b981', tailwind: 'bg-green-500 border-green-600 hover:bg-green-600' }, // green
@@ -27,5 +19,19 @@ export function getProjectColor(project: { id: string; color?: string | null }):
     return a & a;
   }, 0);
   
-  return colors[Math.abs(hash) % colors.length];
+  const defaultColor = colors[Math.abs(hash) % colors.length];
+  
+  // Use project's assigned color if available, otherwise use hash-based color
+  if (project.color) {
+    return {
+      hex: project.color,
+      tailwind: '', // Don't use Tailwind for custom colors
+      style: {
+        backgroundColor: project.color,
+        borderLeftColor: project.color,
+      }
+    };
+  }
+  
+  return defaultColor;
 }
