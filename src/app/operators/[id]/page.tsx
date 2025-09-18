@@ -12,6 +12,7 @@ interface Operator {
   skills: string[];
   status: string;
   shift: string;
+  availability: any;
   createdAt: string;
   updatedAt: string;
 }
@@ -60,29 +61,33 @@ export default function OperatorDetailPage() {
 
   const handleStatusChange = async (newStatus: string) => {
     try {
-      // TODO: Replace with actual API call
       const response = await fetch(`/api/operators/${params.id}`, {
-        method: 'PATCH',
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ 
+          ...operator,
+          status: newStatus 
+        }),
       });
 
       if (response.ok && operator) {
         setOperator({ ...operator, status: newStatus });
       } else {
-        console.error('Failed to update operator status');
+        const errorData = await response.json();
+        console.error('Failed to update operator status:', errorData.error);
+        alert('Failed to update operator status: ' + (errorData.error || 'Unknown error'));
       }
     } catch (error) {
       console.error('Error updating operator status:', error);
+      alert('Error updating operator status. Please try again.');
     }
   };
 
   const handleDelete = async () => {
     if (confirm('Are you sure you want to delete this operator?')) {
       try {
-        // TODO: Replace with actual API call
         const response = await fetch(`/api/operators/${params.id}`, {
           method: 'DELETE',
         });
@@ -90,10 +95,13 @@ export default function OperatorDetailPage() {
         if (response.ok) {
           router.push('/operators');
         } else {
-          console.error('Failed to delete operator');
+          const errorData = await response.json();
+          console.error('Failed to delete operator:', errorData.error);
+          alert('Failed to delete operator: ' + (errorData.error || 'Unknown error'));
         }
       } catch (error) {
         console.error('Error deleting operator:', error);
+        alert('Error deleting operator. Please try again.');
       }
     }
   };

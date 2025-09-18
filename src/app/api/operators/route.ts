@@ -11,13 +11,21 @@ export async function GET() {
 
 // POST /api/operators
 export async function POST(req: Request) {
-  const body = await req.json();
-  const operator = await prisma.operator.create({
-    data: {
-      name: body.name,
-      skills: body.skills ?? [],
-      availability: body.availability ?? {},
-    },
-  });
-  return NextResponse.json(operator);
+  try {
+    const body = await req.json();
+    const operator = await prisma.operator.create({
+      data: {
+        name: body.name,
+        email: body.email || null,
+        skills: body.skills ?? [],
+        status: body.status ?? 'ACTIVE',
+        shift: body.shift || null,
+        availability: body.availability ?? {},
+      },
+    });
+    return NextResponse.json(operator);
+  } catch (error) {
+    console.error('Error creating operator:', error);
+    return NextResponse.json({ error: 'Failed to create operator' }, { status: 500 });
+  }
 }

@@ -11,6 +11,7 @@ interface Operator {
   skills: string[];
   status: string;
   shift: string;
+  availability: any;
   createdAt: string;
   updatedAt: string;
 }
@@ -25,6 +26,7 @@ export default function EditOperatorPage() {
     skills: [] as string[],
     status: 'ACTIVE',
     shift: 'DAY',
+    availability: {},
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -51,10 +53,11 @@ export default function EditOperatorPage() {
         setOperator(operatorData);
         setFormData({
           name: operatorData.name,
-          email: operatorData.email,
+          email: operatorData.email || '',
           skills: operatorData.skills,
           status: operatorData.status,
-          shift: operatorData.shift,
+          shift: operatorData.shift || 'DAY',
+          availability: operatorData.availability || {},
         });
         setLoading(false);
       } catch (error) {
@@ -77,7 +80,11 @@ export default function EditOperatorPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          email: formData.email || null,
+          shift: formData.shift || null,
+        }),
       });
 
       if (response.ok) {

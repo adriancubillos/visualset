@@ -11,6 +11,7 @@ export default function NewOperatorPage() {
     skills: [] as string[],
     status: 'ACTIVE',
     shift: 'DAY',
+    availability: {},
   });
   const [loading, setLoading] = useState(false);
 
@@ -35,7 +36,11 @@ export default function NewOperatorPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          email: formData.email || null,
+          shift: formData.shift || null,
+        }),
       });
 
       if (response.ok) {
