@@ -57,7 +57,7 @@ export default function ScheduleCalendar() {
 
   const [machines, setMachines] = useState<{ id: string; name: string }[]>([]);
   const [operators, setOperators] = useState<{ id: string; name: string }[]>([]);
-  const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
+  const [projects, setProjects] = useState<{ id: string; name: string; color?: string | null }[]>([]);
 
   useEffect(() => {
     fetch('/api/machines')
@@ -72,7 +72,10 @@ export default function ScheduleCalendar() {
 
     fetch('/api/projects')
       .then((res) => res.json())
-      .then(setProjects)
+      .then((data) => {
+        console.log('Projects loaded:', data);
+        setProjects(data);
+      })
       .catch(console.error);
   }, []);
 

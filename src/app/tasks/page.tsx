@@ -26,6 +26,7 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -45,7 +46,22 @@ export default function TasksPage() {
       }
     };
 
+    const fetchProjects = async () => {
+      try {
+        const response = await fetch('/api/projects');
+        if (response.ok) {
+          const data = await response.json();
+          setProjects(data);
+        } else {
+          console.error('Failed to fetch projects');
+        }
+      } catch (error) {
+        console.error('Error fetching projects:', error);
+      }
+    };
+
     fetchTasks();
+    fetchProjects();
   }, []);
 
   const handleSearch = (query: string) => {
@@ -175,11 +191,10 @@ export default function TasksPage() {
     {
       key: 'project',
       label: 'Filter by Project',
-      options: [
-        { value: '1', label: 'Engine Block Series' },
-        { value: '2', label: 'Precision Components' },
-        { value: '3', label: 'Custom Tooling' },
-      ],
+      options: projects.map(project => ({
+        value: project.id,
+        label: project.name
+      })),
     },
   ];
 
