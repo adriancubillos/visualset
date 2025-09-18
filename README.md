@@ -1,11 +1,20 @@
 # visualset
 
+# server commands
+    pkill -f "next dev"
+
 # Prisma Commands
     
 # Force reset the DB
     npx prisma db push --force-reset
 # Run seed script
     npx tsx prisma/scripts/seed.ts
+
+# Reset prisma client
+    rm -rf node_modules/.prisma
+
+# Generate prisma client
+    npx prisma generate
 
 # DEV
 # To run db locally using docker:

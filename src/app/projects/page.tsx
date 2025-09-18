@@ -11,6 +11,7 @@ interface Project {
   name: string;
   description: string;
   status: string;
+  color?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -80,6 +81,17 @@ export default function ProjectsPage() {
       key: 'name' as keyof Project,
       header: 'Project Name',
       sortable: true,
+      render: (name: string, project: Project) => (
+        <div className="flex items-center space-x-3">
+          {project.color && (
+            <div 
+              className="w-4 h-4 rounded-full border border-gray-300"
+              style={{ backgroundColor: project.color }}
+            />
+          )}
+          <span>{name}</span>
+        </div>
+      ),
     },
     {
       key: 'description' as keyof Project,

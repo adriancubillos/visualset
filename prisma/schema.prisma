@@ -19,6 +19,7 @@ model Project {
   name        String
   description String?
   status      ProjectStatus @default(ACTIVE)
+  color       String?  // Hex color code for project identification
   startDate   DateTime?
   endDate     DateTime?
   tasks       Task[]

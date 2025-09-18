@@ -1,20 +1,52 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import ColorPicker from '@/components/ui/ColorPicker';
 
 export default function NewProjectPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    status: 'PLANNING',
+    status: 'ACTIVE',
+    color: '',
   });
   const [loading, setLoading] = useState(false);
+  const [usedColors, setUsedColors] = useState<string[]>([]);
+  const [colorError, setColorError] = useState('');
+
+  // Fetch used colors on component mount
+  useEffect(() => {
+    const fetchUsedColors = async () => {
+      try {
+        const response = await fetch('/api/projects');
+        if (response.ok) {
+          const projects = await response.json();
+          const colors = projects
+            .map((project: any) => project.color)
+            .filter((color: string) => color !== null && color !== undefined);
+          setUsedColors(colors);
+        }
+      } catch (error) {
+        console.error('Error fetching used colors:', error);
+      }
+    };
+
+    fetchUsedColors();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setColorError('');
+
+    // Validate color uniqueness
+    if (formData.color && usedColors.includes(formData.color)) {
+      setColorError('This color is already in use by another project');
+      setLoading(false);
+      return;
+    }
 
     try {
       const response = await fetch('/api/projects', {
@@ -28,7 +60,18 @@ export default function NewProjectPage() {
       if (response.ok) {
         router.push('/projects');
       } else {
-        console.error('Failed to create project');
+        try {
+          const errorData = await response.json();
+          if (errorData.error && errorData.error.includes('Color is already in use')) {
+            setColorError('This color is already in use by another project');
+          } else {
+            console.error('Failed to create project:', errorData);
+          }
+        } catch (parseError) {
+          console.error('Failed to create project - Server error');
+          console.error('Response status:', response.status);
+          console.error('Response text:', await response.text());
+        }
       }
     } catch (error) {
       console.error('Error creating project:', error);
@@ -40,6 +83,11 @@ export default function NewProjectPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleColorChange = (color: string) => {
+    setFormData(prev => ({ ...prev, color }));
+    setColorError('');
   };
 
   return (
@@ -92,17 +140,27 @@ export default function NewProjectPage() {
               Initial Status
             </label>
             <select
-              id="status"
               name="status"
               value={formData.status}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
             >
-              <option value="PLANNING">Planning</option>
+              <option value="">Select Status</option>
               <option value="ACTIVE">Active</option>
               <option value="ON_HOLD">On Hold</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="CANCELLED">Cancelled</option>
             </select>
           </div>
+
+          {/* Color Picker */}
+          <ColorPicker
+            selectedColor={formData.color}
+            onColorChange={handleColorChange}
+            usedColors={usedColors}
+            error={colorError}
+          />
 
           {/* Actions */}
           <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
