@@ -147,6 +147,15 @@ export default function GanttChart() {
     try {
       const scheduledAtUTC = convertDragPositionToUTC(dayStart, minutesFromStart);
       
+      // Debug logging
+      console.log('handleTaskDrop Debug:', {
+        taskId,
+        minutesFromStart,
+        dayStart: dayStart.toISOString(),
+        scheduledAtUTC,
+        originalTask: task.scheduledAt
+      });
+      
       const res = await fetch('/api/schedule', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -182,7 +191,7 @@ export default function GanttChart() {
     );
   };
 
-  // Generate hour labels
+  // Generate hour labels - keep original display logic
   const hours = Array.from({ length: 24 }, (_, i) => {
     const hour = new Date(dayStart);
     hour.setHours(i);
@@ -328,7 +337,21 @@ export default function GanttChart() {
                       const rect = e.currentTarget.getBoundingClientRect();
                       const x = e.clientX - rect.left;
                       const minutesFromStart = x / pixelsPerMinute;
-                      handleTaskDrop(data.taskId, minutesFromStart, machine.id);
+                      
+                      // Adjust for timezone difference: timeline shows EDT (GMT-4) but conversion assumes GMT-5
+                      const adjustedMinutes = minutesFromStart - 60; // Subtract 1 hour
+                      
+                      // Debug logging
+                      console.log('Drag Debug:', {
+                        rawPixelPosition: x,
+                        scrollLeft,
+                        minutesFromStart,
+                        hours: Math.floor(minutesFromStart / 60),
+                        minutes: minutesFromStart % 60,
+                        snappedMinutes: Math.round(minutesFromStart / 30) * 30
+                      });
+                      
+                      handleTaskDrop(data.taskId, adjustedMinutes, machine.id);
                     }}
                     onDragOver={(e) => e.preventDefault()}
                   >
@@ -339,9 +362,29 @@ export default function GanttChart() {
                         <div
                           key={i}
                           className={`absolute top-0 bottom-0 ${
-                            isWorkingHour ? 'border-l border-slate-200' : 'border-l border-gray-100'
+                            isWorkingHour ? 'border-l-2 border-slate-300' : 'border-l border-gray-100'
                           }`}
                           style={{ left: `${i * 60 * pixelsPerMinute}px` }}
+                        />
+                      );
+                    })}
+                    
+                    {/* 30-minute grid lines for better snapping visibility */}
+                    {Array.from({ length: 48 }, (_, i) => {
+                      const minutes = i * 30;
+                      const hours = Math.floor(minutes / 60);
+                      const isWorkingHour = hours >= 7 && hours < 19;
+                      const isHalfHour = minutes % 60 === 30;
+                      
+                      if (!isHalfHour) return null;
+                      
+                      return (
+                        <div
+                          key={`half-${i}`}
+                          className={`absolute top-0 bottom-0 ${
+                            isWorkingHour ? 'border-l border-slate-200 opacity-50' : 'border-l border-gray-100 opacity-30'
+                          }`}
+                          style={{ left: `${minutes * pixelsPerMinute}px` }}
                         />
                       );
                     })}
@@ -382,7 +425,11 @@ export default function GanttChart() {
                   const rect = e.currentTarget.getBoundingClientRect();
                   const x = e.clientX - rect.left;
                   const minutesFromStart = x / pixelsPerMinute;
-                  handleTaskDrop(data.taskId, minutesFromStart, 'unassigned');
+                  
+                  // Adjust for timezone difference: timeline shows EDT (GMT-4) but conversion assumes GMT-5
+                  const adjustedMinutes = minutesFromStart - 60; // Subtract 1 hour
+                  
+                  handleTaskDrop(data.taskId, adjustedMinutes, 'unassigned');
                 }}
                 onDragOver={(e) => e.preventDefault()}
               >
