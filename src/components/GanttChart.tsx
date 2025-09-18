@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import TaskModal from './task/TaskModal';
-import { formatDateTimeGMTMinus5, convertTaskTimeForGantt } from '@/utils/timezone';
+import { formatDateTimeGMTMinus5, convertTaskTimeForGantt, convertDragPositionToUTC } from '@/utils/timezone';
 import { addDays, format } from 'date-fns';
 import { handleTaskAssignmentUpdate, TaskAssignmentUpdate } from '@/utils/taskAssignment';
 
@@ -26,7 +26,7 @@ interface GanttTaskProps {
   dayStart: Date;
   pixelsPerMinute: number;
   onTaskClick: (task: Task) => void;
-  onTaskDrop: (taskId: string, newStart: Date, machineId: string) => void;
+  onTaskDrop: (taskId: string, minutesFromStart: number, machineId: string) => void;
 }
 
 function GanttTask({ task, dayStart, pixelsPerMinute, onTaskClick, onTaskDrop }: GanttTaskProps) {
@@ -140,17 +140,19 @@ export default function GanttChart() {
     setScrollLeft(workingStartPixels);
   }, [workingStartHour, pixelsPerMinute]);
 
-  const handleTaskDrop = async (taskId: string, newStart: Date, machineId: string) => {
+  const handleTaskDrop = async (taskId: string, minutesFromStart: number, machineId: string) => {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
 
     try {
+      const scheduledAtUTC = convertDragPositionToUTC(dayStart, minutesFromStart);
+      
       const res = await fetch('/api/schedule', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           taskId: taskId,
-          scheduledAt: newStart.toISOString(),
+          scheduledAt: scheduledAtUTC,
           durationMin: task.durationMin,
           machineId: machineId,
           operatorId: task.operator?.id || null,
@@ -326,8 +328,7 @@ export default function GanttChart() {
                       const rect = e.currentTarget.getBoundingClientRect();
                       const x = e.clientX - rect.left;
                       const minutesFromStart = x / pixelsPerMinute;
-                      const newStart = new Date(dayStart.getTime() + minutesFromStart * 60 * 1000);
-                      handleTaskDrop(data.taskId, newStart, machine.id);
+                      handleTaskDrop(data.taskId, minutesFromStart, machine.id);
                     }}
                     onDragOver={(e) => e.preventDefault()}
                   >
@@ -381,8 +382,7 @@ export default function GanttChart() {
                   const rect = e.currentTarget.getBoundingClientRect();
                   const x = e.clientX - rect.left;
                   const minutesFromStart = x / pixelsPerMinute;
-                  const newStart = new Date(dayStart.getTime() + minutesFromStart * 60 * 1000);
-                  handleTaskDrop(data.taskId, newStart, 'unassigned');
+                  handleTaskDrop(data.taskId, minutesFromStart, 'unassigned');
                 }}
                 onDragOver={(e) => e.preventDefault()}
               >

@@ -106,3 +106,28 @@ export function convertTaskTimeForGantt(scheduledAt: string): Date {
   
   return start;
 }
+
+/**
+ * Convert drag position to proper UTC time for API submission
+ * Takes minutes from day start and converts to UTC timestamp with 30-minute snapping
+ */
+export function convertDragPositionToUTC(dayStart: Date, minutesFromStart: number): string {
+  // Snap to 30-minute increments for better UX
+  const snappedMinutes = Math.round(minutesFromStart / 30) * 30;
+  
+  // Convert snapped minutes to hours and minutes
+  const hours = Math.floor(snappedMinutes / 60);
+  const minutes = snappedMinutes % 60;
+  
+  // Create GMT-5 date using the same date as dayStart
+  const year = dayStart.getUTCFullYear();
+  const month = dayStart.getUTCMonth();
+  const day = dayStart.getUTCDate();
+  
+  // Create the time in GMT-5 (treating hours/minutes as GMT-5 time)
+  const gmtMinus5Time = new Date();
+  gmtMinus5Time.setUTCFullYear(year, month, day);
+  gmtMinus5Time.setUTCHours(hours + 5, minutes, 0, 0); // Add 5 hours to convert GMT-5 to UTC
+  
+  return gmtMinus5Time.toISOString();
+}
