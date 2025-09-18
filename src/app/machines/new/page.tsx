@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { MACHINE_TYPES, MACHINE_STATUS } from '@/config/workshop-properties';
 
 export default function NewMachinePage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
     name: '',
-    type: 'CNC_MILL',
+    type: MACHINE_TYPES[0].value,
     status: 'AVAILABLE',
     location: '',
   });
@@ -84,13 +85,11 @@ export default function NewMachinePage() {
               onChange={handleChange}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="CNC_MILL">CNC Mill</option>
-              <option value="CNC_LATHE">CNC Lathe</option>
-              <option value="DRILL_PRESS">Drill Press</option>
-              <option value="GRINDER">Grinder</option>
-              <option value="BANDSAW">Bandsaw</option>
-              <option value="WELDING">Welding Station</option>
-              <option value="OTHER">Other</option>
+              {MACHINE_TYPES.map((type) => (
+                <option key={type.value} value={type.value}>
+                  {type.label}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -123,9 +122,11 @@ export default function NewMachinePage() {
               onChange={handleChange}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="AVAILABLE">Available</option>
-              <option value="MAINTENANCE">Maintenance</option>
-              <option value="OFFLINE">Offline</option>
+              {MACHINE_STATUS.map((status) => (
+                <option key={status.value} value={status.value}>
+                  {status.label}
+                </option>
+              ))}
             </select>
           </div>
 

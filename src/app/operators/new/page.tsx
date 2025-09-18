@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { AVAILABLE_SKILLS, OPERATOR_STATUS, OPERATOR_SHIFTS } from '@/config/workshop-properties';
 
 export default function NewOperatorPage() {
   const router = useRouter();
@@ -15,16 +17,7 @@ export default function NewOperatorPage() {
   });
   const [loading, setLoading] = useState(false);
 
-  const availableSkills = [
-    { value: 'CNC_MILL', label: 'CNC Mill' },
-    { value: 'CNC_LATHE', label: 'CNC Lathe' },
-    { value: 'WELDING', label: 'Welding' },
-    { value: 'GRINDER', label: 'Grinder' },
-    { value: 'DRILL_PRESS', label: 'Drill Press' },
-    { value: 'BANDSAW', label: 'Bandsaw' },
-    { value: 'ASSEMBLY', label: 'Assembly' },
-    { value: 'QUALITY_CONTROL', label: 'Quality Control' },
-  ];
+  const availableSkills = AVAILABLE_SKILLS;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,9 +156,11 @@ export default function NewOperatorPage() {
               onChange={handleChange}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="DAY">Day Shift</option>
-              <option value="EVENING">Evening Shift</option>
-              <option value="NIGHT">Night Shift</option>
+              {OPERATOR_SHIFTS.map((shift) => (
+                <option key={shift.value} value={shift.value}>
+                  {shift.label}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -181,8 +176,11 @@ export default function NewOperatorPage() {
               onChange={handleChange}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
+              {OPERATOR_STATUS.map((status) => (
+                <option key={status.value} value={status.value}>
+                  {status.label}
+                </option>
+              ))}
             </select>
           </div>
 
