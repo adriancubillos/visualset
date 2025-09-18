@@ -131,3 +131,21 @@ export function convertDragPositionToUTC(dayStart: Date, minutesFromStart: numbe
   
   return gmtMinus5Time.toISOString();
 }
+
+/**
+ * Adjust drag position for timezone difference between display and conversion
+ * Timeline displays local time (EDT = GMT-4) but convertDragPositionToUTC assumes GMT-5
+ * This function compensates for the 1-hour difference
+ */
+export function adjustDragPositionForTimezone(minutesFromStart: number): number {
+  // Get system timezone offset in minutes
+  const systemOffsetMinutes = new Date().getTimezoneOffset();
+  
+  // GMT-5 offset is +300 minutes (5 hours ahead of GMT)
+  const gmt5OffsetMinutes = 300;
+  
+  // Calculate adjustment needed
+  const adjustmentMinutes = gmt5OffsetMinutes - systemOffsetMinutes;
+  
+  return minutesFromStart - adjustmentMinutes;
+}

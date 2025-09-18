@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import TaskModal from './task/TaskModal';
-import { formatDateTimeGMTMinus5, convertTaskTimeForGantt, convertDragPositionToUTC } from '@/utils/timezone';
+import { convertTaskTimeForGantt, convertDragPositionToUTC, adjustDragPositionForTimezone } from '@/utils/timezone';
 import { addDays, format } from 'date-fns';
 import { handleTaskAssignmentUpdate, TaskAssignmentUpdate } from '@/utils/taskAssignment';
 
@@ -338,8 +338,8 @@ export default function GanttChart() {
                       const x = e.clientX - rect.left;
                       const minutesFromStart = x / pixelsPerMinute;
                       
-                      // Adjust for timezone difference: timeline shows EDT (GMT-4) but conversion assumes GMT-5
-                      const adjustedMinutes = minutesFromStart - 60; // Subtract 1 hour
+                      // Adjust for timezone difference using reusable utility
+                      const adjustedMinutes = adjustDragPositionForTimezone(minutesFromStart);
                       
                       // Debug logging
                       console.log('Drag Debug:', {
@@ -426,8 +426,8 @@ export default function GanttChart() {
                   const x = e.clientX - rect.left;
                   const minutesFromStart = x / pixelsPerMinute;
                   
-                  // Adjust for timezone difference: timeline shows EDT (GMT-4) but conversion assumes GMT-5
-                  const adjustedMinutes = minutesFromStart - 60; // Subtract 1 hour
+                  // Adjust for timezone difference using reusable utility
+                  const adjustedMinutes = adjustDragPositionForTimezone(minutesFromStart);
                   
                   handleTaskDrop(data.taskId, adjustedMinutes, 'unassigned');
                 }}

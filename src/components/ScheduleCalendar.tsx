@@ -9,7 +9,7 @@ import '../styles/calendar.css';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale'; // ✅ Named import
 import TaskModal from './task/TaskModal';
-import { formatDateTimeGMTMinus5, convertTaskTimeForDisplay } from '@/utils/timezone';
+import { formatDateTimeGMTMinus5, convertTaskTimeForDisplay, adjustDragPositionForTimezone } from '@/utils/timezone';
 import { handleTaskAssignmentUpdate, TaskAssignmentUpdate } from '@/utils/taskAssignment';
 
 interface Task {
@@ -142,13 +142,17 @@ export default function ScheduleCalendar() {
     // Ensure durationMin exists
     const duration = updatedTask.durationMin ?? 60; // fallback 60 minutes
 
+    // Calendar shows EDT (GMT-4) but API expects GMT-5 time
+    // Convert EDT to GMT-5: add 1 hour to match expected timezone
+    const adjustedStart = new Date(start.getTime() + (60 * 60 * 1000));
+
     try {
       const res = await fetch('/api/schedule', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           taskId: updatedTask.id,
-          scheduledAt: start.toISOString(),
+          scheduledAt: adjustedStart.toISOString(),
           durationMin: duration,
           machineId: updatedTask.machine?.id ?? null,
           operatorId: updatedTask.operator?.id ?? null,
@@ -180,13 +184,17 @@ export default function ScheduleCalendar() {
 
     const newDuration = Math.round((end.getTime() - start.getTime()) / 60000); // in minutes
 
+    // Calendar shows EDT (GMT-4) but API expects GMT-5 time
+    // Convert EDT to GMT-5: add 1 hour to match expected timezone
+    const adjustedStart = new Date(start.getTime() + (60 * 60 * 1000));
+
     try {
       const res = await fetch('/api/schedule', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           taskId: updatedTask.id,
-          scheduledAt: start.toISOString(),
+          scheduledAt: adjustedStart.toISOString(),
           durationMin: newDuration,
           machineId: updatedTask.machine?.id ?? null,
           operatorId: updatedTask.operator?.id ?? null,
