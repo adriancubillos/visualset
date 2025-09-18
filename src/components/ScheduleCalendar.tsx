@@ -10,6 +10,7 @@ import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale'; // ✅ Named import
 import TaskModal from './task/TaskModal';
 import { formatDateTimeGMTMinus5 } from '@/utils/timezone';
+import { handleTaskAssignmentUpdate, TaskAssignmentUpdate } from '@/utils/taskAssignment';
 
 interface Task {
   id: string;
@@ -211,33 +212,13 @@ export default function ScheduleCalendar() {
   };
 
   // ✅ Save updates from modal
-  const handleSaveAssignment = async (update: { projectId: string | null; machineId: string | null; operatorId: string | null }) => {
-    if (!selectedTask) return;
-
-    const res = await fetch('/api/schedule', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        taskId: selectedTask.id,
-        scheduledAt: selectedTask.scheduledAt,
-        durationMin: selectedTask.durationMin,
-        projectId: update.projectId,
-        machineId: update.machineId,
-        operatorId: update.operatorId,
-      }),
-    });
-
-    const data = await res.json();
-
-    if (res.ok) {
-      // Update task state
-      setTasks((prev) => prev.map((t) => (t.id === data.id ? data : t)));
-
-      // ✅ Close modal after save
-      setIsModalOpen(false);
-    } else {
-      alert(data.error || 'Failed to update assignment');
-    }
+  const handleSaveAssignment = async (update: TaskAssignmentUpdate) => {
+    await handleTaskAssignmentUpdate(
+      selectedTask,
+      update,
+      (updatedTask) => setTasks((prev) => prev.map((t) => (t.id === updatedTask.id ? updatedTask : t))),
+      () => setIsModalOpen(false)
+    );
   };
 
   return (
