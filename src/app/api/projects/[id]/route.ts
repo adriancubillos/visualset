@@ -4,18 +4,17 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 // GET /api/projects/[id]
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const project = await prisma.project.findUnique({
     where: { id },
     include: {
-      tasks: {
+      items: {
         include: {
-          machine: true,
-          operator: true,
-        },
-        orderBy: {
-          createdAt: 'desc',
+          tasks: {
+            include: { machine: true, operator: true },
+            orderBy: { createdAt: 'desc' },
+          },
         },
       },
     },
@@ -29,30 +28,27 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 }
 
 // PUT /api/projects/[id]
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const body = await req.json();
-    
+
     // Check if color is being updated and validate uniqueness
     if (body.color) {
       const existingProject = await prisma.project.findFirst({
         where: {
           color: body.color,
           NOT: {
-            id
-          }
-        }
+            id,
+          },
+        },
       });
-      
+
       if (existingProject) {
-        return NextResponse.json(
-          { error: 'This color is already used by another project' },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: 'This color is already used by another project' }, { status: 400 });
       }
     }
-    
+
     const project = await prisma.project.update({
       where: { id },
       data: {
@@ -64,11 +60,8 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         endDate: body.endDate ? new Date(body.endDate) : null,
       },
       include: {
-        tasks: {
-          include: {
-            machine: true,
-            operator: true,
-          },
+        items: {
+          include: { tasks: { include: { machine: true, operator: true }, orderBy: { createdAt: 'desc' } } },
         },
       },
     });
@@ -80,7 +73,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 }
 
 // DELETE /api/projects/[id]
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     await prisma.project.delete({

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { mapTaskToResponse } from '@/types/api';
 
 const prisma = new PrismaClient();
 
@@ -24,7 +25,7 @@ export async function GET(req: Request) {
     const tasks = await prisma.task.findMany({
       where,
       include: {
-        project: true,
+        item: true,
         machine: true,
         operator: true,
       },
@@ -33,7 +34,8 @@ export async function GET(req: Request) {
       },
     });
 
-    return NextResponse.json(tasks);
+    const mapped = tasks.map((t) => mapTaskToResponse(t as unknown as import('@/types/api').TaskWithRelationsDTO));
+    return NextResponse.json(mapped);
     //BUG fix this
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
@@ -89,14 +91,11 @@ export async function POST(req: Request) {
         include: { machine: true },
       });
 
-      const conflict = machineConflicts.find((t: any) =>
-        overlaps(
-          startTime,
-          endTime,
-          t.scheduledAt!,
-          new Date(t.scheduledAt!.getTime() + (t.durationMin || 60) * 60 * 1000),
-        ),
-      );
+      const conflict = machineConflicts.find((t) => {
+        if (!t.scheduledAt) return false;
+        const otherEnd = new Date(t.scheduledAt.getTime() + (t.durationMin || 60) * 60 * 1000);
+        return overlaps(startTime, endTime, t.scheduledAt!, otherEnd);
+      });
 
       if (conflict) {
         return NextResponse.json(
@@ -139,25 +138,34 @@ export async function POST(req: Request) {
         include: { operator: true },
       });
 
-      const conflict = operatorConflicts.find((t: any) =>
-        overlaps(
-          startTime,
-          endTime,
-          t.scheduledAt!,
-          new Date(t.scheduledAt!.getTime() + (t.durationMin || 60) * 60 * 1000),
-        ),
-      );
+      const conflict = operatorConflicts.find((t) => {
+        if (!t.scheduledAt) return false;
+        const otherEnd = new Date(t.scheduledAt.getTime() + (t.durationMin || 60) * 60 * 1000);
+        return overlaps(startTime, endTime, t.scheduledAt!, otherEnd);
+      });
 
       if (conflict) {
         return NextResponse.json({ error: 'Operator is already booked at this time', conflict }, { status: 400 });
       }
     }
 
+    // Resolve itemId from provided projectId if necessary
+    let itemId: string | null = null;
+    if (body.itemId) {
+      itemId = body.itemId;
+    } else if (projectId) {
+      let item = await prisma.item.findFirst({ where: { projectId } });
+      if (!item) {
+        item = await prisma.item.create({ data: { projectId, name: 'Default Item' } });
+      }
+      itemId = item.id;
+    }
+
     // ✅ Update task including durationMin
     const task = await prisma.task.update({
       where: { id: taskId },
       data: {
-        projectId: projectId ?? null,
+        itemId: itemId ?? null,
         machineId: machineId ?? null,
         operatorId: operatorId ?? null,
         scheduledAt: startTime,
@@ -165,13 +173,14 @@ export async function POST(req: Request) {
         status: 'SCHEDULED',
       },
       include: {
-        project: true,
+        item: true,
         machine: true,
         operator: true,
       },
     });
 
-    return NextResponse.json(task);
+    const mapped = mapTaskToResponse(task as unknown as import('@/types/api').TaskWithRelationsDTO);
+    return NextResponse.json(mapped);
     //BUG fix
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {

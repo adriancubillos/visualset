@@ -15,16 +15,16 @@ datasource db {
 
 // A project containing multiple tasks
 model Project {
-  id          String   @id @default(cuid())
+  id          String        @id @default(cuid())
   name        String
   description String?
   status      ProjectStatus @default(ACTIVE)
-  color       String?  // Hex color code for project identification
+  color       String? // Hex color code for project identification
   startDate   DateTime?
   endDate     DateTime?
-  tasks       Task[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  items       Item[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 }
 
 enum ProjectStatus {
@@ -40,7 +40,7 @@ model Machine {
   name      String
   type      String
   status    MachineStatus @default(AVAILABLE)
-  location  String        // Physical location in workshop
+  location  String // Physical location in workshop
   tasks     Task[]
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
@@ -57,11 +57,11 @@ enum MachineStatus {
 model Operator {
   id           String         @id @default(cuid())
   name         String         @unique
-  email        String?        // Optional email field
-  skills       String[]       // e.g. ["CNC", "Welding"]
+  email        String? // Optional email field
+  skills       String[] // e.g. ["CNC", "Welding"]
   status       OperatorStatus @default(ACTIVE)
-  shift        String?        // e.g. "DAY", "NIGHT", "SWING"
-  availability Json           // e.g. shift times { mon: "08-16", tue: "08-16" }
+  shift        String? // e.g. "DAY", "NIGHT", "SWING"
+  availability Json // e.g. shift times { mon: "08-16", tue: "08-16" }
   tasks        Task[]
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
@@ -73,15 +73,34 @@ enum OperatorStatus {
   INACTIVE
 }
 
+// An item within a project; each item can contain multiple tasks
+model Item {
+  id          String     @id @default(cuid())
+  project     Project    @relation(fields: [projectId], references: [id])
+  projectId   String
+  name        String
+  description String?
+  status      ItemStatus @default(ACTIVE)
+  tasks       Task[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+enum ItemStatus {
+  ACTIVE
+  COMPLETED
+  ON_HOLD
+}
+
 // A task/job that must be assigned
 model Task {
   id          String     @id @default(cuid())
   title       String
   description String?
   durationMin Int
-  status      TaskStatus @default(PENDING)
-  project     Project?   @relation(fields: [projectId], references: [id])
-  projectId   String?
+  status      TaskStatus @default(IN_PROGRESS)
+  item        Item?      @relation(fields: [itemId], references: [id])
+  itemId      String?
   machine     Machine?   @relation(fields: [machineId], references: [id])
   machineId   String?
   operator    Operator?  @relation(fields: [operatorId], references: [id])

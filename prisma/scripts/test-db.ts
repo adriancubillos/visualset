@@ -7,6 +7,7 @@ async function main() {
     data: {
       name: 'CNC Lathe #1',
       type: 'CNC',
+      location: 'Workshop Floor A',
     },
   });
 

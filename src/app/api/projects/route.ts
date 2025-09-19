@@ -8,10 +8,15 @@ const prisma = new PrismaClient();
 export async function GET() {
   const projects = await prisma.project.findMany({
     include: {
-      tasks: {
+      items: {
         include: {
-          machine: true,
-          operator: true,
+          tasks: {
+            include: {
+              machine: true,
+              operator: true,
+            },
+            orderBy: { createdAt: 'desc' },
+          },
         },
       },
     },
@@ -26,21 +31,18 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    
+
     // Check if color is already in use
     if (body.color) {
       const existingProject = await prisma.project.findFirst({
-        where: { color: body.color }
+        where: { color: body.color },
       });
-      
+
       if (existingProject) {
-        return NextResponse.json(
-          { error: 'Color is already in use by another project' },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: 'Color is already in use by another project' }, { status: 400 });
       }
     }
-    
+
     const project = await prisma.project.create({
       data: {
         name: body.name,
@@ -51,10 +53,12 @@ export async function POST(req: Request) {
         endDate: body.endDate ? new Date(body.endDate) : null,
       },
       include: {
-        tasks: {
+        items: {
           include: {
-            machine: true,
-            operator: true,
+            tasks: {
+              include: { machine: true, operator: true },
+              orderBy: { createdAt: 'desc' },
+            },
           },
         },
       },
@@ -62,9 +66,6 @@ export async function POST(req: Request) {
     return NextResponse.json(project);
   } catch (error) {
     console.error('Error creating project:', error);
-    return NextResponse.json(
-      { error: 'Failed to create project' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to create project' }, { status: 500 });
   }
 }

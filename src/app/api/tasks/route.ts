@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { mapTaskToResponse, TaskResponseDTO, TaskWithRelationsDTO } from '@/types/api';
 import { parseGMTMinus5DateTime } from '@/utils/timezone';
 
 const prisma = new PrismaClient();
@@ -8,19 +9,21 @@ const prisma = new PrismaClient();
 export async function GET() {
   const tasks = await prisma.task.findMany({
     include: {
-      project: true,
+      item: { include: { project: true } },
       machine: true,
       operator: true,
     },
   });
-  return NextResponse.json(tasks);
+
+  const mapped: TaskResponseDTO[] = tasks.map((t) => mapTaskToResponse(t as unknown as TaskWithRelationsDTO));
+  return NextResponse.json(mapped);
 }
 
 // POST /api/tasks
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    
+
     // Handle scheduledAt with GMT-5 timezone
     let scheduledAt = null;
     if (body.scheduledAt && body.scheduledAt.trim() !== '') {
@@ -32,30 +35,38 @@ export async function POST(req: Request) {
         scheduledAt = new Date(body.scheduledAt).toISOString();
       }
     }
-    
+
+    // Resolve itemId: prefer explicit itemId, otherwise accept projectId and find/create a default Item
+    let itemId: string | null = body.itemId ?? null;
+    if (!itemId && body.projectId) {
+      let item = await prisma.item.findFirst({ where: { projectId: body.projectId } });
+      if (!item) {
+        item = await prisma.item.create({ data: { projectId: body.projectId, name: 'Default Item' } });
+      }
+      itemId = item.id;
+    }
+
     const task = await prisma.task.create({
       data: {
         title: body.title,
         description: body.description,
         durationMin: body.durationMin,
         status: body.status ?? 'PENDING',
-        projectId: body.projectId ?? null,
+        itemId: itemId,
         machineId: body.machineId ?? null,
         operatorId: body.operatorId ?? null,
         scheduledAt: scheduledAt,
       },
       include: {
-        project: true,
+        item: { include: { project: true } },
         machine: true,
         operator: true,
       },
     });
-    return NextResponse.json(task);
+    const mapped = mapTaskToResponse(task as unknown as TaskWithRelationsDTO);
+    return NextResponse.json(mapped);
   } catch (error) {
     console.error('Error creating task:', error);
-    return NextResponse.json(
-      { error: 'Failed to create task' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to create task' }, { status: 500 });
   }
 }

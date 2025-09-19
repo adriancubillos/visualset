@@ -4,7 +4,7 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 // GET /api/operators/[id]
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const operator = await prisma.operator.findUnique({
@@ -23,7 +23,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 }
 
 // PUT /api/operators/[id]
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const body = await req.json();
@@ -46,13 +46,13 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 }
 
 // DELETE /api/operators/[id]
-export async function DELETE(_: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     // First, check if operator exists
     const operator = await prisma.operator.findUnique({
       where: { id },
-      include: { tasks: true }
+      include: { tasks: true },
     });
 
     if (!operator) {
@@ -64,7 +64,7 @@ export async function DELETE(_: Request, { params }: { params: { id: string } })
       // Update tasks to remove operator assignment before deleting
       await prisma.task.updateMany({
         where: { operatorId: id },
-        data: { operatorId: null }
+        data: { operatorId: null },
       });
     }
 
@@ -73,9 +73,12 @@ export async function DELETE(_: Request, { params }: { params: { id: string } })
     return NextResponse.json({ message: 'Operator deleted successfully' });
   } catch (error) {
     console.error('Error deleting operator:', error);
-    return NextResponse.json({ 
-      error: 'Failed to delete operator', 
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Failed to delete operator',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 },
+    );
   }
 }

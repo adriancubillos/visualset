@@ -1,0 +1,91 @@
+// DTOs for API responses (explicit shapes, avoid `any`)
+
+export interface ProjectDTO {
+  id: string;
+  name: string;
+  description?: string | null;
+  status: string;
+  color?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ItemDTO {
+  id: string;
+  projectId: string;
+  name: string;
+  description?: string | null;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MachineDTO {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+  location: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OperatorDTO {
+  id: string;
+  name: string;
+  email?: string | null;
+  skills: string[];
+  status: string;
+  shift?: string | null;
+  availability: unknown;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TaskWithRelationsDTO {
+  id: string;
+  title: string;
+  description?: string | null;
+  durationMin: number;
+  status: string;
+  item?: ItemDTO | null & { project?: ProjectDTO | null };
+  itemId?: string | null;
+  machine?: MachineDTO | null;
+  operator?: OperatorDTO | null;
+  scheduledAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TaskResponseDTO extends Omit<TaskWithRelationsDTO, 'item'> {
+  item?: ItemDTO | null;
+  project?: ProjectDTO | null;
+}
+
+export function mapTaskToResponse(task: TaskWithRelationsDTO): TaskResponseDTO {
+  let project: ProjectDTO | null = null;
+  if (task.item && typeof task.item === 'object') {
+    const itemObj = task.item as unknown as Record<string, unknown>;
+    if ('project' in itemObj && itemObj.project && typeof itemObj.project === 'object') {
+      project = itemObj.project as ProjectDTO;
+    }
+  }
+  return {
+    id: task.id,
+    title: task.title,
+    description: task.description ?? null,
+    durationMin: task.durationMin,
+    status: task.status,
+    item: task.item ?? null,
+    itemId: task.itemId ?? null,
+    machine: task.machine ?? null,
+    operator: task.operator ?? null,
+    scheduledAt: task.scheduledAt ?? null,
+    createdAt: task.createdAt,
+    updatedAt: task.updatedAt,
+    project,
+  };
+}
+
