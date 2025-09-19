@@ -1,68 +1,90 @@
+# TMP
+
+Next steps (pick one)
+
+A: Add the schedule tests (recommended — they're important).
+B: Expand tests to cover edge cases for routes already added (validation errors, bad inputs).
+C: Add CI (GitHub Actions) to run tests on PRs/commits.
+D: Tighten test types further (remove any remaining any where possible).
+E: Restore full PostCSS/Tailwind config for local dev builds if needed.
+
 # visualset
 
 # Ngork
+
     ngrok http 3000
 
 # server commands
+
     pkill -f "next dev"
 
 # Prisma Commands
-    
+
 # Force reset the DB
+
     npx prisma db push --force-reset
+
 # Run seed script
+
     npx tsx prisma/scripts/seed.ts
 
 # Reset prisma client
+
     rm -rf node_modules/.prisma
 
 # Generate prisma client
+
     npx prisma generate
 
 # DEV
+
 # To run db locally using docker:
+
     docker run --name workshop-db -e POSTGRES_USER=admin -e POSTGRES_PASSWORD=admin -e POSTGRES_DB=workshop -p 5432:5432 -d postgres:latest
 
 # To add prisma to the project:
+
     npm install prisma @prisma/client
 
 # To start Prisma:
+
     npx prisma init
 
 # Apply migration (Creates tables from schema.prisma)
+
     npx prisma migrate dev --name init
 
-
 # 🏗️ Proposed Page Organization Strategy
+
 1. Routing Structure
-/src/app/
-├── schedule/           # Existing - Gantt & Calendar views
-├── projects/
-│   ├── page.tsx       # Projects list/table
-│   ├── new/page.tsx   # Create new project
-│   └── [id]/
-│       ├── page.tsx   # View/Edit project
-│       └── edit/page.tsx
-├── tasks/
-│   ├── page.tsx       # Tasks list with filters
-│   ├── new/page.tsx   # Create new task
-│   └── [id]/
-│       ├── page.tsx   # View task details
-│       └── edit/page.tsx
-├── machines/
-│   ├── page.tsx       # Machines list with status
-│   ├── new/page.tsx   # Add new machine
-│   └── [id]/
-│       ├── page.tsx   # Machine details & maintenance
-│       └── edit/page.tsx
-└── operators/
-    ├── page.tsx       # Operators list with skills
-    ├── new/page.tsx   # Add new operator
-    └── [id]/
-        ├── page.tsx   # Operator profile & schedule
-        └── edit/page.tsx
+   /src/app/
+   ├── schedule/ # Existing - Gantt & Calendar views
+   ├── projects/
+   │ ├── page.tsx # Projects list/table
+   │ ├── new/page.tsx # Create new project
+   │ └── [id]/
+   │ ├── page.tsx # View/Edit project
+   │ └── edit/page.tsx
+   ├── tasks/
+   │ ├── page.tsx # Tasks list with filters
+   │ ├── new/page.tsx # Create new task
+   │ └── [id]/
+   │ ├── page.tsx # View task details
+   │ └── edit/page.tsx
+   ├── machines/
+   │ ├── page.tsx # Machines list with status
+   │ ├── new/page.tsx # Add new machine
+   │ └── [id]/
+   │ ├── page.tsx # Machine details & maintenance
+   │ └── edit/page.tsx
+   └── operators/
+   ├── page.tsx # Operators list with skills
+   ├── new/page.tsx # Add new operator
+   └── [id]/
+   ├── page.tsx # Operator profile & schedule
+   └── edit/page.tsx
 2. Component Architecture Pattern
-Reusable Components:
+   Reusable Components:
 
 DataTable - Generic table with sorting, filtering, pagination
 FormModal - Reusable modal for create/edit operations
@@ -73,8 +95,7 @@ Entity-Specific Components:
 
 ProjectCard, TaskCard, MachineCard, OperatorCard
 ProjectForm, TaskForm, MachineForm, OperatorForm
-ProjectStats, MachineStatus, OperatorSkills
-3. Data Flow & State Management
+ProjectStats, MachineStatus, OperatorSkills 3. Data Flow & State Management
 API Integration Pattern:
 
 Consistent CRUD operations for each entity
@@ -85,8 +106,7 @@ State Management:
 
 React Query/TanStack Query for server state
 Local state for forms and UI interactions
-Context for global app state (user, theme, etc.)
-4. Navigation & UX Flow
+Context for global app state (user, theme, etc.) 4. Navigation & UX Flow
 Main Navigation:
 
 Dashboard → Schedule → Projects → Tasks → Machines → Operators
@@ -99,16 +119,14 @@ Quick Actions:
 "Add New" buttons on each list page
 Bulk operations (delete, status change)
 Quick filters and search
-Export functionality
-5. Page Layout Consistency
+Export functionality 5. Page Layout Consistency
 Standard Page Structure:
 
 Header: Title, breadcrumbs, primary actions
 Filters: Search, status filters, date ranges
 Content: Table/cards with data
 Pagination: Standard pagination controls
-Modals: Create/edit forms in modals or separate pages
-6. Implementation Priority
+Modals: Create/edit forms in modals or separate pages 6. Implementation Priority
 Phase 1: Foundation
 
 Generic DataTable and FormModal components
@@ -123,8 +141,7 @@ Phase 3: Advanced Features
 
 Tasks management (complex relationships)
 Bulk operations
-Advanced reporting and analytics
-7. Technical Considerations
+Advanced reporting and analytics 7. Technical Considerations
 Performance:
 
 Server-side pagination for large datasets
