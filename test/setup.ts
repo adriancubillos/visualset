@@ -29,6 +29,19 @@ type PrismaMock = {
     findFirst: MockFn;
     create: MockFn;
   };
+  project?: {
+    findMany?: MockFn;
+    create?: MockFn;
+    findFirst?: MockFn;
+  };
+  machine?: {
+    findMany?: MockFn;
+    create?: MockFn;
+  };
+  operator?: {
+    findMany?: MockFn;
+    create?: MockFn;
+  };
 };
 
 function makeMockPrisma(): PrismaMock {
@@ -48,6 +61,19 @@ function makeMockPrisma(): PrismaMock {
     },
     item: {
       findFirst: makeMock(),
+      create: makeMock(),
+    },
+    project: {
+      findMany: makeMock(),
+      create: makeMock(),
+      findFirst: makeMock(),
+    },
+    machine: {
+      findMany: makeMock(),
+      create: makeMock(),
+    },
+    operator: {
+      findMany: makeMock(),
       create: makeMock(),
     },
   };
