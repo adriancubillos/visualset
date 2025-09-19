@@ -50,7 +50,7 @@ export interface TaskWithRelationsDTO {
   description?: string | null;
   durationMin: number;
   status: string;
-  item?: ItemDTO | null & { project?: ProjectDTO | null };
+  item?: ItemDTO | (null & { project?: ProjectDTO | null });
   itemId?: string | null;
   machine?: MachineDTO | null;
   operator?: OperatorDTO | null;
@@ -88,4 +88,3 @@ export function mapTaskToResponse(task: TaskWithRelationsDTO): TaskResponseDTO {
     project,
   };
 }
-

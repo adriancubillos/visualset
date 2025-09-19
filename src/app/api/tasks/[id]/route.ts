@@ -22,8 +22,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
-  const mapped = mapTaskToResponse(task as unknown as TaskWithRelationsDTO);
-  return NextResponse.json(mapped);
+    const mapped = mapTaskToResponse(task as unknown as TaskWithRelationsDTO);
+    return NextResponse.json(mapped);
   } catch (error) {
     console.error('Error fetching task:', error);
     return NextResponse.json({ error: 'Failed to fetch task' }, { status: 500 });
@@ -76,8 +76,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         operator: true,
       },
     });
-  const mapped = mapTaskToResponse(task as unknown as TaskWithRelationsDTO);
-  return NextResponse.json(mapped);
+    const mapped = mapTaskToResponse(task as unknown as TaskWithRelationsDTO);
+    return NextResponse.json(mapped);
   } catch (error) {
     console.error('Error updating task:', error);
     return NextResponse.json({ error: 'Failed to update task' }, { status: 500 });
@@ -90,7 +90,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const { id } = await params;
     const body = await req.json();
 
-  const task = await prisma.task.update({
+    const task = await prisma.task.update({
       where: { id },
       data: body,
       include: {
@@ -99,8 +99,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         operator: true,
       },
     });
-  const mapped = mapTaskToResponse(task as unknown as TaskWithRelationsDTO);
-  return NextResponse.json(mapped);
+    const mapped = mapTaskToResponse(task as unknown as TaskWithRelationsDTO);
+    return NextResponse.json(mapped);
   } catch (error) {
     console.error('Error updating task:', error);
     return NextResponse.json({ error: 'Failed to update task' }, { status: 500 });

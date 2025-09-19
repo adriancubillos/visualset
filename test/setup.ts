@@ -1,0 +1,77 @@
+// test/setup.ts
+import { vi } from 'vitest';
+import type { PrismaClient } from '@prisma/client';
+import type { Mock } from 'vitest';
+
+// Provide a lightweight NextResponse mock that returns a plain object
+vi.mock('next/server', async () => {
+  const actual = await vi.importActual('next/server');
+  return {
+    ...actual,
+    NextResponse: {
+      json: (body: unknown, opts?: { status?: number }) => ({ body, opts }),
+    },
+  };
+});
+
+// Shared in-memory Prisma mock placed on globalThis for test files to use
+type MockFn = Mock<[], Promise<unknown>> & { mockReset: () => void };
+
+type PrismaMock = {
+  task: {
+    findMany: MockFn;
+    create: MockFn;
+    findUnique: MockFn;
+    update: MockFn;
+    delete: MockFn;
+  };
+  item: {
+    findFirst: MockFn;
+    create: MockFn;
+  };
+};
+
+function makeMockPrisma(): PrismaMock {
+  const makeMock = (): MockFn => {
+    const m = vi.fn() as unknown as MockFn;
+    m.mockReset = () => m.mockClear();
+    return m;
+  };
+
+  return {
+    task: {
+      findMany: makeMock(),
+      create: makeMock(),
+      findUnique: makeMock(),
+      update: makeMock(),
+      delete: makeMock(),
+    },
+    item: {
+      findFirst: makeMock(),
+      create: makeMock(),
+    },
+  };
+}
+
+declare global {
+  // make the typed prismaMock available on globalThis for setup and tests
+  var prismaMock: PrismaMock | undefined;
+}
+
+if (!globalThis.prismaMock) {
+  globalThis.prismaMock = makeMockPrisma();
+}
+
+export const prismaMock: PrismaMock = globalThis.prismaMock as PrismaMock;
+
+// Mock PrismaClient to return our prismaMock when instantiated
+vi.mock('@prisma/client', async () => {
+  const actual = await vi.importActual('@prisma/client');
+  const PrismaClientMock = function () {
+    return globalThis.prismaMock as unknown as PrismaClient;
+  } as unknown as typeof PrismaClient;
+  return {
+    ...actual,
+    PrismaClient: PrismaClientMock,
+  };
+});
