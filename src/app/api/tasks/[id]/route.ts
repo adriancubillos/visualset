@@ -48,16 +48,6 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       }
     }
 
-    // Resolve itemId if projectId supplied
-    let itemId: string | null = body.itemId ?? null;
-    if (!itemId && body.projectId) {
-      let item = await prisma.item.findFirst({ where: { projectId: body.projectId } });
-      if (!item) {
-        item = await prisma.item.create({ data: { projectId: body.projectId, name: 'Default Item' } });
-      }
-      itemId = item.id;
-    }
-
     const task = await prisma.task.update({
       where: { id },
       data: {
@@ -65,7 +55,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         description: body.description,
         durationMin: body.durationMin,
         status: body.status,
-        itemId: itemId || null,
+        itemId: body.itemId || null,
         machineId: body.machineId || null,
         operatorId: body.operatorId || null,
         scheduledAt: scheduledAt,

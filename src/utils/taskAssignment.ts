@@ -1,6 +1,6 @@
 // Shared utility for handling task assignment updates
 export interface TaskAssignmentUpdate {
-  projectId: string | null;
+  itemId: string | null;
   machineId: string | null;
   operatorId: string | null;
   scheduledAt?: string;
@@ -9,16 +9,20 @@ export interface TaskAssignmentUpdate {
 
 export interface Task {
   id: string;
+  title: string;
   scheduledAt: string;
   durationMin: number;
-  [key: string]: any;
+  project: { id: string; name: string; color?: string | null } | null;
+  item: { id: string; name: string } | null;
+  machine: { id: string; name: string } | null;
+  operator: { id: string; name: string } | null;
 }
 
 export const handleTaskAssignmentUpdate = async (
   selectedTask: Task | null,
   update: TaskAssignmentUpdate,
-  onSuccess: (updatedTask: any) => void,
-  onClose: () => void
+  onSuccess: (updatedTask: Task) => void,
+  onClose: () => void,
 ): Promise<void> => {
   if (!selectedTask) return;
 
@@ -28,11 +32,11 @@ export const handleTaskAssignmentUpdate = async (
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         taskId: selectedTask.id,
-        scheduledAt: update.scheduledAt || selectedTask.scheduledAt,
-        durationMin: update.durationMin || selectedTask.durationMin,
-        projectId: update.projectId,
+        itemId: update.itemId,
         machineId: update.machineId,
         operatorId: update.operatorId,
+        scheduledAt: update.scheduledAt,
+        durationMin: update.durationMin,
       }),
     });
 

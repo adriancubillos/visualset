@@ -13,6 +13,7 @@ interface Task {
   scheduledAt: string;
   durationMin: number;
   project: { id: string; name: string; color?: string | null } | null;
+  item: { id: string; name: string } | null;
   machine: { id: string; name: string } | null;
   operator: { id: string; name: string } | null;
 }
@@ -33,22 +34,25 @@ interface GanttTaskProps {
 function GanttTask({ task, dayStart, pixelsPerMinute, onTaskClick, onTaskDrop }: GanttTaskProps) {
   // Use GanttChart-specific utility for UTC-based positioning
   const taskStart = convertTaskTimeForGantt(task.scheduledAt);
-  
+
   // Calculate position and width
   const minutesFromDayStart = (taskStart.getTime() - dayStart.getTime()) / (1000 * 60);
   const left = Math.max(0, minutesFromDayStart * pixelsPerMinute);
   const width = task.durationMin * pixelsPerMinute;
-  
+
   // Only show if task is within the day
   if (taskStart < dayStart || taskStart >= addDays(dayStart, 1)) {
     return null;
   }
 
   const handleDragStart = (e: React.DragEvent) => {
-    e.dataTransfer.setData('text/plain', JSON.stringify({
-      taskId: task.id,
-      originalMachineId: task.machine?.id || null
-    }));
+    e.dataTransfer.setData(
+      'text/plain',
+      JSON.stringify({
+        taskId: task.id,
+        originalMachineId: task.machine?.id || null,
+      }),
+    );
   };
 
   // Color coding based on project using consistent color system
@@ -73,31 +77,25 @@ function GanttTask({ task, dayStart, pixelsPerMinute, onTaskClick, onTaskDrop }:
         height: '32px',
         zIndex: 10,
         top: '6px',
-        ...getTaskStyle()
+        ...getTaskStyle(),
       }}
       draggable
       onDragStart={handleDragStart}
       onClick={() => onTaskClick(task)}
-      title={`${task.title} - ${task.project?.name || 'No project'} (${task.durationMin}min)`}
-    >
+      title={`${task.title} - ${task.project?.name || 'No project'} (${task.durationMin}min)`}>
       <div className="px-3 py-1.5 h-full flex items-center">
-        <div className="truncate font-medium">
-          {task.title}
-        </div>
-        <div className="ml-auto text-xs opacity-75 whitespace-nowrap">
-          {task.durationMin}m
-        </div>
+        <div className="truncate font-medium">{task.title}</div>
+        <div className="ml-auto text-xs opacity-75 whitespace-nowrap">{task.durationMin}m</div>
       </div>
     </div>
   );
 }
 
-
 export default function GanttChart() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [machines, setMachines] = useState<Machine[]>([]);
   const [operators, setOperators] = useState<{ id: string; name: string }[]>([]);
-  const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
+  const [items, setItems] = useState<{ id: string; name: string; project?: { name: string } }[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -108,7 +106,7 @@ export default function GanttChart() {
   // Create dayStart at midnight UTC for consistent positioning
   const dayStart = new Date(currentDate);
   dayStart.setUTCHours(0, 0, 0, 0);
-  
+
   // Working hours: 7 AM to 7 PM
   const workingStartHour = 7;
   const workingEndHour = 19;
@@ -116,16 +114,23 @@ export default function GanttChart() {
   useEffect(() => {
     // Fetch data
     Promise.all([
-      fetch('/api/tasks').then(res => res.json()),
-      fetch('/api/machines').then(res => res.json()),
-      fetch('/api/operators').then(res => res.json()),
-      fetch('/api/projects').then(res => res.json())
-    ]).then(([tasksData, machinesData, operatorsData, projectsData]) => {
-      setTasks(tasksData);
-      setMachines(machinesData);
-      setOperators(operatorsData);
-      setProjects(projectsData);
-    }).catch(console.error);
+      fetch('/api/tasks').then((res) => res.json()),
+      fetch('/api/machines').then((res) => res.json()),
+      fetch('/api/operators').then((res) => res.json()),
+      fetch('/api/projects').then((res) => res.json()),
+    ])
+      .then(([tasksData, machinesData, operatorsData, projectsData]) => {
+        setTasks(tasksData);
+        setMachines(machinesData);
+        setOperators(operatorsData);
+        // Extract items from projects
+        const allItems = projectsData.flatMap(
+          (p: { id: string; name: string; items?: { id: string; name: string }[] }) =>
+            (p.items || []).map((item: { id: string; name: string }) => ({ ...item, project: { name: p.name } })),
+        );
+        setItems(allItems);
+      })
+      .catch(console.error);
   }, []);
 
   // Auto-scroll to working hours on mount
@@ -135,21 +140,21 @@ export default function GanttChart() {
   }, [workingStartHour, pixelsPerMinute]);
 
   const handleTaskDrop = async (taskId: string, minutesFromStart: number, machineId: string) => {
-    const task = tasks.find(t => t.id === taskId);
+    const task = tasks.find((t) => t.id === taskId);
     if (!task) return;
 
     try {
       const scheduledAtUTC = convertDragPositionToUTC(dayStart, minutesFromStart);
-      
+
       // Debug logging
       console.log('handleTaskDrop Debug:', {
         taskId,
         minutesFromStart,
         dayStart: dayStart.toISOString(),
         scheduledAtUTC,
-        originalTask: task.scheduledAt
+        originalTask: task.scheduledAt,
       });
-      
+
       const res = await fetch('/api/schedule', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -159,14 +164,14 @@ export default function GanttChart() {
           durationMin: task.durationMin,
           machineId: machineId,
           operatorId: task.operator?.id || null,
-          projectId: task.project?.id || null,
+          itemId: task.item?.id || null,
         }),
       });
 
       const data = await res.json();
 
       if (res.ok) {
-        setTasks(prev => prev.map(t => t.id === data.id ? data : t));
+        setTasks((prev) => prev.map((t) => (t.id === data.id ? data : t)));
       } else {
         alert(data.error || 'Failed to reschedule task');
       }
@@ -180,8 +185,8 @@ export default function GanttChart() {
     await handleTaskAssignmentUpdate(
       selectedTask,
       update,
-      (updatedTask) => setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t)),
-      () => setIsModalOpen(false)
+      (updatedTask) => setTasks((prev) => prev.map((t) => (t.id === updatedTask.id ? updatedTask : t))),
+      () => setIsModalOpen(false),
     );
   };
 
@@ -203,15 +208,23 @@ export default function GanttChart() {
           <h2 className="text-2xl font-bold text-slate-800 mb-1">Production Schedule</h2>
           <p className="text-slate-600">Machine lanes and task assignments</p>
         </div>
-        
+
         {/* Date navigation */}
         <div className="flex items-center gap-3 bg-white rounded-lg shadow-sm border border-slate-200 p-1">
           <button
-            onClick={() => setCurrentDate(prev => addDays(prev, -1))}
-            className="px-4 py-2 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-md transition-colors font-medium flex items-center gap-2"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            onClick={() => setCurrentDate((prev) => addDays(prev, -1))}
+            className="px-4 py-2 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-md transition-colors font-medium flex items-center gap-2">
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
             </svg>
             Previous
           </button>
@@ -219,12 +232,20 @@ export default function GanttChart() {
             {format(currentDate, 'EEEE, MMMM d, yyyy')}
           </div>
           <button
-            onClick={() => setCurrentDate(prev => addDays(prev, 1))}
-            className="px-4 py-2 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-md transition-colors font-medium flex items-center gap-2"
-          >
+            onClick={() => setCurrentDate((prev) => addDays(prev, 1))}
+            className="px-4 py-2 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-md transition-colors font-medium flex items-center gap-2">
             Next
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
             </svg>
           </button>
         </div>
@@ -240,25 +261,21 @@ export default function GanttChart() {
             </div>
           </div>
           <div className="flex-1 relative overflow-hidden">
-            <div 
-              className="flex" 
-              style={{ 
+            <div
+              className="flex"
+              style={{
                 transform: `translateX(-${scrollLeft}px)`,
-                width: `${24 * 60 * pixelsPerMinute}px`
-              }}
-            >
+                width: `${24 * 60 * pixelsPerMinute}px`,
+              }}>
               {hours.map((hour, i) => {
                 const isWorkingHour = i >= workingStartHour && i < workingEndHour;
                 return (
                   <div
                     key={i}
                     className={`text-xs p-2 border-l border-slate-200 font-medium transition-colors ${
-                      isWorkingHour 
-                        ? 'text-blue-700 bg-blue-100/50 font-semibold' 
-                        : 'text-slate-500 bg-slate-50'
+                      isWorkingHour ? 'text-blue-700 bg-blue-100/50 font-semibold' : 'text-slate-500 bg-slate-50'
                     }`}
-                    style={{ width: `${60 * pixelsPerMinute}px` }}
-                  >
+                    style={{ width: `${60 * pixelsPerMinute}px` }}>
                     <div className="text-center">{hour}</div>
                   </div>
                 );
@@ -271,30 +288,23 @@ export default function GanttChart() {
         <div className="flex max-h-96 overflow-hidden">
           {/* Fixed machine names column */}
           <div className="w-48 bg-white border-r border-slate-200 overflow-y-auto">
-            {machines.map(machine => {
+            {machines.map((machine) => {
               const isUnassigned = machine.id === 'unassigned';
               return (
-                <div 
+                <div
                   key={machine.id}
                   className={`p-4 border-b border-gray-100 flex items-center h-14 ${
-                    isUnassigned 
-                      ? 'bg-red-100 text-red-800 font-semibold' 
-                      : 'bg-slate-50 text-slate-700 font-medium'
-                  }`}
-                >
+                    isUnassigned ? 'bg-red-100 text-red-800 font-semibold' : 'bg-slate-50 text-slate-700 font-medium'
+                  }`}>
                   <div className="flex items-center gap-2">
-                    {!isUnassigned && (
-                      <div className="w-3 h-3 bg-green-400 rounded-full shadow-sm"></div>
-                    )}
-                    {isUnassigned && (
-                      <div className="w-3 h-3 bg-red-400 rounded-full shadow-sm"></div>
-                    )}
+                    {!isUnassigned && <div className="w-3 h-3 bg-green-400 rounded-full shadow-sm"></div>}
+                    {isUnassigned && <div className="w-3 h-3 bg-red-400 rounded-full shadow-sm"></div>}
                     <span>{machine.name}</span>
                   </div>
                 </div>
               );
             })}
-            
+
             {/* Unassigned tasks lane header */}
             <div className="p-4 border-b border-gray-100 flex items-center h-14 bg-red-100 text-red-800 font-semibold">
               <div className="flex items-center gap-2">
@@ -303,24 +313,23 @@ export default function GanttChart() {
               </div>
             </div>
           </div>
-          
+
           {/* Scrollable timeline area */}
-          <div 
+          <div
             className="flex-1 overflow-auto"
             onScroll={handleScroll}
             ref={(el) => {
               if (el && el.scrollLeft !== scrollLeft) {
                 el.scrollLeft = scrollLeft;
               }
-            }}
-          >
+            }}>
             <div style={{ width: `${24 * 60 * pixelsPerMinute}px` }}>
-              {machines.map(machine => {
-                const machineTasks = tasks.filter(task => task.machine?.id === machine.id);
+              {machines.map((machine) => {
+                const machineTasks = tasks.filter((task) => task.machine?.id === machine.id);
                 const isUnassigned = machine.id === 'unassigned';
-                
+
                 return (
-                  <div 
+                  <div
                     key={machine.id}
                     className={`border-b border-gray-100 h-14 relative transition-colors duration-200 ${
                       isUnassigned ? 'bg-red-50 hover:bg-red-100' : 'bg-white hover:bg-slate-50'
@@ -331,10 +340,10 @@ export default function GanttChart() {
                       const rect = e.currentTarget.getBoundingClientRect();
                       const x = e.clientX - rect.left;
                       const minutesFromStart = x / pixelsPerMinute;
-                      
+
                       // Adjust for timezone difference using reusable utility
                       const adjustedMinutes = adjustDragPositionForTimezone(minutesFromStart);
-                      
+
                       // Debug logging
                       console.log('Drag Debug:', {
                         rawPixelPosition: x,
@@ -342,13 +351,12 @@ export default function GanttChart() {
                         minutesFromStart,
                         hours: Math.floor(minutesFromStart / 60),
                         minutes: minutesFromStart % 60,
-                        snappedMinutes: Math.round(minutesFromStart / 30) * 30
+                        snappedMinutes: Math.round(minutesFromStart / 30) * 30,
                       });
-                      
+
                       handleTaskDrop(data.taskId, adjustedMinutes, machine.id);
                     }}
-                    onDragOver={(e) => e.preventDefault()}
-                  >
+                    onDragOver={(e) => e.preventDefault()}>
                     {/* Hour grid lines */}
                     {Array.from({ length: 24 }, (_, i) => {
                       const isWorkingHour = i >= 7 && i < 19;
@@ -362,38 +370,40 @@ export default function GanttChart() {
                         />
                       );
                     })}
-                    
+
                     {/* 30-minute grid lines for better snapping visibility */}
                     {Array.from({ length: 48 }, (_, i) => {
                       const minutes = i * 30;
                       const hours = Math.floor(minutes / 60);
                       const isWorkingHour = hours >= 7 && hours < 19;
                       const isHalfHour = minutes % 60 === 30;
-                      
+
                       if (!isHalfHour) return null;
-                      
+
                       return (
                         <div
                           key={`half-${i}`}
                           className={`absolute top-0 bottom-0 ${
-                            isWorkingHour ? 'border-l border-slate-200 opacity-50' : 'border-l border-gray-100 opacity-30'
+                            isWorkingHour
+                              ? 'border-l border-slate-200 opacity-50'
+                              : 'border-l border-gray-100 opacity-30'
                           }`}
                           style={{ left: `${minutes * pixelsPerMinute}px` }}
                         />
                       );
                     })}
-                    
+
                     {/* Working hours background */}
-                    <div 
+                    <div
                       className="absolute top-0 bottom-0 bg-blue-50/30"
                       style={{
                         left: `${7 * 60 * pixelsPerMinute}px`,
-                        width: `${12 * 60 * pixelsPerMinute}px`
+                        width: `${12 * 60 * pixelsPerMinute}px`,
                       }}
                     />
-                    
+
                     {/* Tasks */}
-                    {machineTasks.map(task => (
+                    {machineTasks.map((task) => (
                       <GanttTask
                         key={task.id}
                         task={task}
@@ -409,9 +419,9 @@ export default function GanttChart() {
                   </div>
                 );
               })}
-              
+
               {/* Unassigned tasks lane */}
-              <div 
+              <div
                 className="border-b border-gray-100 h-14 relative bg-red-50 hover:bg-red-100 transition-colors duration-200"
                 onDrop={(e) => {
                   e.preventDefault();
@@ -419,14 +429,13 @@ export default function GanttChart() {
                   const rect = e.currentTarget.getBoundingClientRect();
                   const x = e.clientX - rect.left;
                   const minutesFromStart = x / pixelsPerMinute;
-                  
+
                   // Adjust for timezone difference using reusable utility
                   const adjustedMinutes = adjustDragPositionForTimezone(minutesFromStart);
-                  
+
                   handleTaskDrop(data.taskId, adjustedMinutes, 'unassigned');
                 }}
-                onDragOver={(e) => e.preventDefault()}
-              >
+                onDragOver={(e) => e.preventDefault()}>
                 {/* Hour grid lines */}
                 {Array.from({ length: 24 }, (_, i) => {
                   const isWorkingHour = i >= 7 && i < 19;
@@ -440,30 +449,32 @@ export default function GanttChart() {
                     />
                   );
                 })}
-                
+
                 {/* Working hours background */}
-                <div 
+                <div
                   className="absolute top-0 bottom-0 bg-blue-50/30"
                   style={{
                     left: `${7 * 60 * pixelsPerMinute}px`,
-                    width: `${12 * 60 * pixelsPerMinute}px`
+                    width: `${12 * 60 * pixelsPerMinute}px`,
                   }}
                 />
-                
+
                 {/* Unassigned tasks */}
-                {tasks.filter(task => !task.machine).map(task => (
-                  <GanttTask
-                    key={task.id}
-                    task={task}
-                    dayStart={dayStart}
-                    pixelsPerMinute={pixelsPerMinute}
-                    onTaskClick={(task) => {
-                      setSelectedTask(task);
-                      setIsModalOpen(true);
-                    }}
-                    onTaskDrop={handleTaskDrop}
-                  />
-                ))}
+                {tasks
+                  .filter((task) => !task.machine)
+                  .map((task) => (
+                    <GanttTask
+                      key={task.id}
+                      task={task}
+                      dayStart={dayStart}
+                      pixelsPerMinute={pixelsPerMinute}
+                      onTaskClick={(task) => {
+                        setSelectedTask(task);
+                        setIsModalOpen(true);
+                      }}
+                      onTaskDrop={handleTaskDrop}
+                    />
+                  ))}
               </div>
             </div>
           </div>
@@ -475,7 +486,7 @@ export default function GanttChart() {
         onClose={() => setIsModalOpen(false)}
         task={selectedTask}
         onSave={handleSaveAssignment}
-        projects={projects}
+        items={items}
         machines={machines}
         operators={operators}
       />

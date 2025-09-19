@@ -49,7 +49,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { taskId, projectId, machineId, operatorId, scheduledAt, durationMin } = body;
+    const { taskId, itemId, machineId, operatorId, scheduledAt, durationMin } = body;
 
     if (!taskId || !scheduledAt || durationMin === undefined) {
       return NextResponse.json({ error: 'taskId, scheduledAt and durationMin are required' }, { status: 400 });
@@ -147,18 +147,6 @@ export async function POST(req: Request) {
       if (conflict) {
         return NextResponse.json({ error: 'Operator is already booked at this time', conflict }, { status: 400 });
       }
-    }
-
-    // Resolve itemId from provided projectId if necessary
-    let itemId: string | null = null;
-    if (body.itemId) {
-      itemId = body.itemId;
-    } else if (projectId) {
-      let item = await prisma.item.findFirst({ where: { projectId } });
-      if (!item) {
-        item = await prisma.item.create({ data: { projectId, name: 'Default Item' } });
-      }
-      itemId = item.id;
     }
 
     // ✅ Update task including durationMin

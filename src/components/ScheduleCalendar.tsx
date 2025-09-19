@@ -19,6 +19,7 @@ interface Task {
   scheduledAt: string;
   durationMin: number;
   project: { id: string; name: string; color?: string | null } | null;
+  item: { id: string; name: string } | null;
   machine: { id: string; name: string } | null;
   operator: { id: string; name: string } | null;
 }
@@ -58,6 +59,7 @@ export default function ScheduleCalendar() {
   const [machines, setMachines] = useState<{ id: string; name: string }[]>([]);
   const [operators, setOperators] = useState<{ id: string; name: string }[]>([]);
   const [projects, setProjects] = useState<{ id: string; name: string; color?: string | null }[]>([]);
+  const [items, setItems] = useState<{ id: string; name: string; project?: { name: string } }[]>([]);
 
   useEffect(() => {
     fetch('/api/machines')
@@ -75,6 +77,11 @@ export default function ScheduleCalendar() {
       .then((data) => {
         console.log('Projects loaded:', data);
         setProjects(data);
+        // Extract items from projects for TaskModal
+        const allItems = data.flatMap((p: { id: string; name: string; items?: { id: string; name: string }[] }) =>
+          (p.items || []).map((item: { id: string; name: string }) => ({ ...item, project: { name: p.name } })),
+        );
+        setItems(allItems);
       })
       .catch(console.error);
   }, []);
@@ -118,8 +125,8 @@ export default function ScheduleCalendar() {
         color: getEventColor(task),
         machine: task.machine?.name,
         project: task.project?.name,
-        duration: task.durationMin
-      }
+        duration: task.durationMin,
+      },
     };
   });
 
@@ -133,7 +140,7 @@ export default function ScheduleCalendar() {
 
     // Calendar shows EDT (GMT-4) but API expects GMT-5 time
     // Convert EDT to GMT-5: add 1 hour to match expected timezone
-    const adjustedStart = new Date(start.getTime() + (60 * 60 * 1000));
+    const adjustedStart = new Date(start.getTime() + 60 * 60 * 1000);
 
     try {
       const res = await fetch('/api/schedule', {
@@ -145,7 +152,7 @@ export default function ScheduleCalendar() {
           durationMin: duration,
           machineId: updatedTask.machine?.id ?? null,
           operatorId: updatedTask.operator?.id ?? null,
-          projectId: updatedTask.project?.id ?? null,
+          itemId: updatedTask.item?.id ?? null,
         }),
       });
 
@@ -176,7 +183,7 @@ export default function ScheduleCalendar() {
 
     // Calendar shows EDT (GMT-4) but API expects GMT-5 time
     // Convert EDT to GMT-5: add 1 hour to match expected timezone
-    const adjustedStart = new Date(start.getTime() + (60 * 60 * 1000));
+    const adjustedStart = new Date(start.getTime() + 60 * 60 * 1000);
 
     try {
       const res = await fetch('/api/schedule', {
@@ -188,7 +195,7 @@ export default function ScheduleCalendar() {
           durationMin: newDuration,
           machineId: updatedTask.machine?.id ?? null,
           operatorId: updatedTask.operator?.id ?? null,
-          projectId: updatedTask.project?.id ?? null,
+          itemId: updatedTask.item?.id ?? null,
         }),
       });
 
@@ -215,7 +222,7 @@ export default function ScheduleCalendar() {
       selectedTask,
       update,
       (updatedTask) => setTasks((prev) => prev.map((t) => (t.id === updatedTask.id ? updatedTask : t))),
-      () => setIsModalOpen(false)
+      () => setIsModalOpen(false),
     );
   };
 
@@ -231,8 +238,17 @@ export default function ScheduleCalendar() {
       {/* Modern Filters */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
         <h3 className="text-lg font-semibold text-slate-700 mb-4 flex items-center gap-2">
-          <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+          <svg
+            className="w-5 h-5 text-blue-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+            />
           </svg>
           Filters
         </h3>
@@ -245,7 +261,11 @@ export default function ScheduleCalendar() {
               className="w-full border-2 border-slate-200 rounded-lg p-3 text-slate-700 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition-colors">
               <option value="all">All Projects</option>
               {projects.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
+                <option
+                  key={p.id}
+                  value={p.id}>
+                  {p.name}
+                </option>
               ))}
             </select>
           </div>
@@ -258,7 +278,11 @@ export default function ScheduleCalendar() {
               className="w-full border-2 border-slate-200 rounded-lg p-3 text-slate-700 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition-colors">
               <option value="all">All Machines</option>
               {machines.map((m) => (
-                <option key={m.id} value={m.id}>{m.name}</option>
+                <option
+                  key={m.id}
+                  value={m.id}>
+                  {m.name}
+                </option>
               ))}
             </select>
           </div>
@@ -271,7 +295,11 @@ export default function ScheduleCalendar() {
               className="w-full border-2 border-slate-200 rounded-lg p-3 text-slate-700 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition-colors">
               <option value="all">All Operators</option>
               {operators.map((o) => (
-                <option key={o.id} value={o.id}>{o.name}</option>
+                <option
+                  key={o.id}
+                  value={o.id}>
+                  {o.name}
+                </option>
               ))}
             </select>
           </div>
@@ -312,7 +340,7 @@ export default function ScheduleCalendar() {
               fontWeight: '500',
               padding: '2px 8px',
               boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-            }
+            },
           })}
           components={{
             event: ({ event }) => (
@@ -324,7 +352,7 @@ export default function ScheduleCalendar() {
                   </div>
                 )}
               </div>
-            )
+            ),
           }}
         />
       </div>
@@ -334,7 +362,7 @@ export default function ScheduleCalendar() {
         onClose={() => setIsModalOpen(false)}
         task={selectedTask}
         onSave={handleSaveAssignment}
-        projects={projects}
+        items={items}
         machines={machines}
         operators={operators}
       />

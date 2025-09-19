@@ -13,7 +13,7 @@ interface Task {
   priority: string;
   durationMin: number;
   scheduledAt: string | null;
-  projectId: string | null;
+  itemId: string | null;
   machineId: string | null;
   operatorId: string | null;
   createdAt: string;
@@ -31,7 +31,7 @@ export default function EditTaskPage() {
     priority: 'MEDIUM',
     scheduledAt: '',
     durationMin: 60,
-    projectId: '',
+    itemId: '',
     machineId: '',
     operatorId: '',
   });
@@ -39,19 +39,19 @@ export default function EditTaskPage() {
   const [saving, setSaving] = useState(false);
 
   // Fetch data for dropdowns
-  const [projects, setProjects] = useState<{id: string, name: string}[]>([]);
-  const [machines, setMachines] = useState<{id: string, name: string}[]>([]);
-  const [operators, setOperators] = useState<{id: string, name: string}[]>([]);
+  const [items, setItems] = useState<{ id: string; name: string; project?: { name: string } }[]>([]);
+  const [machines, setMachines] = useState<{ id: string; name: string }[]>([]);
+  const [operators, setOperators] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         // Fetch task data and dropdown data in parallel
-        const [taskResponse, projectsRes, machinesRes, operatorsRes] = await Promise.all([
+        const [taskResponse, itemsRes, machinesRes, operatorsRes] = await Promise.all([
           fetch(`/api/tasks/${params.id}`),
-          fetch('/api/projects'),
+          fetch('/api/projects?include=items'), // We'll need items with project info
           fetch('/api/machines'),
-          fetch('/api/operators')
+          fetch('/api/operators'),
         ]);
 
         if (!taskResponse.ok) {
@@ -60,7 +60,7 @@ export default function EditTaskPage() {
 
         const taskData = await taskResponse.json();
         setTask(taskData);
-        
+
         // Format scheduledAt using GMT-5 timezone utilities
         let scheduledAt = '';
         if (taskData.scheduledAt) {
@@ -76,25 +76,29 @@ export default function EditTaskPage() {
           priority: taskData.priority || 'MEDIUM',
           scheduledAt: scheduledAt,
           durationMin: taskData.durationMin,
-          projectId: taskData.projectId || '',
+          itemId: taskData.item?.id || '',
           machineId: taskData.machineId || '',
           operatorId: taskData.operatorId || '',
         });
 
-        // Set dropdown data
-        if (projectsRes.ok) {
-          const projectsData = await projectsRes.json();
-          setProjects(projectsData.map((p: any) => ({ id: p.id, name: p.name })));
+        // Set dropdown data - extract items from projects response
+        if (itemsRes.ok) {
+          const projectsData = await itemsRes.json();
+          const allItems = projectsData.flatMap(
+            (p: { id: string; name: string; items?: { id: string; name: string }[] }) =>
+              (p.items || []).map((item: { id: string; name: string }) => ({ ...item, project: { name: p.name } })),
+          );
+          setItems(allItems);
         }
 
         if (machinesRes.ok) {
           const machinesData = await machinesRes.json();
-          setMachines(machinesData.map((m: any) => ({ id: m.id, name: m.name })));
+          setMachines(machinesData.map((m: { id: string; name: string }) => ({ id: m.id, name: m.name })));
         }
 
         if (operatorsRes.ok) {
           const operatorsData = await operatorsRes.json();
-          setOperators(operatorsData.map((o: any) => ({ id: o.id, name: o.name })));
+          setOperators(operatorsData.map((o: { id: string; name: string }) => ({ id: o.id, name: o.name })));
         }
 
         setLoading(false);
@@ -126,7 +130,7 @@ export default function EditTaskPage() {
         },
         body: JSON.stringify({
           ...formData,
-          projectId: formData.projectId || null,
+          itemId: formData.itemId || null,
           machineId: formData.machineId || null,
           operatorId: formData.operatorId || null,
           scheduledAt: scheduledAtUTC,
@@ -150,9 +154,9 @@ export default function EditTaskPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ 
-      ...prev, 
-      [name]: name === 'durationMin' ? parseInt(value) || 0 : value 
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === 'durationMin' ? parseInt(value) || 0 : value,
     }));
   };
 
@@ -179,7 +183,9 @@ export default function EditTaskPage() {
     return (
       <div className="text-center py-12">
         <div className="text-gray-500">Task not found</div>
-        <Link href="/tasks" className="text-blue-600 hover:text-blue-800 mt-2 inline-block">
+        <Link
+          href="/tasks"
+          className="text-blue-600 hover:text-blue-800 mt-2 inline-block">
           Back to Tasks
         </Link>
       </div>
@@ -190,10 +196,14 @@ export default function EditTaskPage() {
     <div className="max-w-2xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <nav className="flex mb-4" aria-label="Breadcrumb">
+        <nav
+          className="flex mb-4"
+          aria-label="Breadcrumb">
           <ol className="flex items-center space-x-4">
             <li>
-              <Link href="/tasks" className="text-gray-500 hover:text-gray-700">
+              <Link
+                href="/tasks"
+                className="text-gray-500 hover:text-gray-700">
                 Tasks
               </Link>
             </li>
@@ -201,7 +211,9 @@ export default function EditTaskPage() {
               <span className="text-gray-400">/</span>
             </li>
             <li>
-              <Link href={`/tasks/${task.id}`} className="text-gray-500 hover:text-gray-700">
+              <Link
+                href={`/tasks/${task.id}`}
+                className="text-gray-500 hover:text-gray-700">
                 {task.title}
               </Link>
             </li>
@@ -219,10 +231,14 @@ export default function EditTaskPage() {
 
       {/* Form */}
       <div className="bg-white shadow rounded-lg">
-        <form onSubmit={handleSubmit} className="space-y-6 p-6">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-6 p-6">
           {/* Task Title */}
           <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="title"
+              className="block text-sm font-medium text-gray-700">
               Task Title *
             </label>
             <input
@@ -239,7 +255,9 @@ export default function EditTaskPage() {
 
           {/* Description */}
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="description"
+              className="block text-sm font-medium text-gray-700">
               Description
             </label>
             <textarea
@@ -253,22 +271,25 @@ export default function EditTaskPage() {
             />
           </div>
 
-          {/* Project Assignment */}
+          {/* Item Assignment */}
           <div>
-            <label htmlFor="projectId" className="block text-sm font-medium text-gray-700">
-              Project
+            <label
+              htmlFor="itemId"
+              className="block text-sm font-medium text-gray-700">
+              Item
             </label>
             <select
-              id="projectId"
-              name="projectId"
-              value={formData.projectId}
+              id="itemId"
+              name="itemId"
+              value={formData.itemId}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">No Project</option>
-              {projects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.name}
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+              <option value="">No Item</option>
+              {items.map((item) => (
+                <option
+                  key={item.id}
+                  value={item.id}>
+                  {item.name} {item.project ? `(${item.project.name})` : ''}
                 </option>
               ))}
             </select>
@@ -276,7 +297,9 @@ export default function EditTaskPage() {
 
           {/* Machine Assignment */}
           <div>
-            <label htmlFor="machineId" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="machineId"
+              className="block text-sm font-medium text-gray-700">
               Machine
             </label>
             <select
@@ -284,11 +307,12 @@ export default function EditTaskPage() {
               name="machineId"
               value={formData.machineId}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            >
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
               <option value="">No Machine Required</option>
               {machines.map((machine) => (
-                <option key={machine.id} value={machine.id}>
+                <option
+                  key={machine.id}
+                  value={machine.id}>
                   {machine.name}
                 </option>
               ))}
@@ -297,7 +321,9 @@ export default function EditTaskPage() {
 
           {/* Operator Assignment */}
           <div>
-            <label htmlFor="operatorId" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="operatorId"
+              className="block text-sm font-medium text-gray-700">
               Operator
             </label>
             <select
@@ -305,11 +331,12 @@ export default function EditTaskPage() {
               name="operatorId"
               value={formData.operatorId}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            >
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
               <option value="">Unassigned</option>
               {operators.map((operator) => (
-                <option key={operator.id} value={operator.id}>
+                <option
+                  key={operator.id}
+                  value={operator.id}>
                   {operator.name}
                 </option>
               ))}
@@ -319,7 +346,9 @@ export default function EditTaskPage() {
           {/* Priority and Status */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label htmlFor="priority" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="priority"
+                className="block text-sm font-medium text-gray-700">
                 Priority
               </label>
               <select
@@ -327,8 +356,7 @@ export default function EditTaskPage() {
                 name="priority"
                 value={formData.priority}
                 onChange={handleChange}
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                 <option value="LOW">Low</option>
                 <option value="MEDIUM">Medium</option>
                 <option value="HIGH">High</option>
@@ -336,7 +364,9 @@ export default function EditTaskPage() {
             </div>
 
             <div>
-              <label htmlFor="status" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="status"
+                className="block text-sm font-medium text-gray-700">
                 Status
               </label>
               <select
@@ -344,8 +374,7 @@ export default function EditTaskPage() {
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                 <option value="PENDING">Pending</option>
                 <option value="IN_PROGRESS">In Progress</option>
                 <option value="COMPLETED">Completed</option>
@@ -357,12 +386,12 @@ export default function EditTaskPage() {
           {/* Scheduled Date and Duration */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Scheduled Date & Time
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Scheduled Date & Time</label>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label htmlFor="scheduledDate" className="block text-xs text-gray-500 mb-1">
+                  <label
+                    htmlFor="scheduledDate"
+                    className="block text-xs text-gray-500 mb-1">
                     Date
                   </label>
                   <input
@@ -373,9 +402,9 @@ export default function EditTaskPage() {
                     onChange={(e) => {
                       const date = e.target.value;
                       const time = formData.scheduledAt ? formData.scheduledAt.split('T')[1] : '09:00';
-                      setFormData(prev => ({ 
-                        ...prev, 
-                        scheduledAt: date ? `${date}T${time}` : ''
+                      setFormData((prev) => ({
+                        ...prev,
+                        scheduledAt: date ? `${date}T${time}` : '',
                       }));
                     }}
                     className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
@@ -383,7 +412,9 @@ export default function EditTaskPage() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="scheduledTime" className="block text-xs text-gray-500 mb-1">
+                  <label
+                    htmlFor="scheduledTime"
+                    className="block text-xs text-gray-500 mb-1">
                     Time
                   </label>
                   <input
@@ -393,23 +424,25 @@ export default function EditTaskPage() {
                     value={formData.scheduledAt ? formData.scheduledAt.split('T')[1] || '09:00' : '09:00'}
                     onChange={(e) => {
                       const time = e.target.value;
-                      const date = formData.scheduledAt ? formData.scheduledAt.split('T')[0] : new Date().toISOString().split('T')[0];
-                      setFormData(prev => ({ 
-                        ...prev, 
-                        scheduledAt: date ? `${date}T${time}` : ''
+                      const date = formData.scheduledAt
+                        ? formData.scheduledAt.split('T')[0]
+                        : new Date().toISOString().split('T')[0];
+                      setFormData((prev) => ({
+                        ...prev,
+                        scheduledAt: date ? `${date}T${time}` : '',
                       }));
                     }}
                     className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
               </div>
-              <p className="mt-1 text-xs text-gray-500">
-                Leave empty if no specific schedule is required
-              </p>
+              <p className="mt-1 text-xs text-gray-500">Leave empty if no specific schedule is required</p>
             </div>
 
             <div>
-              <label htmlFor="durationMin" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="durationMin"
+                className="block text-sm font-medium text-gray-700">
                 Duration (minutes)
               </label>
               <input
@@ -429,19 +462,15 @@ export default function EditTaskPage() {
           <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
             <Link
               href={`/tasks/${task.id}`}
-              className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
+              className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
               Cancel
             </Link>
             <button
               type="submit"
               disabled={saving || !formData.title.trim()}
               className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                saving || !formData.title.trim()
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700'
-              }`}
-            >
+                saving || !formData.title.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+              }`}>
               {saving ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
