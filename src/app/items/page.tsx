@@ -6,6 +6,7 @@ import DataTable from '@/components/ui/DataTable';
 import SearchFilter from '@/components/ui/SearchFilter';
 import StatusBadge from '@/components/ui/StatusBadge';
 import TableActions from '@/components/ui/TableActions';
+import StatisticsCards from '@/components/ui/StatisticsCards';
 
 interface Item {
   id: string;
@@ -189,32 +190,16 @@ export default function ItemsPage() {
       </div>
 
       {/* Stats */}
-      {!loading && items.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white rounded-lg shadow p-4 text-center">
-            <div className="text-2xl font-bold text-gray-900">{items.length}</div>
-            <div className="text-sm text-gray-600">Total Items</div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4 text-center">
-            <div className="text-2xl font-bold text-green-600">
-              {items.filter((item) => item.status === 'ACTIVE').length}
-            </div>
-            <div className="text-sm text-gray-600">Active</div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4 text-center">
-            <div className="text-2xl font-bold text-blue-600">
-              {items.filter((item) => item.status === 'COMPLETED').length}
-            </div>
-            <div className="text-sm text-gray-600">Completed</div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4 text-center">
-            <div className="text-2xl font-bold text-orange-600">
-              {items.filter((item) => item.status === 'ON_HOLD').length}
-            </div>
-            <div className="text-sm text-gray-600">On Hold</div>
-          </div>
-        </div>
-      )}
+      <StatisticsCards
+        stats={[
+          { label: 'Total Items', value: items.length, color: 'gray' },
+          { label: 'Active', value: items.filter((item) => item.status === 'ACTIVE').length, color: 'green' },
+          { label: 'Completed', value: items.filter((item) => item.status === 'COMPLETED').length, color: 'blue' },
+          { label: 'On Hold', value: items.filter((item) => item.status === 'ON_HOLD').length, color: 'orange' },
+        ]}
+        loading={loading}
+        columns={4}
+      />
 
       {/* Search and Filters */}
       <SearchFilter

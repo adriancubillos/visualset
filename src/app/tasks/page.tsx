@@ -6,6 +6,7 @@ import DataTable from '@/components/ui/DataTable';
 import SearchFilter from '@/components/ui/SearchFilter';
 import StatusBadge from '@/components/ui/StatusBadge';
 import TableActions from '@/components/ui/TableActions';
+import StatisticsCards from '@/components/ui/StatisticsCards';
 
 interface Task {
   id: string;
@@ -253,28 +254,17 @@ export default function TasksPage() {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-          <div className="text-sm text-gray-500">Total Tasks</div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
-          <div className="text-sm text-gray-500">Pending</div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-2xl font-bold text-blue-600">{stats.inProgress}</div>
-          <div className="text-sm text-gray-500">In Progress</div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-2xl font-bold text-green-600">{stats.completed}</div>
-          <div className="text-sm text-gray-500">Completed</div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-2xl font-bold text-red-600">{stats.cancelled}</div>
-          <div className="text-sm text-gray-500">Cancelled</div>
-        </div>
-      </div>
+      <StatisticsCards
+        stats={[
+          { label: 'Total Tasks', value: stats.total, color: 'gray' },
+          { label: 'Pending', value: stats.pending, color: 'yellow' },
+          { label: 'In Progress', value: stats.inProgress, color: 'blue' },
+          { label: 'Completed', value: stats.completed, color: 'green' },
+          { label: 'Cancelled', value: stats.cancelled, color: 'red' },
+        ]}
+        loading={loading}
+        columns={5}
+      />
 
       {/* Search and Filters */}
       <SearchFilter

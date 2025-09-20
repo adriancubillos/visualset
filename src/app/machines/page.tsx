@@ -6,6 +6,7 @@ import DataTable from '@/components/ui/DataTable';
 import SearchFilter from '@/components/ui/SearchFilter';
 import StatusBadge from '@/components/ui/StatusBadge';
 import TableActions from '@/components/ui/TableActions';
+import StatisticsCards from '@/components/ui/StatisticsCards';
 import { MachineColorIndicator } from '@/components/ui/ColorIndicator';
 
 interface Machine {
@@ -201,38 +202,6 @@ export default function MachinesPage() {
     }
   };
 
-  const handleStatusChange = async (machineId: string, newStatus: string) => {
-    try {
-      const machine = machines.find((m) => m.id === machineId);
-      if (!machine) return;
-
-      const response = await fetch(`/api/machines/${machineId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...machine,
-          status: newStatus,
-        }),
-      });
-
-      if (response.ok) {
-        const updatedMachine = await response.json();
-        const updatedMachines = machines.map((m) => (m.id === machineId ? updatedMachine : m));
-        setMachines(updatedMachines);
-        setFilteredMachines(updatedMachines);
-      } else {
-        const errorData = await response.json();
-        console.error('Failed to update machine status:', errorData.error);
-        alert('Failed to update machine status: ' + (errorData.error || 'Unknown error'));
-      }
-    } catch (error) {
-      console.error('Error updating machine status:', error);
-      alert('Error updating machine status. Please try again.');
-    }
-  };
-
   const renderActions = (machine: Machine) => (
     <TableActions
       itemId={machine.id}
@@ -268,28 +237,17 @@ export default function MachinesPage() {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-          <div className="text-sm text-gray-500">Total Machines</div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-2xl font-bold text-green-600">{stats.available}</div>
-          <div className="text-sm text-gray-500">Available</div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-2xl font-bold text-blue-600">{stats.inUse}</div>
-          <div className="text-sm text-gray-500">In Use</div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-2xl font-bold text-yellow-600">{stats.maintenance}</div>
-          <div className="text-sm text-gray-500">Maintenance</div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-2xl font-bold text-red-600">{stats.offline}</div>
-          <div className="text-sm text-gray-500">Offline</div>
-        </div>
-      </div>
+      <StatisticsCards
+        stats={[
+          { label: 'Total Machines', value: stats.total, color: 'gray' },
+          { label: 'Available', value: stats.available, color: 'green' },
+          { label: 'In Use', value: stats.inUse, color: 'blue' },
+          { label: 'Maintenance', value: stats.maintenance, color: 'yellow' },
+          { label: 'Offline', value: stats.offline, color: 'red' },
+        ]}
+        loading={loading}
+        columns={5}
+      />
 
       {/* Search and Filters */}
       <SearchFilter

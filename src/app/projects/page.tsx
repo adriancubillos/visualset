@@ -7,6 +7,7 @@ import SearchFilter from '@/components/ui/SearchFilter';
 import StatusBadge from '@/components/ui/StatusBadge';
 import TableActions from '@/components/ui/TableActions';
 import { ProjectColorIndicator } from '@/components/ui/ColorIndicator';
+import StatisticsCards from '@/components/ui/StatisticsCards';
 
 interface Project {
   id: string;
@@ -187,6 +188,31 @@ export default function ProjectsPage() {
           New Project
         </Link>
       </div>
+
+      {/* Statistics Cards */}
+      <StatisticsCards
+        stats={[
+          { label: 'Total Projects', value: projects.length, color: 'gray' },
+          { label: 'Active', value: projects.filter((project) => project.status === 'ACTIVE').length, color: 'green' },
+          {
+            label: 'Planning',
+            value: projects.filter((project) => project.status === 'PLANNING').length,
+            color: 'yellow',
+          },
+          {
+            label: 'Completed',
+            value: projects.filter((project) => project.status === 'COMPLETED').length,
+            color: 'blue',
+          },
+          {
+            label: 'On Hold',
+            value: projects.filter((project) => project.status === 'ON_HOLD').length,
+            color: 'orange',
+          },
+        ]}
+        loading={loading}
+        columns={5}
+      />
 
       {/* Search and Filters */}
       <SearchFilter

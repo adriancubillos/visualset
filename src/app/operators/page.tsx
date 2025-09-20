@@ -7,6 +7,7 @@ import SearchFilter from '@/components/ui/SearchFilter';
 import StatusBadge from '@/components/ui/StatusBadge';
 import TableActions from '@/components/ui/TableActions';
 import { OperatorColorIndicator } from '@/components/ui/ColorIndicator';
+import StatisticsCards from '@/components/ui/StatisticsCards';
 
 interface Operator {
   id: string;
@@ -278,24 +279,16 @@ export default function OperatorsPage() {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-          <div className="text-sm text-gray-500">Total Operators</div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-2xl font-bold text-green-600">{stats.active}</div>
-          <div className="text-sm text-gray-500">Active</div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-2xl font-bold text-yellow-600">{stats.onLeave}</div>
-          <div className="text-sm text-gray-500">On Leave</div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-2xl font-bold text-red-600">{stats.inactive}</div>
-          <div className="text-sm text-gray-500">Inactive</div>
-        </div>
-      </div>
+      <StatisticsCards
+        stats={[
+          { label: 'Total Operators', value: stats.total, color: 'gray' },
+          { label: 'Active', value: stats.active, color: 'green' },
+          { label: 'On Leave', value: stats.onLeave, color: 'yellow' },
+          { label: 'Inactive', value: stats.inactive, color: 'red' },
+        ]}
+        loading={loading}
+        columns={4}
+      />
 
       {/* Search and Filters */}
       <SearchFilter
