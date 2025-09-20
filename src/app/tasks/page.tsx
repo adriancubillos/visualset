@@ -7,6 +7,7 @@ import SearchFilter from '@/components/ui/SearchFilter';
 import StatusBadge from '@/components/ui/StatusBadge';
 import TableActions from '@/components/ui/TableActions';
 import StatisticsCards from '@/components/ui/StatisticsCards';
+import { TASK_STATUS } from '@/config/workshop-properties';
 
 interface Task {
   id: string;
@@ -98,8 +99,11 @@ export default function TasksPage() {
     if ('project' in filters) {
       setSelectedProject(filters.project);
     } else {
-      // Project filter was cleared
       setSelectedProject('');
+    }
+
+    if (filters.status) {
+      filtered = filtered.filter((task) => task.status === filters.status);
     }
 
     if (filters.project) {
@@ -114,6 +118,9 @@ export default function TasksPage() {
   };
 
   const getStatusVariant = (status: string) => {
+    const statusConfig = TASK_STATUS.find((s) => s.value === status);
+    if (!statusConfig) return 'default';
+
     switch (status) {
       case 'COMPLETED':
         return 'success';
@@ -173,6 +180,14 @@ export default function TasksPage() {
 
   const filters = [
     {
+      key: 'status',
+      label: 'Filter by Status',
+      options: TASK_STATUS.map((status) => ({
+        value: status.value,
+        label: status.label,
+      })),
+    },
+    {
       key: 'project',
       label: 'Filter by Project',
       options: projects.map((project) => ({
@@ -231,10 +246,12 @@ export default function TasksPage() {
   // Calculate statistics
   const stats = {
     total: tasks.length,
-    pending: tasks.filter((t) => t.status === 'PENDING').length,
-    inProgress: tasks.filter((t) => t.status === 'IN_PROGRESS').length,
-    completed: tasks.filter((t) => t.status === 'COMPLETED').length,
-    cancelled: tasks.filter((t) => t.status === 'CANCELLED').length,
+    ...Object.fromEntries(
+      TASK_STATUS.map((status) => [
+        status.value.toLowerCase().replace('_', ''),
+        tasks.filter((t) => t.status === status.value).length,
+      ]),
+    ),
   };
 
   return (
@@ -257,10 +274,20 @@ export default function TasksPage() {
       <StatisticsCards
         stats={[
           { label: 'Total Tasks', value: stats.total, color: 'gray' },
-          { label: 'Pending', value: stats.pending, color: 'yellow' },
-          { label: 'In Progress', value: stats.inProgress, color: 'blue' },
-          { label: 'Completed', value: stats.completed, color: 'green' },
-          { label: 'Cancelled', value: stats.cancelled, color: 'red' },
+          ...TASK_STATUS.map((status) => {
+            const key = status.value.toLowerCase().replace('_', '');
+            const colorMap: { [key: string]: 'yellow' | 'blue' | 'green' | 'red' | 'gray' } = {
+              pending: 'yellow',
+              inprogress: 'blue',
+              completed: 'green',
+              cancelled: 'red',
+            };
+            return {
+              label: status.label,
+              value: (stats as Record<string, number>)[key] || 0,
+              color: colorMap[key] || ('gray' as const),
+            };
+          }),
         ]}
         loading={loading}
         columns={5}

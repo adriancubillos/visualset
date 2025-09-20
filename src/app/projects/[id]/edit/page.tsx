@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ColorPicker from '@/components/ui/ColorPicker';
+import { PROJECT_STATUS } from '@/config/workshop-properties';
 
 interface Project {
   id: string;
@@ -36,7 +37,7 @@ export default function EditProjectPage() {
         // Fetch project data and used colors in parallel
         const [projectResponse, colorsResponse] = await Promise.all([
           fetch(`/api/projects/${params.id}`),
-          fetch('/api/projects')
+          fetch('/api/projects'),
         ]);
 
         if (!projectResponse.ok) {
@@ -45,11 +46,11 @@ export default function EditProjectPage() {
 
         const projectData = await projectResponse.json();
         const allProjects = colorsResponse.ok ? await colorsResponse.json() : [];
-        
+
         // Get used colors excluding current project
         const usedColorsList = allProjects
-          .filter((p: any) => p.id !== params.id && p.color)
-          .map((p: any) => p.color);
+          .filter((p: { id: string; color?: string }) => p.id !== params.id && p.color)
+          .map((p: { color: string }) => p.color);
 
         setProject(projectData);
         setUsedColors(usedColorsList);
@@ -102,7 +103,7 @@ export default function EditProjectPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   if (loading) {
@@ -128,7 +129,9 @@ export default function EditProjectPage() {
     return (
       <div className="text-center py-12">
         <div className="text-gray-500">Project not found</div>
-        <Link href="/projects" className="text-blue-600 hover:text-blue-800 mt-2 inline-block">
+        <Link
+          href="/projects"
+          className="text-blue-600 hover:text-blue-800 mt-2 inline-block">
           Back to Projects
         </Link>
       </div>
@@ -139,10 +142,14 @@ export default function EditProjectPage() {
     <div className="max-w-2xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <nav className="flex mb-4" aria-label="Breadcrumb">
+        <nav
+          className="flex mb-4"
+          aria-label="Breadcrumb">
           <ol className="flex items-center space-x-4">
             <li>
-              <Link href="/projects" className="text-gray-500 hover:text-gray-700">
+              <Link
+                href="/projects"
+                className="text-gray-500 hover:text-gray-700">
                 Projects
               </Link>
             </li>
@@ -150,7 +157,9 @@ export default function EditProjectPage() {
               <span className="text-gray-400">/</span>
             </li>
             <li>
-              <Link href={`/projects/${project.id}`} className="text-gray-500 hover:text-gray-700">
+              <Link
+                href={`/projects/${project.id}`}
+                className="text-gray-500 hover:text-gray-700">
                 {project.name}
               </Link>
             </li>
@@ -168,10 +177,14 @@ export default function EditProjectPage() {
 
       {/* Form */}
       <div className="bg-white shadow rounded-lg">
-        <form onSubmit={handleSubmit} className="space-y-6 p-6">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-6 p-6">
           {/* Project Name */}
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="name"
+              className="block text-sm font-medium text-gray-700">
               Project Name *
             </label>
             <input
@@ -188,7 +201,9 @@ export default function EditProjectPage() {
 
           {/* Description */}
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="description"
+              className="block text-sm font-medium text-gray-700">
               Description
             </label>
             <textarea
@@ -204,7 +219,9 @@ export default function EditProjectPage() {
 
           {/* Status */}
           <div>
-            <label htmlFor="status" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="status"
+              className="block text-sm font-medium text-gray-700">
               Status
             </label>
             <select
@@ -212,12 +229,14 @@ export default function EditProjectPage() {
               name="status"
               value={formData.status}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="ACTIVE">Active</option>
-              <option value="ON_HOLD">On Hold</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="CANCELLED">Cancelled</option>
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+              {PROJECT_STATUS.map((status) => (
+                <option
+                  key={status.value}
+                  value={status.value}>
+                  {status.label}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -226,7 +245,7 @@ export default function EditProjectPage() {
             selectedColor={formData.color}
             usedColors={usedColors}
             onColorChange={(color) => {
-              setFormData(prev => ({ ...prev, color }));
+              setFormData((prev) => ({ ...prev, color }));
               setColorError('');
             }}
             error={colorError}
@@ -236,19 +255,15 @@ export default function EditProjectPage() {
           <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
             <Link
               href={`/projects/${project.id}`}
-              className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
+              className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
               Cancel
             </Link>
             <button
               type="submit"
               disabled={saving || !formData.name.trim()}
               className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                saving || !formData.name.trim()
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700'
-              }`}
-            >
+                saving || !formData.name.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+              }`}>
               {saving ? 'Saving...' : 'Save Changes'}
             </button>
           </div>

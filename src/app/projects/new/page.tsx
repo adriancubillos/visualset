@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ColorPicker from '@/components/ui/ColorPicker';
+import { PROJECT_STATUS } from '@/config/workshop-properties';
 
 export default function NewProjectPage() {
   const router = useRouter();
@@ -24,8 +25,8 @@ export default function NewProjectPage() {
         if (response.ok) {
           const projects = await response.json();
           const colors = projects
-            .map((project: any) => project.color)
-            .filter((color: string) => color !== null && color !== undefined);
+            .map((project: { color?: string }) => project.color)
+            .filter((color: string | undefined): color is string => color !== null && color !== undefined);
           setUsedColors(colors);
         }
       } catch (error) {
@@ -67,10 +68,9 @@ export default function NewProjectPage() {
           } else {
             console.error('Failed to create project:', errorData);
           }
-        } catch (parseError) {
+        } catch {
           console.error('Failed to create project - Server error');
           console.error('Response status:', response.status);
-          console.error('Response text:', await response.text());
         }
       }
     } catch (error) {
@@ -82,11 +82,11 @@ export default function NewProjectPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleColorChange = (color: string) => {
-    setFormData(prev => ({ ...prev, color }));
+    setFormData((prev) => ({ ...prev, color }));
     setColorError('');
   };
 
@@ -100,10 +100,14 @@ export default function NewProjectPage() {
 
       {/* Form */}
       <div className="bg-white shadow rounded-lg">
-        <form onSubmit={handleSubmit} className="space-y-6 p-6">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-6 p-6">
           {/* Project Name */}
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="name"
+              className="block text-sm font-medium text-gray-700">
               Project Name *
             </label>
             <input
@@ -120,7 +124,9 @@ export default function NewProjectPage() {
 
           {/* Description */}
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="description"
+              className="block text-sm font-medium text-gray-700">
               Description
             </label>
             <textarea
@@ -136,7 +142,9 @@ export default function NewProjectPage() {
 
           {/* Status */}
           <div>
-            <label htmlFor="status" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="status"
+              className="block text-sm font-medium text-gray-700">
               Initial Status
             </label>
             <select
@@ -144,13 +152,15 @@ export default function NewProjectPage() {
               value={formData.status}
               onChange={handleChange}
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-            >
+              required>
               <option value="">Select Status</option>
-              <option value="ACTIVE">Active</option>
-              <option value="ON_HOLD">On Hold</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="CANCELLED">Cancelled</option>
+              {PROJECT_STATUS.map((status) => (
+                <option
+                  key={status.value}
+                  value={status.value}>
+                  {status.label}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -167,19 +177,15 @@ export default function NewProjectPage() {
             <button
               type="button"
               onClick={() => router.back()}
-              className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
+              className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading || !formData.name.trim()}
               className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                loading || !formData.name.trim()
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700'
-              }`}
-            >
+                loading || !formData.name.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+              }`}>
               {loading ? 'Creating...' : 'Create Project'}
             </button>
           </div>

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { formatDateTimeGMTMinus5, parseGMTMinus5DateTime } from '@/utils/timezone';
+import { TASK_PRIORITY, TASK_STATUS } from '@/config/workshop-properties';
 
 interface Task {
   id: string;
@@ -357,9 +358,13 @@ export default function EditTaskPage() {
                 value={formData.priority}
                 onChange={handleChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                <option value="LOW">Low</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="HIGH">High</option>
+                {TASK_PRIORITY.map((priority) => (
+                  <option
+                    key={priority.value}
+                    value={priority.value}>
+                    {priority.label}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -375,10 +380,13 @@ export default function EditTaskPage() {
                 value={formData.status}
                 onChange={handleChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                <option value="PENDING">Pending</option>
-                <option value="IN_PROGRESS">In Progress</option>
-                <option value="COMPLETED">Completed</option>
-                <option value="CANCELLED">Cancelled</option>
+                {TASK_STATUS.map((status) => (
+                  <option
+                    key={status.value}
+                    value={status.value}>
+                    {status.label}
+                  </option>
+                ))}
               </select>
             </div>
           </div>

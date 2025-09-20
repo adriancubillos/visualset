@@ -8,6 +8,7 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import TableActions from '@/components/ui/TableActions';
 import StatisticsCards from '@/components/ui/StatisticsCards';
 import { MachineColorIndicator } from '@/components/ui/ColorIndicator';
+import { MACHINE_TYPES, MACHINE_STATUS } from '@/config/workshop-properties';
 
 interface Machine {
   id: string;
@@ -146,31 +147,29 @@ export default function MachinesPage() {
     {
       key: 'status',
       label: 'Filter by Status',
-      options: [
-        { value: 'AVAILABLE', label: 'Available' },
-        { value: 'IN_USE', label: 'In Use' },
-        { value: 'MAINTENANCE', label: 'Maintenance' },
-        { value: 'OFFLINE', label: 'Offline' },
-      ],
+      options: MACHINE_STATUS.map((status) => ({
+        value: status.value,
+        label: status.label,
+      })),
     },
     {
       key: 'type',
       label: 'Filter by Type',
-      options: [
-        { value: 'CNC_MILL', label: 'CNC Mill' },
-        { value: 'CNC_LATHE', label: 'CNC Lathe' },
-        { value: 'DRILL_PRESS', label: 'Drill Press' },
-        { value: 'GRINDER', label: 'Grinder' },
-      ],
+      options: MACHINE_TYPES.map((type) => ({
+        value: type.value,
+        label: type.label,
+      })),
     },
     {
       key: 'location',
       label: 'Filter by Location',
-      options: [
-        { value: 'Workshop A', label: 'Workshop A' },
-        { value: 'Workshop B', label: 'Workshop B' },
-        { value: 'Workshop C', label: 'Workshop C' },
-      ],
+      options: Array.from(new Set(machines.map((machine) => machine.location)))
+        .filter((location) => location) // Remove empty locations
+        .sort()
+        .map((location) => ({
+          value: location,
+          label: location,
+        })),
     },
   ];
 

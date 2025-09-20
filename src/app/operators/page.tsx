@@ -8,6 +8,7 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import TableActions from '@/components/ui/TableActions';
 import { OperatorColorIndicator } from '@/components/ui/ColorIndicator';
 import StatisticsCards from '@/components/ui/StatisticsCards';
+import { AVAILABLE_SKILLS, OPERATOR_STATUS, OPERATOR_SHIFTS } from '@/config/workshop-properties';
 
 interface Operator {
   id: string;
@@ -145,32 +146,26 @@ export default function OperatorsPage() {
     {
       key: 'status',
       label: 'Filter by Status',
-      options: [
-        { value: 'ACTIVE', label: 'Active' },
-        { value: 'ON_LEAVE', label: 'On Leave' },
-        { value: 'INACTIVE', label: 'Inactive' },
-      ],
+      options: OPERATOR_STATUS.map((status) => ({
+        value: status.value,
+        label: status.label,
+      })),
     },
     {
       key: 'shift',
       label: 'Filter by Shift',
-      options: [
-        { value: 'DAY', label: 'Day' },
-        { value: 'EVENING', label: 'Evening' },
-        { value: 'NIGHT', label: 'Night' },
-      ],
+      options: OPERATOR_SHIFTS.map((shift) => ({
+        value: shift.value,
+        label: shift.label,
+      })),
     },
     {
       key: 'skill',
       label: 'Filter by Skill',
-      options: [
-        { value: 'CNC_MILL', label: 'CNC Mill' },
-        { value: 'CNC_LATHE', label: 'CNC Lathe' },
-        { value: 'WELDING', label: 'Welding' },
-        { value: 'GRINDER', label: 'Grinder' },
-        { value: 'DRILL_PRESS', label: 'Drill Press' },
-        { value: 'BANDSAW', label: 'Bandsaw' },
-      ],
+      options: AVAILABLE_SKILLS.map((skill) => ({
+        value: skill.value,
+        label: skill.label,
+      })),
     },
   ];
 

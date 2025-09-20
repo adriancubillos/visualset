@@ -8,6 +8,7 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import TableActions from '@/components/ui/TableActions';
 import { ProjectColorIndicator } from '@/components/ui/ColorIndicator';
 import StatisticsCards from '@/components/ui/StatisticsCards';
+import { PROJECT_STATUS } from '@/config/workshop-properties';
 
 interface Project {
   id: string;
@@ -126,12 +127,10 @@ export default function ProjectsPage() {
     {
       key: 'status',
       label: 'Filter by Status',
-      options: [
-        { value: 'ACTIVE', label: 'Active' },
-        { value: 'PLANNING', label: 'Planning' },
-        { value: 'COMPLETED', label: 'Completed' },
-        { value: 'ON_HOLD', label: 'On Hold' },
-      ],
+      options: PROJECT_STATUS.map((status) => ({
+        value: status.value,
+        label: status.label,
+      })),
     },
   ];
 
@@ -193,22 +192,21 @@ export default function ProjectsPage() {
       <StatisticsCards
         stats={[
           { label: 'Total Projects', value: projects.length, color: 'gray' },
-          { label: 'Active', value: projects.filter((project) => project.status === 'ACTIVE').length, color: 'green' },
-          {
-            label: 'Planning',
-            value: projects.filter((project) => project.status === 'PLANNING').length,
-            color: 'yellow',
-          },
-          {
-            label: 'Completed',
-            value: projects.filter((project) => project.status === 'COMPLETED').length,
-            color: 'blue',
-          },
-          {
-            label: 'On Hold',
-            value: projects.filter((project) => project.status === 'ON_HOLD').length,
-            color: 'orange',
-          },
+          ...PROJECT_STATUS.slice(1).map((status) => {
+            const statusKey = status.value.toLowerCase();
+            const colorMap: { [key: string]: 'yellow' | 'green' | 'blue' | 'orange' | 'red' | 'gray' } = {
+              planning: 'yellow',
+              active: 'green',
+              on_hold: 'orange',
+              completed: 'blue',
+              cancelled: 'red',
+            };
+            return {
+              label: status.label,
+              value: projects.filter((project) => project.status === status.value).length,
+              color: colorMap[statusKey] || ('gray' as const),
+            };
+          }),
         ]}
         loading={loading}
         columns={5}
