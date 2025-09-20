@@ -11,52 +11,55 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Check operators for conflicts
-    const conflictingOperator = await prisma.operator.findFirst({
-      where: {
-        color,
-        pattern,
-        ...(excludeEntityId && entityType === 'operator' ? { id: { not: excludeEntityId } } : {}),
-      },
-      select: {
-        id: true,
-        name: true,
-      },
-    });
-
-    if (conflictingOperator) {
-      return NextResponse.json({
-        isValid: false,
-        conflictingEntity: {
-          id: conflictingOperator.id,
-          name: conflictingOperator.name,
-          type: 'operator',
+    // Check for conflicts only within the same entity type
+    if (entityType === 'operator') {
+      // Check operators for conflicts (operators can't use combinations from other operators)
+      const conflictingOperator = await prisma.operator.findFirst({
+        where: {
+          color,
+          pattern,
+          ...(excludeEntityId ? { id: { not: excludeEntityId } } : {}),
+        },
+        select: {
+          id: true,
+          name: true,
         },
       });
-    }
 
-    // Check machines for conflicts
-    const conflictingMachine = await prisma.machine.findFirst({
-      where: {
-        color,
-        pattern,
-        ...(excludeEntityId && entityType === 'machine' ? { id: { not: excludeEntityId } } : {}),
-      },
-      select: {
-        id: true,
-        name: true,
-      },
-    });
-
-    if (conflictingMachine) {
-      return NextResponse.json({
-        isValid: false,
-        conflictingEntity: {
-          id: conflictingMachine.id,
-          name: conflictingMachine.name,
-          type: 'machine',
+      if (conflictingOperator) {
+        return NextResponse.json({
+          isValid: false,
+          conflictingEntity: {
+            id: conflictingOperator.id,
+            name: conflictingOperator.name,
+            type: 'operator',
+          },
+        });
+      }
+    } else if (entityType === 'machine') {
+      // Check machines for conflicts (machines can't use combinations from other machines)
+      const conflictingMachine = await prisma.machine.findFirst({
+        where: {
+          color,
+          pattern,
+          ...(excludeEntityId ? { id: { not: excludeEntityId } } : {}),
+        },
+        select: {
+          id: true,
+          name: true,
         },
       });
+
+      if (conflictingMachine) {
+        return NextResponse.json({
+          isValid: false,
+          conflictingEntity: {
+            id: conflictingMachine.id,
+            name: conflictingMachine.name,
+            type: 'machine',
+          },
+        });
+      }
     }
 
     return NextResponse.json({

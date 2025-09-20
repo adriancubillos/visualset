@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { OperatorColorIndicator } from './ColorIndicator';
 import { COLOR_PALETTE, PatternType } from '@/utils/entityColors';
-import { validateColorPatternUniqueness, getValidationErrorMessage, ValidationResult } from '@/utils/colorValidation';
+import {
+  getColorPatternAvailability,
+  isColorAvailable,
+  getAvailablePatternsForColor,
+  ColorPatternAvailability,
+} from '@/utils/colorValidation';
 
 interface VisualIdentifierProps {
   color: string;
@@ -32,53 +37,111 @@ export default function VisualIdentifier({
   entityId,
   onValidationChange,
 }: VisualIdentifierProps) {
-  const [validationResult, setValidationResult] = useState<ValidationResult>({ isValid: true });
-  const [isValidating, setIsValidating] = useState(false);
+  const [availability, setAvailability] = useState<ColorPatternAvailability>({
+    usedCombinations: [],
+    availablePatterns: {},
+    availableColors: [],
+  });
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Validate color/pattern combination whenever they change
+  // Fetch availability data when component mounts or when entityId changes
   useEffect(() => {
-    const validateCombination = async () => {
-      if (!color || !pattern) return;
-
-      setIsValidating(true);
-      const result = await validateColorPatternUniqueness(
-        color,
-        pattern,
-        entityType,
-        entityId, // Exclude current entity in edit mode
-      );
-
-      setValidationResult(result);
-      setIsValidating(false);
-      onValidationChange?.(result.isValid);
+    const fetchAvailability = async () => {
+      setIsLoading(true);
+      const data = await getColorPatternAvailability(entityType, entityId);
+      setAvailability(data);
+      setIsLoading(false);
     };
 
-    // Debounce validation to avoid too many API calls
-    const timeoutId = setTimeout(validateCombination, 500);
-    return () => clearTimeout(timeoutId);
-  }, [color, pattern, entityType, entityId, onValidationChange]);
+    fetchAvailability();
+  }, [entityType, entityId]);
+
+  // Validate current selection and notify parent
+  useEffect(() => {
+    if (!color || !pattern) {
+      onValidationChange?.(false);
+      return;
+    }
+
+    const isValid =
+      availability.usedCombinations.length === 0 ||
+      !availability.usedCombinations.some((combo) => combo.color === color && combo.pattern === pattern);
+
+    onValidationChange?.(isValid);
+  }, [color, pattern, availability, onValidationChange]);
+
+  // Get available patterns for the selected color
+  const availablePatternsForSelectedColor = color ? getAvailablePatternsForColor(color, availability) : [];
+
+  // Handle color selection
+  const handleColorChange = (newColor: string) => {
+    onColorChange(newColor);
+
+    // If the current pattern is not available for the new color, select the first available pattern
+    const availablePatterns = getAvailablePatternsForColor(newColor, availability);
+    if (availablePatterns.length > 0 && !availablePatterns.includes(pattern)) {
+      onPatternChange(availablePatterns[0]);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-3">Visual Identifier</label>
+        <div className="space-y-4">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded mb-2"></div>
+            <div className="grid grid-cols-10 gap-2">
+              {Array.from({ length: 10 }, (_, i) => (
+                <div
+                  key={i}
+                  className="w-8 h-8 bg-gray-200 rounded-lg"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-3">
-        Visual Identifier {!validationResult.isValid && <span className="text-red-500">*</span>}
-      </label>
+      <label className="block text-sm font-medium text-gray-700 mb-3">Visual Identifier *</label>
       <div className="space-y-4">
         {/* Color Selection */}
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-2">Color</label>
           <div className="grid grid-cols-10 gap-2">
-            {COLOR_PALETTE.map((colorOption) => (
-              <button
-                key={colorOption.hex}
-                type="button"
-                onClick={() => onColorChange(colorOption.hex)}
-                className={`w-8 h-8 rounded-lg border-2 transition-all ${
-                  color === colorOption.hex ? 'border-gray-800 scale-110' : 'border-gray-300 hover:border-gray-400'
-                }`}
-                style={{ backgroundColor: colorOption.hex }}
-              />
-            ))}
+            {COLOR_PALETTE.map((colorOption) => {
+              const colorAvailable = isColorAvailable(colorOption.hex, availability);
+              return (
+                <button
+                  key={colorOption.hex}
+                  type="button"
+                  onClick={() => (colorAvailable ? handleColorChange(colorOption.hex) : undefined)}
+                  disabled={!colorAvailable}
+                  className={`w-8 h-8 rounded-lg border-2 transition-all relative ${
+                    color === colorOption.hex
+                      ? 'border-gray-800 scale-110'
+                      : colorAvailable
+                      ? 'border-gray-300 hover:border-gray-400 cursor-pointer'
+                      : 'border-gray-200 cursor-not-allowed opacity-50'
+                  }`}
+                  style={{ backgroundColor: colorOption.hex }}
+                  title={
+                    colorAvailable
+                      ? `${colorOption.hex} - Available`
+                      : `${colorOption.hex} - All patterns used by other ${entityType}s`
+                  }>
+                  {!colorAvailable && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-6 h-0.5 bg-red-500 rotate-45 absolute"></div>
+                      <div className="w-6 h-0.5 bg-red-500 -rotate-45 absolute"></div>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -86,19 +149,31 @@ export default function VisualIdentifier({
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-2">Pattern</label>
           <div className="grid grid-cols-4 gap-2">
-            {PATTERN_OPTIONS.map((patternOption) => (
-              <button
-                key={patternOption.value}
-                type="button"
-                onClick={() => onPatternChange(patternOption.value)}
-                className={`px-3 py-2 text-xs font-medium rounded-md border transition-all ${
-                  pattern === patternOption.value
-                    ? 'border-blue-500 bg-blue-50 text-blue-700'
-                    : 'border-gray-300 text-gray-700 hover:border-gray-400'
-                }`}>
-                {patternOption.label}
-              </button>
-            ))}
+            {PATTERN_OPTIONS.map((patternOption) => {
+              const patternAvailable = !color || availablePatternsForSelectedColor.includes(patternOption.value);
+              return (
+                <button
+                  key={patternOption.value}
+                  type="button"
+                  onClick={() => (patternAvailable ? onPatternChange(patternOption.value) : undefined)}
+                  disabled={!patternAvailable}
+                  className={`px-3 py-2 text-xs font-medium rounded-md border transition-all ${
+                    pattern === patternOption.value
+                      ? 'border-blue-500 bg-blue-50 text-blue-700'
+                      : patternAvailable
+                      ? 'border-gray-300 text-gray-700 hover:border-gray-400 cursor-pointer'
+                      : 'border-gray-200 text-gray-400 cursor-not-allowed opacity-50'
+                  }`}
+                  title={
+                    patternAvailable
+                      ? `${patternOption.label} - Available`
+                      : `${patternOption.label} - Already used with this color by another ${entityType}`
+                  }>
+                  {patternOption.label}
+                  {!patternAvailable && ' ✗'}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -116,30 +191,25 @@ export default function VisualIdentifier({
           <span className="text-sm text-gray-600">{previewName}</span>
         </div>
 
-        {/* Validation Message */}
-        {!validationResult.isValid && (
-          <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <svg
-                  className="h-5 w-5 text-red-400"
-                  viewBox="0 0 20 20"
-                  fill="currentColor">
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-red-800">{getValidationErrorMessage(validationResult)}</p>
-              </div>
+        {/* Usage Information */}
+        {color && (
+          <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <div className="text-sm text-blue-800">
+              <p className="font-medium">Available patterns for this color:</p>
+              <p>
+                {availablePatternsForSelectedColor.length > 0
+                  ? availablePatternsForSelectedColor
+                      .map((p) => PATTERN_OPTIONS.find((opt) => opt.value === p)?.label)
+                      .join(', ')
+                  : `No patterns available for this color (all used by other ${entityType}s)`}
+              </p>
+              <p className="text-xs mt-1 text-blue-600">
+                Note: You can use colors/patterns from {entityType === 'operator' ? 'machines' : 'operators'}, only
+                conflicts with other {entityType}s are prevented.
+              </p>
             </div>
           </div>
         )}
-
-        {isValidating && <div className="mt-2 text-sm text-gray-500">Checking availability...</div>}
       </div>
     </div>
   );
