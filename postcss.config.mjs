@@ -1,7 +1,8 @@
-// Minimal PostCSS config for test environment. If you need Tailwind plugins
-// for local dev/build, restore the plugins and ensure corresponding packages are installed.
+/** @type {import('postcss-load-config').Config} */
 const config = {
-  plugins: [],
+  plugins: {
+    '@tailwindcss/postcss': {},
+  },
 };
 
 export default config;
