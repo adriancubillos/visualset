@@ -81,33 +81,33 @@ export default function Dashboard() {
   }, []);
 
   const statsDisplay = [
-    { 
-      label: 'Active Projects', 
-      value: stats.activeProjects, 
-      change: '', 
+    {
+      label: 'Active Projects',
+      value: stats.activeProjects,
+      change: '',
       changeType: 'neutral' as const,
-      color: 'blue' as const 
+      color: 'blue' as const,
     },
-    { 
-      label: 'Running Tasks', 
-      value: stats.runningTasks, 
-      change: '', 
+    {
+      label: 'Running Tasks',
+      value: stats.runningTasks,
+      change: '',
       changeType: 'neutral' as const,
-      color: 'green' as const 
+      color: 'green' as const,
     },
-    { 
-      label: 'Available Machines', 
-      value: stats.availableMachines, 
-      change: '', 
+    {
+      label: 'Available Machines',
+      value: stats.availableMachines,
+      change: '',
       changeType: 'neutral' as const,
-      color: 'purple' as const 
+      color: 'purple' as const,
     },
-    { 
-      label: 'Active Operators', 
-      value: stats.activeOperators, 
-      change: '', 
+    {
+      label: 'Active Operators',
+      value: stats.activeOperators,
+      change: '',
       changeType: 'neutral' as const,
-      color: 'orange' as const 
+      color: 'orange' as const,
     },
   ];
 
@@ -167,7 +167,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Grid */}
-      <StatisticsCards 
+      <StatisticsCards
         stats={statsDisplay}
         loading={loading}
         showWhenEmpty={true}

@@ -39,7 +39,7 @@ export default function StatisticsCards({
 
   const getGridClass = (itemCount?: number) => {
     const count = itemCount || stats.length;
-    
+
     if (columns === 'auto') {
       // Auto-detect based on number of stats
       if (count <= 3) return 'grid-cols-1 md:grid-cols-3';
@@ -98,15 +98,9 @@ export default function StatisticsCards({
           <div className="flex items-center justify-between">
             <div>
               <div className="text-sm text-gray-500">{stat.label}</div>
-              <div className={`text-2xl font-bold ${getColorClass(stat.color)}`}>
-                {stat.value.toLocaleString()}
-              </div>
+              <div className={`text-2xl font-bold ${getColorClass(stat.color)}`}>{stat.value.toLocaleString()}</div>
             </div>
-            {stat.change && (
-              <div className={`text-sm ${getChangeTextColor(stat.changeType)}`}>
-                {stat.change}
-              </div>
-            )}
+            {stat.change && <div className={`text-sm ${getChangeTextColor(stat.changeType)}`}>{stat.change}</div>}
           </div>
         </div>
       ))}
