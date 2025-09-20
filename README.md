@@ -9,9 +9,11 @@ Refactor frontend components/pages to consume Items (I can do this incrementally
 Expand tests to cover edge cases for routes already added (validation errors, bad inputs).
 Add CI (GitHub Actions) to run tests on PRs/commits.
 Tighten test types further (remove any remaining any where possible).
-Restore full PostCSS/Tailwind config for local dev builds if needed.
 
-I already have a seed.ts lets remove the contents and reCreate it to populate the fresh DB. I need 5 projects each with 5 to 7 items and each item with 8 to 12 tasks
+An item can not be completed unless al its tasks are completed
+collapse things
+
+✅ FIXED: projects/id project details streamlined - removed duplicate status and reduced space usage
 
 # visualset
 
