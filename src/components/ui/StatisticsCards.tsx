@@ -4,6 +4,8 @@ interface StatCard {
   label: string;
   value: number;
   color?: 'gray' | 'green' | 'blue' | 'yellow' | 'red' | 'orange' | 'purple' | 'indigo';
+  change?: string;
+  changeType?: 'increase' | 'decrease' | 'neutral';
 }
 
 interface StatisticsCardsProps {
@@ -11,6 +13,7 @@ interface StatisticsCardsProps {
   loading?: boolean;
   showWhenEmpty?: boolean;
   columns?: 'auto' | 1 | 2 | 3 | 4 | 5 | 6;
+  showSkeletonCount?: number;
 }
 
 export default function StatisticsCards({
@@ -18,12 +21,8 @@ export default function StatisticsCards({
   loading = false,
   showWhenEmpty = false,
   columns = 'auto',
+  showSkeletonCount = 4,
 }: StatisticsCardsProps) {
-  // Don't render if loading or if no data and showWhenEmpty is false
-  if (loading || (!showWhenEmpty && stats.every((stat) => stat.value === 0))) {
-    return null;
-  }
-
   const getColorClass = (color: StatCard['color'] = 'gray') => {
     const colorMap = {
       gray: 'text-gray-900',
@@ -38,12 +37,14 @@ export default function StatisticsCards({
     return colorMap[color];
   };
 
-  const getGridClass = () => {
+  const getGridClass = (itemCount?: number) => {
+    const count = itemCount || stats.length;
+    
     if (columns === 'auto') {
       // Auto-detect based on number of stats
-      if (stats.length <= 3) return 'grid-cols-1 md:grid-cols-3';
-      if (stats.length === 4) return 'grid-cols-1 md:grid-cols-4';
-      if (stats.length === 5) return 'grid-cols-1 md:grid-cols-5';
+      if (count <= 3) return 'grid-cols-1 md:grid-cols-3';
+      if (count === 4) return 'grid-cols-1 md:grid-cols-4';
+      if (count === 5) return 'grid-cols-1 md:grid-cols-5';
       return 'grid-cols-1 md:grid-cols-6';
     }
 
@@ -58,14 +59,55 @@ export default function StatisticsCards({
     return columnMap[columns];
   };
 
+  const getChangeTextColor = (changeType: StatCard['changeType'] = 'neutral') => {
+    const colorMap = {
+      increase: 'text-green-600',
+      decrease: 'text-red-600',
+      neutral: 'text-gray-600',
+    };
+    return colorMap[changeType];
+  };
+
+  // Show loading skeleton if loading
+  if (loading) {
+    return (
+      <div className={`grid ${getGridClass(showSkeletonCount)} gap-4`}>
+        {Array.from({ length: showSkeletonCount }).map((_, index) => (
+          <div
+            key={index}
+            className="bg-white rounded-lg shadow p-4 animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
+            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // Don't render if no data and showWhenEmpty is false
+  if (!showWhenEmpty && stats.every((stat) => stat.value === 0)) {
+    return null;
+  }
+
   return (
     <div className={`grid ${getGridClass()} gap-4`}>
       {stats.map((stat, index) => (
         <div
           key={index}
           className="bg-white rounded-lg shadow p-4">
-          <div className={`text-2xl font-bold ${getColorClass(stat.color)}`}>{stat.value.toLocaleString()}</div>
-          <div className="text-sm text-gray-500">{stat.label}</div>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm text-gray-500">{stat.label}</div>
+              <div className={`text-2xl font-bold ${getColorClass(stat.color)}`}>
+                {stat.value.toLocaleString()}
+              </div>
+            </div>
+            {stat.change && (
+              <div className={`text-sm ${getChangeTextColor(stat.changeType)}`}>
+                {stat.change}
+              </div>
+            )}
+          </div>
         </div>
       ))}
     </div>

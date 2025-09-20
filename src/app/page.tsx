@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import StatusBadge from '@/components/ui/StatusBadge';
+import StatisticsCards from '@/components/ui/StatisticsCards';
 
 interface DashboardStats {
   activeProjects: number;
@@ -80,10 +81,34 @@ export default function Dashboard() {
   }, []);
 
   const statsDisplay = [
-    { label: 'Active Projects', value: stats.activeProjects.toString(), change: '', changeType: 'neutral' },
-    { label: 'Running Tasks', value: stats.runningTasks.toString(), change: '', changeType: 'neutral' },
-    { label: 'Available Machines', value: stats.availableMachines.toString(), change: '', changeType: 'neutral' },
-    { label: 'Active Operators', value: stats.activeOperators.toString(), change: '', changeType: 'neutral' },
+    { 
+      label: 'Active Projects', 
+      value: stats.activeProjects, 
+      change: '', 
+      changeType: 'neutral' as const,
+      color: 'blue' as const 
+    },
+    { 
+      label: 'Running Tasks', 
+      value: stats.runningTasks, 
+      change: '', 
+      changeType: 'neutral' as const,
+      color: 'green' as const 
+    },
+    { 
+      label: 'Available Machines', 
+      value: stats.availableMachines, 
+      change: '', 
+      changeType: 'neutral' as const,
+      color: 'purple' as const 
+    },
+    { 
+      label: 'Active Operators', 
+      value: stats.activeOperators, 
+      change: '', 
+      changeType: 'neutral' as const,
+      color: 'orange' as const 
+    },
   ];
 
   const [recentTasks, setRecentTasks] = useState<Task[]>([]);
@@ -142,39 +167,13 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {loading
-          ? Array.from({ length: 4 }).map((_, index) => (
-              <div
-                key={index}
-                className="bg-white rounded-lg shadow p-6 animate-pulse">
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                <div className="h-8 bg-gray-200 rounded w-1/2"></div>
-              </div>
-            ))
-          : statsDisplay.map((stat) => (
-              <div
-                key={stat.label}
-                className="bg-white rounded-lg shadow p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">{stat.label}</p>
-                    <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
-                  </div>
-                  <div
-                    className={`text-sm ${
-                      stat.changeType === 'increase'
-                        ? 'text-green-600'
-                        : stat.changeType === 'decrease'
-                        ? 'text-red-600'
-                        : 'text-gray-600'
-                    }`}>
-                    {stat.change}
-                  </div>
-                </div>
-              </div>
-            ))}
-      </div>
+      <StatisticsCards 
+        stats={statsDisplay}
+        loading={loading}
+        showWhenEmpty={true}
+        columns={4}
+        showSkeletonCount={4}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Quick Actions */}
