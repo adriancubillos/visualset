@@ -35,6 +35,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         skills: body.skills,
         status: body.status,
         shift: body.shift,
+        color: body.color,
+        pattern: body.pattern,
         availability: body.availability,
       },
     });
