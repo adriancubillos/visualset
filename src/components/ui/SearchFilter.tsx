@@ -23,13 +23,15 @@ export default function SearchFilter({
   const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
 
   // Check if current filter selections are still valid when filter options change
+  // Only clear filters that have become invalid (their selected value is no longer in options)
   useEffect(() => {
     let filtersChanged = false;
     const newActiveFilters = { ...activeFilters };
 
     filters.forEach((filter) => {
       const currentValue = activeFilters[filter.key];
-      if (currentValue && !filter.options.some((option) => option.value === currentValue)) {
+      // Only clear if there's a current value AND it's not available in the current options
+      if (currentValue && filter.options.length > 0 && !filter.options.some((option) => option.value === currentValue)) {
         // Current selection is no longer available in options, clear it
         delete newActiveFilters[filter.key];
         filtersChanged = true;

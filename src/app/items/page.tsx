@@ -68,22 +68,18 @@ export default function ItemsPage() {
     setFilteredItems(filtered);
   };
 
-  const handleStatusFilter = (status: string) => {
-    if (status === 'all') {
-      setFilteredItems(items);
-    } else {
-      const filtered = items.filter((item) => item.status === status);
-      setFilteredItems(filtered);
-    }
-  };
+  const handleFilterChange = (filters: Record<string, string>) => {
+    let filtered = items;
 
-  const handleProjectFilter = (projectId: string) => {
-    if (projectId === 'all') {
-      setFilteredItems(items);
-    } else {
-      const filtered = items.filter((item) => item.project.id === projectId);
-      setFilteredItems(filtered);
+    if (filters.project) {
+      filtered = filtered.filter((item) => item.project.id === filters.project);
     }
+
+    if (filters.status) {
+      filtered = filtered.filter((item) => item.status === filters.status);
+    }
+
+    setFilteredItems(filtered);
   };
 
   const handleDelete = async (id: string) => {
@@ -156,10 +152,25 @@ export default function ItemsPage() {
   ];
 
   const statusOptions = [
-    { value: 'all', label: 'All Items' },
     { value: 'ACTIVE', label: 'Active' },
     { value: 'COMPLETED', label: 'Completed' },
     { value: 'ON_HOLD', label: 'On Hold' },
+  ];
+
+  const filters = [
+    {
+      key: 'project',
+      label: 'Filter by Project',
+      options: projects.map((project) => ({
+        value: project.id,
+        label: project.name,
+      })),
+    },
+    {
+      key: 'status',
+      label: 'Filter by Status',
+      options: statusOptions,
+    },
   ];
 
   return (
@@ -206,41 +217,12 @@ export default function ItemsPage() {
       )}
 
       {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex-1">
-          <SearchFilter
-            onSearch={handleSearch}
-            placeholder="Search items by name, description, or project..."
-          />
-        </div>
-        <div className="sm:w-48">
-          <select
-            onChange={(e) => handleProjectFilter(e.target.value)}
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-            <option value="all">All Projects</option>
-            {projects.map((project) => (
-              <option
-                key={project.id}
-                value={project.id}>
-                {project.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="sm:w-48">
-          <select
-            onChange={(e) => handleStatusFilter(e.target.value)}
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-            {statusOptions.map((option) => (
-              <option
-                key={option.value}
-                value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
+      <SearchFilter
+        placeholder="Search items by name, description, or project..."
+        onSearch={handleSearch}
+        filters={filters}
+        onFilterChange={handleFilterChange}
+      />
 
       {/* Items Table */}
       <div className="bg-white shadow rounded-lg">
