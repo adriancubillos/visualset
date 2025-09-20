@@ -58,18 +58,18 @@ export default function VisualIdentifier({
 
   // Set default color to first available color when availability data is loaded
   useEffect(() => {
-    if (!isLoading && color) { 
+    if (!isLoading && color) {
       // Check if current color is available, if not, select first available
       const isCurrentColorAvailable = isColorAvailable(color, availability);
-      
+
       if (!isCurrentColorAvailable) {
-        const firstAvailableColor = COLOR_PALETTE.find(colorOption => 
-          isColorAvailable(colorOption.hex, availability)
+        const firstAvailableColor = COLOR_PALETTE.find((colorOption) =>
+          isColorAvailable(colorOption.hex, availability),
         );
-        
+
         if (firstAvailableColor) {
           onColorChange(firstAvailableColor.hex);
-          
+
           // Also set a default pattern for the selected color
           const availablePatterns = getAvailablePatternsForColor(firstAvailableColor.hex, availability);
           if (availablePatterns.length > 0) {
