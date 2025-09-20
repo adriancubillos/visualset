@@ -4,10 +4,11 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 // GET /api/items/[id]
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, context: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await context.params;
     const item = await prisma.item.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         project: {
           select: {
@@ -50,12 +51,13 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 }
 
 // PUT /api/items/[id]
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, context: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await context.params;
     const body = await req.json();
 
     const item = await prisma.item.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         name: body.name,
         description: body.description || null,
@@ -85,11 +87,12 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 }
 
 // DELETE /api/items/[id]
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, context: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await context.params;
     // Check if item has any tasks
     const itemWithTasks = await prisma.item.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         _count: {
           select: {
@@ -111,7 +114,7 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
     }
 
     await prisma.item.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ message: 'Item deleted successfully' });

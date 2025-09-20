@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { parseGMTMinus5DateTime } from '@/utils/timezone';
 import { TASK_PRIORITY, TASK_STATUS } from '@/config/workshop-properties';
 
-export default function NewTaskPage() {
+function NewTaskPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [formData, setFormData] = useState({
@@ -370,5 +370,13 @@ export default function NewTaskPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function NewTaskPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <NewTaskPageContent />
+    </Suspense>
   );
 }

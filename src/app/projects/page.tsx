@@ -119,7 +119,7 @@ export default function ProjectsPage() {
       key: 'createdAt' as keyof Project,
       header: 'Created',
       sortable: true,
-      render: (date: string) => new Date(date).toLocaleDateString(),
+      render: (value: unknown) => new Date(value as string).toLocaleDateString(),
     },
   ];
 

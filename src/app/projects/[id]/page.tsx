@@ -13,7 +13,21 @@ interface Project {
   color?: string;
   createdAt: string;
   updatedAt: string;
-  tasks?: any[];
+  tasks?: Array<{
+    id: string;
+    title: string;
+    description?: string;
+    status: string;
+    updatedAt: string;
+    machine?: {
+      id: string;
+      name: string;
+    };
+    operator?: {
+      id: string;
+      name: string;
+    };
+  }>;
 }
 
 export default function ProjectDetailPage() {
@@ -95,7 +109,9 @@ export default function ProjectDetailPage() {
     return (
       <div className="text-center py-12">
         <div className="text-gray-500">Project not found</div>
-        <Link href="/projects" className="text-blue-600 hover:text-blue-800 mt-2 inline-block">
+        <Link
+          href="/projects"
+          className="text-blue-600 hover:text-blue-800 mt-2 inline-block">
           Back to Projects
         </Link>
       </div>
@@ -107,10 +123,14 @@ export default function ProjectDetailPage() {
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <nav className="flex mb-4" aria-label="Breadcrumb">
+          <nav
+            className="flex mb-4"
+            aria-label="Breadcrumb">
             <ol className="flex items-center space-x-4">
               <li>
-                <Link href="/projects" className="text-gray-500 hover:text-gray-700">
+                <Link
+                  href="/projects"
+                  className="text-gray-500 hover:text-gray-700">
                   Projects
                 </Link>
               </li>
@@ -124,23 +144,22 @@ export default function ProjectDetailPage() {
           </nav>
           <h1 className="text-3xl font-bold text-gray-900">{project.name}</h1>
           <div className="mt-2 flex items-center space-x-4">
-            <StatusBadge status={project.status} variant={getStatusVariant(project.status)} />
-            <span className="text-gray-500">
-              Created {new Date(project.createdAt).toLocaleDateString()}
-            </span>
+            <StatusBadge
+              status={project.status}
+              variant={getStatusVariant(project.status)}
+            />
+            <span className="text-gray-500">Created {new Date(project.createdAt).toLocaleDateString()}</span>
           </div>
         </div>
         <div className="flex space-x-3">
           <Link
             href={`/projects/${project.id}/edit`}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
+            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
             Edit
           </Link>
           <button
             onClick={handleDelete}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-          >
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
             Delete
           </button>
         </div>
@@ -160,7 +179,10 @@ export default function ProjectDetailPage() {
             <div>
               <dt className="text-sm font-medium text-gray-500">Status</dt>
               <dd className="mt-1">
-                <StatusBadge status={project.status} variant={getStatusVariant(project.status)} />
+                <StatusBadge
+                  status={project.status}
+                  variant={getStatusVariant(project.status)}
+                />
               </dd>
             </div>
             <div className="sm:col-span-2">
@@ -169,15 +191,11 @@ export default function ProjectDetailPage() {
             </div>
             <div>
               <dt className="text-sm font-medium text-gray-500">Created</dt>
-              <dd className="mt-1 text-sm text-gray-900">
-                {new Date(project.createdAt).toLocaleDateString()}
-              </dd>
+              <dd className="mt-1 text-sm text-gray-900">{new Date(project.createdAt).toLocaleDateString()}</dd>
             </div>
             <div>
               <dt className="text-sm font-medium text-gray-500">Last Updated</dt>
-              <dd className="mt-1 text-sm text-gray-900">
-                {new Date(project.updatedAt).toLocaleDateString()}
-              </dd>
+              <dd className="mt-1 text-sm text-gray-900">{new Date(project.updatedAt).toLocaleDateString()}</dd>
             </div>
           </dl>
         </div>
@@ -190,8 +208,7 @@ export default function ProjectDetailPage() {
             <h2 className="text-lg font-semibold text-gray-900">Related Tasks</h2>
             <Link
               href={`/tasks/new?project=${project.id}`}
-              className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-            >
+              className="text-sm text-blue-600 hover:text-blue-800 font-medium">
               Add Task
             </Link>
           </div>
@@ -199,8 +216,10 @@ export default function ProjectDetailPage() {
         <div className="px-6 py-4">
           {project.tasks && project.tasks.length > 0 ? (
             <div className="space-y-4">
-              {project.tasks.map((task: any) => (
-                <div key={task.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+              {project.tasks.map((task) => (
+                <div
+                  key={task.id}
+                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
                   <div>
                     <h3 className="font-medium text-gray-900">{task.title}</h3>
                     <p className="text-sm text-gray-500">{task.description}</p>
@@ -209,14 +228,15 @@ export default function ProjectDetailPage() {
                       {task.operator && <span>Operator: {task.operator.name}</span>}
                     </div>
                   </div>
-                  <StatusBadge status={task.status} variant={getStatusVariant(task.status)} />
+                  <StatusBadge
+                    status={task.status}
+                    variant={getStatusVariant(task.status)}
+                  />
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 text-gray-500">
-              No tasks assigned to this project yet.
-            </div>
+            <div className="text-center py-8 text-gray-500">No tasks assigned to this project yet.</div>
           )}
         </div>
       </div>
@@ -247,7 +267,7 @@ export default function ProjectDetailPage() {
             <div className="ml-4">
               <div className="text-sm font-medium text-gray-500">Machines Used</div>
               <div className="text-2xl font-bold text-gray-900">
-                {project.tasks ? new Set(project.tasks.filter(t => t.machine).map(t => t.machine.id)).size : 0}
+                {project.tasks ? new Set(project.tasks.filter((t) => t.machine).map((t) => t.machine!.id)).size : 0}
               </div>
             </div>
           </div>
@@ -263,7 +283,7 @@ export default function ProjectDetailPage() {
             <div className="ml-4">
               <div className="text-sm font-medium text-gray-500">Operators Assigned</div>
               <div className="text-2xl font-bold text-gray-900">
-                {project.tasks ? new Set(project.tasks.filter(t => t.operator).map(t => t.operator.id)).size : 0}
+                {project.tasks ? new Set(project.tasks.filter((t) => t.operator).map((t) => t.operator!.id)).size : 0}
               </div>
             </div>
           </div>

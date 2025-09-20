@@ -80,7 +80,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
       where: { id },
     });
     return NextResponse.json({ message: 'Project deleted successfully' });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Project not found' }, { status: 404 });
   }
 }
