@@ -341,15 +341,6 @@ export default function EditOperatorPage() {
             </select>
           </div>
 
-          {/* Visual Identifier */}
-          <VisualIdentifier
-            color={formData.color || '#3B82F6'}
-            pattern={(formData.pattern as PatternType) || 'solid'}
-            onColorChange={handleColorChange}
-            onPatternChange={handlePatternChange}
-            previewName={formData.name || 'Operator Preview'}
-          />
-
           {/* Actions */}
           <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
             <Link
