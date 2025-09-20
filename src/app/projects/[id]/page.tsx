@@ -13,20 +13,25 @@ interface Project {
   color?: string;
   createdAt: string;
   updatedAt: string;
-  tasks?: Array<{
+  items?: Array<{
     id: string;
-    title: string;
+    name: string;
     description?: string;
     status: string;
     updatedAt: string;
-    machine?: {
+    tasks?: Array<{
       id: string;
-      name: string;
-    };
-    operator?: {
-      id: string;
-      name: string;
-    };
+      title: string;
+      status: string;
+      machine?: {
+        id: string;
+        name: string;
+      };
+      operator?: {
+        id: string;
+        name: string;
+      };
+    }>;
   }>;
 }
 
@@ -201,42 +206,115 @@ export default function ProjectDetailPage() {
         </div>
       </div>
 
-      {/* Related Tasks Section */}
+      {/* Project Items Section */}
       <div className="bg-white shadow rounded-lg">
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex justify-between items-center">
-            <h2 className="text-lg font-semibold text-gray-900">Related Tasks</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Project Items</h2>
             <Link
-              href={`/tasks/new?project=${project.id}`}
+              href={`/items/new?project=${project.id}`}
               className="text-sm text-blue-600 hover:text-blue-800 font-medium">
-              Add Task
+              Add Item
             </Link>
           </div>
         </div>
         <div className="px-6 py-4">
-          {project.tasks && project.tasks.length > 0 ? (
+          {project.items && project.items.length > 0 ? (
             <div className="space-y-4">
-              {project.tasks.map((task) => (
+              {project.items.map((item) => (
                 <div
-                  key={task.id}
-                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                  <div>
-                    <h3 className="font-medium text-gray-900">{task.title}</h3>
-                    <p className="text-sm text-gray-500">{task.description}</p>
-                    <div className="mt-2 flex items-center space-x-4 text-xs text-gray-500">
-                      {task.machine && <span>Machine: {task.machine.name}</span>}
-                      {task.operator && <span>Operator: {task.operator.name}</span>}
+                  key={item.id}
+                  className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <h3 className="font-medium text-gray-900">
+                        <Link
+                          href={`/items/${item.id}`}
+                          className="hover:text-blue-600">
+                          {item.name}
+                        </Link>
+                      </h3>
+                      {item.description && <p className="text-sm text-gray-500">{item.description}</p>}
                     </div>
+                    <StatusBadge
+                      status={item.status}
+                      variant={getStatusVariant(item.status)}
+                    />
                   </div>
-                  <StatusBadge
-                    status={task.status}
-                    variant={getStatusVariant(task.status)}
-                  />
+
+                  {/* Item completion and warnings */}
+                  {item.tasks && item.tasks.length > 0 ? (
+                    <div className="mt-3 space-y-2">
+                      {/* Completion percentage */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">
+                          Progress ({item.tasks.filter((t) => t.status === 'COMPLETED').length}/{item.tasks.length}{' '}
+                          tasks)
+                        </span>
+                        <span className="text-sm font-medium text-gray-900">
+                          {Math.round(
+                            (item.tasks.filter((t) => t.status === 'COMPLETED').length / item.tasks.length) * 100,
+                          )}
+                          %
+                        </span>
+                      </div>
+
+                      {/* Progress bar */}
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full transition-all duration-300 ${
+                            item.tasks.filter((t) => t.status === 'COMPLETED').length / item.tasks.length === 1
+                              ? 'bg-green-500'
+                              : 'bg-blue-500'
+                          }`}
+                          style={{
+                            width: `${
+                              (item.tasks.filter((t) => t.status === 'COMPLETED').length / item.tasks.length) * 100
+                            }%`,
+                          }}
+                        />
+                      </div>
+
+                      {/* Warnings */}
+                      <div className="space-y-1">
+                        {/* Tasks without operators */}
+                        {item.tasks.filter((t) => !t.operator).length > 0 && (
+                          <div className="flex items-center text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded">
+                            <span className="mr-1">⚠️</span>
+                            {item.tasks.filter((t) => !t.operator).length} task(s) without operator assigned
+                          </div>
+                        )}
+
+                        {/* Tasks with problematic statuses */}
+                        {item.tasks.filter((t) => !['IN_PROGRESS', 'COMPLETED'].includes(t.status)).length > 0 && (
+                          <div className="flex items-center text-xs text-red-700 bg-red-50 px-2 py-1 rounded">
+                            <span className="mr-1">🚨</span>
+                            {item.tasks.filter((t) => !['IN_PROGRESS', 'COMPLETED'].includes(t.status)).length} task(s)
+                            need attention
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-3">
+                      <div className="flex items-center text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">
+                        <span className="mr-1">📝</span>
+                        No tasks created for this item yet
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 text-gray-500">No tasks assigned to this project yet.</div>
+            <div className="text-center py-8 text-gray-500">
+              No items in this project yet.
+              <Link
+                href={`/items/new?project=${project.id}`}
+                className="block mt-2 text-blue-600 hover:text-blue-800">
+                Create the first item
+              </Link>
+            </div>
           )}
         </div>
       </div>
@@ -247,12 +325,12 @@ export default function ProjectDetailPage() {
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                <span className="text-blue-600 text-sm">✅</span>
+                <span className="text-blue-600 text-sm">📦</span>
               </div>
             </div>
             <div className="ml-4">
-              <div className="text-sm font-medium text-gray-500">Total Tasks</div>
-              <div className="text-2xl font-bold text-gray-900">{project.tasks?.length || 0}</div>
+              <div className="text-sm font-medium text-gray-500">Total Items</div>
+              <div className="text-2xl font-bold text-gray-900">{project.items?.length || 0}</div>
             </div>
           </div>
         </div>
@@ -261,13 +339,13 @@ export default function ProjectDetailPage() {
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                <span className="text-green-600 text-sm">⚙️</span>
+                <span className="text-green-600 text-sm">✅</span>
               </div>
             </div>
             <div className="ml-4">
-              <div className="text-sm font-medium text-gray-500">Machines Used</div>
+              <div className="text-sm font-medium text-gray-500">Total Tasks</div>
               <div className="text-2xl font-bold text-gray-900">
-                {project.tasks ? new Set(project.tasks.filter((t) => t.machine).map((t) => t.machine!.id)).size : 0}
+                {project.items?.reduce((total, item) => total + (item.tasks?.length || 0), 0) || 0}
               </div>
             </div>
           </div>
@@ -277,13 +355,62 @@ export default function ProjectDetailPage() {
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                <span className="text-purple-600 text-sm">👥</span>
+                <span className="text-purple-600 text-sm">⚙️</span>
+              </div>
+            </div>
+            <div className="ml-4">
+              <div className="text-sm font-medium text-gray-500">Machines Used</div>
+              <div className="text-2xl font-bold text-gray-900">
+                {project.items
+                  ? new Set(
+                      project.items
+                        .flatMap((item) => item.tasks || [])
+                        .filter((task) => task.machine)
+                        .map((task) => task.machine!.id),
+                    ).size
+                  : 0}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Additional Statistics Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white shadow rounded-lg p-6">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                <span className="text-orange-600 text-sm">👥</span>
               </div>
             </div>
             <div className="ml-4">
               <div className="text-sm font-medium text-gray-500">Operators Assigned</div>
               <div className="text-2xl font-bold text-gray-900">
-                {project.tasks ? new Set(project.tasks.filter((t) => t.operator).map((t) => t.operator!.id)).size : 0}
+                {project.items
+                  ? new Set(
+                      project.items
+                        .flatMap((item) => item.tasks || [])
+                        .filter((task) => task.operator)
+                        .map((task) => task.operator!.id),
+                    ).size
+                  : 0}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white shadow rounded-lg p-6">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
+                <span className="text-indigo-600 text-sm">📊</span>
+              </div>
+            </div>
+            <div className="ml-4">
+              <div className="text-sm font-medium text-gray-500">Items Completed</div>
+              <div className="text-2xl font-bold text-gray-900">
+                {project.items?.filter((item) => item.status === 'COMPLETED').length || 0}
               </div>
             </div>
           </div>
