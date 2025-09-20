@@ -43,7 +43,7 @@ export default function EditOperatorPage() {
     shift: 'DAY',
     availability: {},
     status: 'ACTIVE',
-    color: '#3B82F6', // Default blue
+    color: '#ef4444', // Red - first color in palette
     pattern: 'solid',
   });
   const [loading, setLoading] = useState(true);

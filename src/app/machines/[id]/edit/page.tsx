@@ -28,7 +28,7 @@ export default function EditMachinePage() {
     type: MACHINE_TYPES[0].value,
     status: 'AVAILABLE',
     location: '',
-    color: '#3B82F6',
+    color: '#ef4444', // Red - first color in palette
     pattern: 'solid' as PatternType,
   });
   const [loading, setLoading] = useState(true);

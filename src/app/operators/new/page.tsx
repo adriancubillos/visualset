@@ -14,7 +14,7 @@ export default function NewOperatorPage() {
     skills: [] as string[],
     status: 'ACTIVE',
     shift: 'DAY',
-    color: '#3B82F6',
+    color: '#ef4444', // Red - first color in palette
     pattern: 'solid' as PatternType,
     availability: {},
   });
