@@ -26,27 +26,36 @@ interface Item {
 export default function ItemsPage() {
   const [items, setItems] = useState<Item[]>([]);
   const [filteredItems, setFilteredItems] = useState<Item[]>([]);
+  const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchItems = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch('/api/items');
-        if (response.ok) {
-          const data = await response.json();
-          setItems(data);
-          setFilteredItems(data);
+        const [itemsResponse, projectsResponse] = await Promise.all([fetch('/api/items'), fetch('/api/projects')]);
+
+        if (itemsResponse.ok) {
+          const itemsData = await itemsResponse.json();
+          setItems(itemsData);
+          setFilteredItems(itemsData);
         } else {
           console.error('Failed to fetch items');
         }
+
+        if (projectsResponse.ok) {
+          const projectsData = await projectsResponse.json();
+          setProjects(projectsData.map((p: { id: string; name: string }) => ({ id: p.id, name: p.name })));
+        } else {
+          console.error('Failed to fetch projects');
+        }
       } catch (error) {
-        console.error('Error fetching items:', error);
+        console.error('Error fetching data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchItems();
+    fetchData();
   }, []);
 
   const handleSearch = (query: string) => {
@@ -64,6 +73,15 @@ export default function ItemsPage() {
       setFilteredItems(items);
     } else {
       const filtered = items.filter((item) => item.status === status);
+      setFilteredItems(filtered);
+    }
+  };
+
+  const handleProjectFilter = (projectId: string) => {
+    if (projectId === 'all') {
+      setFilteredItems(items);
+    } else {
+      const filtered = items.filter((item) => item.project.id === projectId);
       setFilteredItems(filtered);
     }
   };
@@ -194,6 +212,20 @@ export default function ItemsPage() {
             onSearch={handleSearch}
             placeholder="Search items by name, description, or project..."
           />
+        </div>
+        <div className="sm:w-48">
+          <select
+            onChange={(e) => handleProjectFilter(e.target.value)}
+            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            <option value="all">All Projects</option>
+            {projects.map((project) => (
+              <option
+                key={project.id}
+                value={project.id}>
+                {project.name}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="sm:w-48">
           <select

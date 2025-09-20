@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface SearchFilterProps {
   placeholder?: string;
@@ -21,6 +21,26 @@ export default function SearchFilter({
 }: SearchFilterProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
+
+  // Check if current filter selections are still valid when filter options change
+  useEffect(() => {
+    let filtersChanged = false;
+    const newActiveFilters = { ...activeFilters };
+
+    filters.forEach((filter) => {
+      const currentValue = activeFilters[filter.key];
+      if (currentValue && !filter.options.some((option) => option.value === currentValue)) {
+        // Current selection is no longer available in options, clear it
+        delete newActiveFilters[filter.key];
+        filtersChanged = true;
+      }
+    });
+
+    if (filtersChanged) {
+      setActiveFilters(newActiveFilters);
+      onFilterChange?.(newActiveFilters);
+    }
+  }, [filters, activeFilters, onFilterChange]);
 
   const handleSearchChange = (query: string) => {
     setSearchQuery(query);
@@ -43,8 +63,17 @@ export default function SearchFilter({
         <div className="flex-1">
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              <svg
+                className="h-5 w-5 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
               </svg>
             </div>
             <input
@@ -59,15 +88,18 @@ export default function SearchFilter({
 
         {/* Filters */}
         {filters.map((filter) => (
-          <div key={filter.key} className="min-w-0 flex-1 sm:flex-none sm:w-48">
+          <div
+            key={filter.key}
+            className="min-w-0 flex-1 sm:flex-none sm:w-48">
             <select
               className="block w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
               value={activeFilters[filter.key] || ''}
-              onChange={(e) => handleFilterChange(filter.key, e.target.value)}
-            >
+              onChange={(e) => handleFilterChange(filter.key, e.target.value)}>
               <option value="">{filter.label}</option>
               {filter.options.map((option) => (
-                <option key={option.value} value={option.value}>
+                <option
+                  key={option.value}
+                  value={option.value}>
                   {option.label}
                 </option>
               ))}
@@ -80,19 +112,17 @@ export default function SearchFilter({
       {Object.keys(activeFilters).length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
           {Object.entries(activeFilters).map(([key, value]) => {
-            const filter = filters.find(f => f.key === key);
-            const option = filter?.options.find(o => o.value === value);
+            const filter = filters.find((f) => f.key === key);
+            const option = filter?.options.find((o) => o.value === value);
             return (
               <span
                 key={key}
-                className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
-              >
+                className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800">
                 {filter?.label}: {option?.label}
                 <button
                   type="button"
                   className="ml-2 inline-flex items-center justify-center w-4 h-4 rounded-full text-blue-400 hover:bg-blue-200 hover:text-blue-600"
-                  onClick={() => handleFilterChange(key, '')}
-                >
+                  onClick={() => handleFilterChange(key, '')}>
                   ×
                 </button>
               </span>
@@ -104,8 +134,7 @@ export default function SearchFilter({
             onClick={() => {
               setActiveFilters({});
               onFilterChange?.({});
-            }}
-          >
+            }}>
             Clear all
           </button>
         </div>

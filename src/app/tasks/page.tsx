@@ -16,6 +16,7 @@ interface Task {
   scheduledAt: string;
   durationMin: number;
   project: { id: string; name: string } | null;
+  item: { id: string; name: string; project: { id: string; name: string } } | null;
   machine: { id: string; name: string } | null;
   operator: { id: string; name: string } | null;
   createdAt: string;
@@ -27,41 +28,53 @@ export default function TasksPage() {
   const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
+  const [items, setItems] = useState<{ id: string; name: string; projectId: string }[]>([]);
+  const [selectedProject, setSelectedProject] = useState<string>('');
 
   useEffect(() => {
-    const fetchTasks = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch('/api/tasks');
-        if (response.ok) {
-          const data = await response.json();
-          setTasks(data);
-          setFilteredTasks(data);
+        const [tasksResponse, projectsResponse, itemsResponse] = await Promise.all([
+          fetch('/api/tasks'),
+          fetch('/api/projects'),
+          fetch('/api/items'),
+        ]);
+
+        if (tasksResponse.ok) {
+          const tasksData = await tasksResponse.json();
+          setTasks(tasksData);
+          setFilteredTasks(tasksData);
         } else {
           console.error('Failed to fetch tasks');
         }
+
+        if (projectsResponse.ok) {
+          const projectsData = await projectsResponse.json();
+          setProjects(projectsData.map((p: { id: string; name: string }) => ({ id: p.id, name: p.name })));
+        } else {
+          console.error('Failed to fetch projects');
+        }
+
+        if (itemsResponse.ok) {
+          const itemsData = await itemsResponse.json();
+          setItems(
+            itemsData.map((i: { id: string; name: string; project: { id: string } }) => ({
+              id: i.id,
+              name: i.name,
+              projectId: i.project.id,
+            })),
+          );
+        } else {
+          console.error('Failed to fetch items');
+        }
       } catch (error) {
-        console.error('Error fetching tasks:', error);
+        console.error('Error fetching data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    const fetchProjects = async () => {
-      try {
-        const response = await fetch('/api/projects');
-        if (response.ok) {
-          const data = await response.json();
-          setProjects(data);
-        } else {
-          console.error('Failed to fetch projects');
-        }
-      } catch (error) {
-        console.error('Error fetching projects:', error);
-      }
-    };
-
-    fetchTasks();
-    fetchProjects();
+    fetchData();
   }, []);
 
   const handleSearch = (query: string) => {
@@ -71,7 +84,7 @@ export default function TasksPage() {
         task.description.toLowerCase().includes(query.toLowerCase()) ||
         task.project?.name.toLowerCase().includes(query.toLowerCase()) ||
         task.machine?.name.toLowerCase().includes(query.toLowerCase()) ||
-        task.operator?.name.toLowerCase().includes(query.toLowerCase())
+        task.operator?.name.toLowerCase().includes(query.toLowerCase()),
     );
     setFilteredTasks(filtered);
   };
@@ -79,16 +92,21 @@ export default function TasksPage() {
   const handleFilterChange = (filters: Record<string, string>) => {
     let filtered = tasks;
 
-    if (filters.status) {
-      filtered = filtered.filter((task) => task.status === filters.status);
-    }
-
-    if (filters.priority) {
-      filtered = filtered.filter((task) => task.priority === filters.priority);
+    // Track selected project for dynamic item filtering
+    // When project filter is cleared, it won't be in the filters object at all
+    if ('project' in filters) {
+      setSelectedProject(filters.project);
+    } else {
+      // Project filter was cleared
+      setSelectedProject('');
     }
 
     if (filters.project) {
-      filtered = filtered.filter((task) => task.project?.id === filters.project);
+      filtered = filtered.filter((task) => task.item?.project.id === filters.project);
+    }
+
+    if (filters.item) {
+      filtered = filtered.filter((task) => task.item?.id === filters.item);
     }
 
     setFilteredTasks(filtered);
@@ -109,25 +127,6 @@ export default function TasksPage() {
     }
   };
 
-  const getPriorityVariant = (priority: string) => {
-    switch (priority) {
-      case 'HIGH':
-        return 'error';
-      case 'MEDIUM':
-        return 'warning';
-      case 'LOW':
-        return 'success';
-      default:
-        return 'default';
-    }
-  };
-
-  const formatDuration = (minutes: number) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-  };
-
   const columns = [
     {
       key: 'title' as keyof Task,
@@ -139,62 +138,56 @@ export default function TasksPage() {
       header: 'Status',
       sortable: true,
       render: (status: string) => (
-        <StatusBadge status={status ? status.replace(/_/g, ' ') : 'Unknown'} variant={getStatusVariant(status)} />
+        <StatusBadge
+          status={status ? status.replace(/_/g, ' ') : 'Unknown'}
+          variant={getStatusVariant(status)}
+        />
       ),
     },
     {
       key: 'project' as keyof Task,
       header: 'Project',
       sortable: false,
-      render: (project: any) => (
-        <span className="text-sm">{project?.name || 'No Project'}</span>
-      ),
+      render: (project: Task['project']) => <span className="text-sm">{project?.name || 'No Project'}</span>,
+    },
+    {
+      key: 'item' as keyof Task,
+      header: 'Item',
+      sortable: false,
+      render: (item: Task['item']) => <span className="text-sm">{item?.name || 'No Item'}</span>,
     },
     {
       key: 'operator' as keyof Task,
       header: 'Operator',
       sortable: false,
-      render: (operator: any) => (
-        <span className="text-sm">{operator?.name || 'Unassigned'}</span>
-      ),
+      render: (operator: Task['operator']) => <span className="text-sm">{operator?.name || 'Unassigned'}</span>,
     },
     {
       key: 'scheduledAt' as keyof Task,
       header: 'Scheduled',
       sortable: true,
-      render: (date: string) => (
-        <span className="text-sm">{new Date(date).toLocaleDateString()}</span>
-      ),
+      render: (date: string) => <span className="text-sm">{new Date(date).toLocaleDateString()}</span>,
     },
   ];
 
   const filters = [
     {
-      key: 'status',
-      label: 'Filter by Status',
-      options: [
-        { value: 'PENDING', label: 'Pending' },
-        { value: 'IN_PROGRESS', label: 'In Progress' },
-        { value: 'COMPLETED', label: 'Completed' },
-        { value: 'CANCELLED', label: 'Cancelled' },
-      ],
-    },
-    {
-      key: 'priority',
-      label: 'Filter by Priority',
-      options: [
-        { value: 'HIGH', label: 'High' },
-        { value: 'MEDIUM', label: 'Medium' },
-        { value: 'LOW', label: 'Low' },
-      ],
-    },
-    {
       key: 'project',
       label: 'Filter by Project',
-      options: projects.map(project => ({
+      options: projects.map((project) => ({
         value: project.id,
-        label: project.name
+        label: project.name,
       })),
+    },
+    {
+      key: 'item',
+      label: 'Filter by Item',
+      options: items
+        .filter((item) => !selectedProject || item.projectId === selectedProject)
+        .map((item) => ({
+          value: item.id,
+          label: item.name,
+        })),
     },
   ];
 
@@ -202,53 +195,19 @@ export default function TasksPage() {
     window.location.href = `/tasks/${task.id}`;
   };
 
-  const handleStatusChange = async (taskId: string, currentStatus: string) => {
-    const statusFlow = {
-      'PENDING': 'IN_PROGRESS',
-      'IN_PROGRESS': 'COMPLETED',
-      'COMPLETED': 'PENDING',
-      'CANCELLED': 'PENDING'
-    };
-    
-    const newStatus = statusFlow[currentStatus as keyof typeof statusFlow] || 'PENDING';
-    
-    try {
-      const response = await fetch(`/api/tasks/${taskId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      
-      if (response.ok) {
-        // Update local state
-        const updatedTasks = tasks.map(task => 
-          task.id === taskId ? { ...task, status: newStatus } : task
-        );
-        setTasks(updatedTasks);
-        setFilteredTasks(updatedTasks);
-      } else {
-        console.error('Failed to update task status');
-      }
-    } catch (error) {
-      console.error('Error updating task status:', error);
-    }
-  };
-
   const handleDelete = async (taskId: string, taskName?: string) => {
     if (!confirm(`Are you sure you want to delete task "${taskName || 'this task'}"?`)) {
       return;
     }
-    
+
     try {
       const response = await fetch(`/api/tasks/${taskId}`, {
         method: 'DELETE',
       });
-      
+
       if (response.ok) {
         // Update local state
-        const updatedTasks = tasks.filter(task => task.id !== taskId);
+        const updatedTasks = tasks.filter((task) => task.id !== taskId);
         setTasks(updatedTasks);
         setFilteredTasks(updatedTasks);
       } else {
@@ -271,10 +230,10 @@ export default function TasksPage() {
   // Calculate statistics
   const stats = {
     total: tasks.length,
-    pending: tasks.filter(t => t.status === 'PENDING').length,
-    inProgress: tasks.filter(t => t.status === 'IN_PROGRESS').length,
-    completed: tasks.filter(t => t.status === 'COMPLETED').length,
-    cancelled: tasks.filter(t => t.status === 'CANCELLED').length,
+    pending: tasks.filter((t) => t.status === 'PENDING').length,
+    inProgress: tasks.filter((t) => t.status === 'IN_PROGRESS').length,
+    completed: tasks.filter((t) => t.status === 'COMPLETED').length,
+    cancelled: tasks.filter((t) => t.status === 'CANCELLED').length,
   };
 
   return (
@@ -287,8 +246,7 @@ export default function TasksPage() {
         </div>
         <Link
           href="/tasks/new"
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
           <span className="mr-2">+</span>
           Create Task
         </Link>
