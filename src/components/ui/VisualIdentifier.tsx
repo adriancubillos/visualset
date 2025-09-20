@@ -77,10 +77,13 @@ export default function VisualIdentifier({
   const handleColorChange = (newColor: string) => {
     onColorChange(newColor);
 
-    // If the current pattern is not available for the new color, select the first available pattern
-    const availablePatterns = getAvailablePatternsForColor(newColor, availability);
-    if (availablePatterns.length > 0 && !availablePatterns.includes(pattern)) {
-      onPatternChange(availablePatterns[0]);
+    // Only auto-adjust pattern if we're not loading and have valid availability data
+    if (!isLoading && availability.usedCombinations.length >= 0) {
+      const availablePatterns = getAvailablePatternsForColor(newColor, availability);
+      // Only change pattern if current pattern is actually unavailable AND there are available patterns
+      if (availablePatterns.length > 0 && !availablePatterns.includes(pattern)) {
+        onPatternChange(availablePatterns[0]);
+      }
     }
   };
 
@@ -113,12 +116,17 @@ export default function VisualIdentifier({
           <label className="block text-xs font-medium text-gray-500 mb-2">Color</label>
           <div className="grid grid-cols-10 gap-2">
             {COLOR_PALETTE.map((colorOption) => {
-              const colorAvailable = isColorAvailable(colorOption.hex, availability);
+              // During loading, make all colors available
+              const colorAvailable = isLoading || isColorAvailable(colorOption.hex, availability);
               return (
                 <button
                   key={colorOption.hex}
                   type="button"
-                  onClick={() => (colorAvailable ? handleColorChange(colorOption.hex) : undefined)}
+                  onClick={() => {
+                    if (colorAvailable) {
+                      handleColorChange(colorOption.hex);
+                    }
+                  }}
                   disabled={!colorAvailable}
                   className={`w-8 h-8 rounded-lg border-2 transition-all relative ${
                     color === colorOption.hex
@@ -129,7 +137,9 @@ export default function VisualIdentifier({
                   }`}
                   style={{ backgroundColor: colorOption.hex }}
                   title={
-                    colorAvailable
+                    isLoading
+                      ? `${colorOption.hex} - Loading...`
+                      : colorAvailable
                       ? `${colorOption.hex} - Available`
                       : `${colorOption.hex} - All patterns used by other ${entityType}s`
                   }>
@@ -150,7 +160,11 @@ export default function VisualIdentifier({
           <label className="block text-xs font-medium text-gray-500 mb-2">Pattern</label>
           <div className="grid grid-cols-4 gap-2">
             {PATTERN_OPTIONS.map((patternOption) => {
-              const patternAvailable = !color || availablePatternsForSelectedColor.includes(patternOption.value);
+              // During loading, make all patterns available if no color is selected,
+              // or use the availability data if color is selected
+              const patternAvailable = isLoading
+                ? true
+                : !color || availablePatternsForSelectedColor.includes(patternOption.value);
               return (
                 <button
                   key={patternOption.value}
@@ -165,12 +179,14 @@ export default function VisualIdentifier({
                       : 'border-gray-200 text-gray-400 cursor-not-allowed opacity-50'
                   }`}
                   title={
-                    patternAvailable
+                    isLoading
+                      ? `${patternOption.label} - Loading...`
+                      : patternAvailable
                       ? `${patternOption.label} - Available`
                       : `${patternOption.label} - Already used with this color by another ${entityType}`
                   }>
                   {patternOption.label}
-                  {!patternAvailable && ' ✗'}
+                  {!patternAvailable && !isLoading && ' ✗'}
                 </button>
               );
             })}

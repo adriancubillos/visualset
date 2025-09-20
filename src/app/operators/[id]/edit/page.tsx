@@ -124,11 +124,11 @@ export default function EditOperatorPage() {
   };
 
   const handleColorChange = (color: string) => {
-    setFormData({ ...formData, color });
+    setFormData((prev) => ({ ...prev, color }));
   };
 
   const handlePatternChange = (pattern: string) => {
-    setFormData({ ...formData, pattern });
+    setFormData((prev) => ({ ...prev, pattern }));
   };
 
   if (loading) {
