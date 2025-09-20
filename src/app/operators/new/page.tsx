@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AVAILABLE_SKILLS, OPERATOR_STATUS, OPERATOR_SHIFTS } from '@/config/workshop-properties';
-import { OperatorColorIndicator } from '@/components/ui/ColorIndicator';
+import VisualIdentifier from '@/components/ui/VisualIdentifier';
+import { PatternType } from '@/utils/entityColors';
 
 export default function NewOperatorPage() {
   const router = useRouter();
@@ -14,7 +15,7 @@ export default function NewOperatorPage() {
     status: 'ACTIVE',
     shift: 'DAY',
     color: '#3B82F6',
-    pattern: 'solid' as 'solid' | 'diagonalLeft' | 'diagonalRight' | 'horizontal' | 'vertical',
+    pattern: 'solid' as PatternType,
     availability: {},
   });
   const [loading, setLoading] = useState(false);
@@ -155,90 +156,14 @@ export default function NewOperatorPage() {
             )}
           </div>
 
-          {/* Color and Pattern */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">Visual Identifier</label>
-            <div className="space-y-4">
-              {/* Color Selection */}
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-2">Color</label>
-                <div className="grid grid-cols-10 gap-2">
-                  {[
-                    '#EF4444',
-                    '#F97316',
-                    '#EAB308',
-                    '#22C55E',
-                    '#06B6D4',
-                    '#3B82F6',
-                    '#8B5CF6',
-                    '#EC4899',
-                    '#84CC16',
-                    '#6366F1',
-                  ].map((color) => (
-                    <button
-                      key={color}
-                      type="button"
-                      onClick={() => setFormData((prev) => ({ ...prev, color }))}
-                      className={`w-8 h-8 rounded-lg border-2 transition-all ${
-                        formData.color === color ? 'border-gray-800 scale-110' : 'border-gray-300 hover:border-gray-400'
-                      }`}
-                      style={{ backgroundColor: color }}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Pattern Selection */}
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-2">Pattern</label>
-                <div className="grid grid-cols-4 gap-2">
-                  {[
-                    { value: 'solid', label: 'Solid' },
-                    { value: 'diagonalLeft', label: 'Diagonal Left' },
-                    { value: 'diagonalRight', label: 'Diagonal Right' },
-                    { value: 'horizontal', label: 'Horizontal' },
-                    { value: 'vertical', label: 'Vertical' },
-                  ].map((pattern) => (
-                    <button
-                      key={pattern.value}
-                      type="button"
-                      onClick={() =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          pattern: pattern.value as
-                            | 'solid'
-                            | 'diagonalLeft'
-                            | 'diagonalRight'
-                            | 'horizontal'
-                            | 'vertical',
-                        }))
-                      }
-                      className={`px-3 py-2 text-xs font-medium rounded-md border transition-all ${
-                        formData.pattern === pattern.value
-                          ? 'border-blue-500 bg-blue-50 text-blue-700'
-                          : 'border-gray-300 text-gray-700 hover:border-gray-400'
-                      }`}>
-                      {pattern.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Preview */}
-              <div className="flex items-center space-x-3">
-                <span className="text-xs text-gray-500">Preview:</span>
-                <OperatorColorIndicator
-                  operator={{
-                    id: 'preview',
-                    color: formData.color,
-                    pattern: formData.pattern,
-                  }}
-                  size="lg"
-                />
-                <span className="text-sm text-gray-600">{formData.name || 'New Operator'}</span>
-              </div>
-            </div>
-          </div>
+          {/* Visual Identifier */}
+          <VisualIdentifier
+            color={formData.color}
+            pattern={formData.pattern}
+            onColorChange={(color) => setFormData((prev) => ({ ...prev, color }))}
+            onPatternChange={(pattern) => setFormData((prev) => ({ ...prev, pattern }))}
+            previewName={formData.name || 'New Operator'}
+          />
 
           {/* Shift */}
           <div>

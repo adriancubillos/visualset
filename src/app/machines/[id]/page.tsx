@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { MachineColorIndicator } from '@/components/ui/ColorIndicator';
 import StatusBadge from '@/components/ui/StatusBadge';
 
 interface Machine {
@@ -11,6 +12,8 @@ interface Machine {
   type: string;
   status: string;
   location: string;
+  color?: string | null;
+  pattern?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -56,7 +59,7 @@ export default function MachineDetailPage() {
   };
 
   const formatMachineType = (type: string) => {
-    return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    return type.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
   };
 
   const handleStatusChange = async (newStatus: string) => {
@@ -119,7 +122,9 @@ export default function MachineDetailPage() {
     return (
       <div className="text-center py-12">
         <div className="text-gray-500">Machine not found</div>
-        <Link href="/machines" className="text-blue-600 hover:text-blue-800 mt-2 inline-block">
+        <Link
+          href="/machines"
+          className="text-blue-600 hover:text-blue-800 mt-2 inline-block">
           Back to Machines
         </Link>
       </div>
@@ -131,10 +136,14 @@ export default function MachineDetailPage() {
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <nav className="flex mb-4" aria-label="Breadcrumb">
+          <nav
+            className="flex mb-4"
+            aria-label="Breadcrumb">
             <ol className="flex items-center space-x-4">
               <li>
-                <Link href="/machines" className="text-gray-500 hover:text-gray-700">
+                <Link
+                  href="/machines"
+                  className="text-gray-500 hover:text-gray-700">
                   Machines
                 </Link>
               </li>
@@ -148,29 +157,27 @@ export default function MachineDetailPage() {
           </nav>
           <h1 className="text-3xl font-bold text-gray-900">{machine.name}</h1>
           <div className="mt-2 flex items-center space-x-4">
-            <StatusBadge 
-              status={machine.status ? machine.status.replace(/_/g, ' ') : 'Unknown'} 
-              variant={getStatusVariant(machine.status)} 
+            <StatusBadge
+              status={machine.status ? machine.status.replace(/_/g, ' ') : 'Unknown'}
+              variant={getStatusVariant(machine.status)}
             />
-            <span className="text-gray-500">
-              {formatMachineType(machine.type)}
-            </span>
-            <span className="text-gray-500">
-              {machine.location}
-            </span>
+            <MachineColorIndicator
+              machine={machine}
+              size="md"
+            />
+            <span className="text-gray-500">{formatMachineType(machine.type)}</span>
+            <span className="text-gray-500">{machine.location}</span>
           </div>
         </div>
         <div className="flex space-x-3">
           <Link
             href={`/machines/${machine.id}/edit`}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
+            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
             Edit
           </Link>
           <button
             onClick={handleDelete}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-          >
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
             Delete
           </button>
         </div>
@@ -189,8 +196,7 @@ export default function MachineDetailPage() {
                 machine.status === status
                   ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
                   : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
-              }`}
-            >
+              }`}>
               Mark as {status ? status.replace(/_/g, ' ') : 'Unknown'}
             </button>
           ))}
@@ -215,9 +221,9 @@ export default function MachineDetailPage() {
             <div>
               <dt className="text-sm font-medium text-gray-500">Current Status</dt>
               <dd className="mt-1">
-                <StatusBadge 
-                  status={machine.status ? machine.status.replace(/_/g, ' ') : 'Unknown'} 
-                  variant={getStatusVariant(machine.status)} 
+                <StatusBadge
+                  status={machine.status ? machine.status.replace(/_/g, ' ') : 'Unknown'}
+                  variant={getStatusVariant(machine.status)}
                 />
               </dd>
             </div>
@@ -227,15 +233,11 @@ export default function MachineDetailPage() {
             </div>
             <div>
               <dt className="text-sm font-medium text-gray-500">Added</dt>
-              <dd className="mt-1 text-sm text-gray-900">
-                {new Date(machine.createdAt).toLocaleDateString()}
-              </dd>
+              <dd className="mt-1 text-sm text-gray-900">{new Date(machine.createdAt).toLocaleDateString()}</dd>
             </div>
             <div>
               <dt className="text-sm font-medium text-gray-500">Last Updated</dt>
-              <dd className="mt-1 text-sm text-gray-900">
-                {new Date(machine.updatedAt).toLocaleDateString()}
-              </dd>
+              <dd className="mt-1 text-sm text-gray-900">{new Date(machine.updatedAt).toLocaleDateString()}</dd>
             </div>
           </dl>
         </div>
@@ -248,18 +250,16 @@ export default function MachineDetailPage() {
             <h2 className="text-lg font-semibold text-gray-900">Current Tasks</h2>
             <Link
               href={`/tasks/new?machine=${machine.id}`}
-              className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-            >
+              className="text-sm text-blue-600 hover:text-blue-800 font-medium">
               Assign Task
             </Link>
           </div>
         </div>
         <div className="px-6 py-4">
           <div className="text-center py-8 text-gray-500">
-            {machine.status === 'IN_USE' 
+            {machine.status === 'IN_USE'
               ? 'Task information will be displayed here when integrated with the task system.'
-              : 'No tasks currently assigned to this machine.'
-            }
+              : 'No tasks currently assigned to this machine.'}
           </div>
         </div>
       </div>

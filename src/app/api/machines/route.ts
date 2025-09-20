@@ -18,6 +18,8 @@ export async function POST(req: Request) {
       type: body.type,
       status: body.status ?? 'AVAILABLE',
       location: body.location,
+      color: body.color,
+      pattern: body.pattern,
     },
   });
   return NextResponse.json(machine);

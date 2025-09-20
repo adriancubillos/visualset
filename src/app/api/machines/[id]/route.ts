@@ -4,10 +4,7 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 // GET /api/machines/[id]
-export async function GET(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const machine = await prisma.machine.findUnique({
@@ -26,14 +23,11 @@ export async function GET(
 }
 
 // PUT /api/machines/[id]
-export async function PUT(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const body = await req.json();
-    
+
     const machine = await prisma.machine.update({
       where: { id },
       data: {
@@ -41,6 +35,8 @@ export async function PUT(
         type: body.type,
         status: body.status,
         location: body.location,
+        color: body.color,
+        pattern: body.pattern,
       },
     });
 
@@ -52,10 +48,7 @@ export async function PUT(
 }
 
 // DELETE /api/machines/[id]
-export async function DELETE(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     // Check if machine has any assigned tasks
@@ -64,10 +57,7 @@ export async function DELETE(
     });
 
     if (tasksCount > 0) {
-      return NextResponse.json(
-        { error: 'Cannot delete machine with assigned tasks' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Cannot delete machine with assigned tasks' }, { status: 400 });
     }
 
     await prisma.machine.delete({

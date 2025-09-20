@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import VisualIdentifier from '@/components/ui/VisualIdentifier';
+import { PatternType } from '@/utils/entityColors';
 import { MACHINE_TYPES, MACHINE_STATUS } from '@/config/workshop-properties';
 
 interface Machine {
@@ -11,6 +13,8 @@ interface Machine {
   type: string;
   status: string;
   location: string;
+  color?: string | null;
+  pattern?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -24,6 +28,8 @@ export default function EditMachinePage() {
     type: MACHINE_TYPES[0].value,
     status: 'AVAILABLE',
     location: '',
+    color: '#3B82F6',
+    pattern: 'solid' as PatternType,
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -42,6 +48,8 @@ export default function EditMachinePage() {
           type: machineData.type || MACHINE_TYPES[0].value,
           status: machineData.status || 'AVAILABLE',
           location: machineData.location || '',
+          color: machineData.color || '#3B82F6',
+          pattern: (machineData.pattern as PatternType) || 'solid',
         });
         setLoading(false);
       } catch (error) {
@@ -81,7 +89,15 @@ export default function EditMachinePage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleColorChange = (color: string) => {
+    setFormData((prev) => ({ ...prev, color }));
+  };
+
+  const handlePatternChange = (pattern: PatternType) => {
+    setFormData((prev) => ({ ...prev, pattern }));
   };
 
   if (loading) {
@@ -107,7 +123,9 @@ export default function EditMachinePage() {
     return (
       <div className="text-center py-12">
         <div className="text-gray-500">Machine not found</div>
-        <Link href="/machines" className="text-blue-600 hover:text-blue-800 mt-2 inline-block">
+        <Link
+          href="/machines"
+          className="text-blue-600 hover:text-blue-800 mt-2 inline-block">
           Back to Machines
         </Link>
       </div>
@@ -118,10 +136,14 @@ export default function EditMachinePage() {
     <div className="max-w-2xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <nav className="flex mb-4" aria-label="Breadcrumb">
+        <nav
+          className="flex mb-4"
+          aria-label="Breadcrumb">
           <ol className="flex items-center space-x-4">
             <li>
-              <Link href="/machines" className="text-gray-500 hover:text-gray-700">
+              <Link
+                href="/machines"
+                className="text-gray-500 hover:text-gray-700">
                 Machines
               </Link>
             </li>
@@ -129,7 +151,9 @@ export default function EditMachinePage() {
               <span className="text-gray-400">/</span>
             </li>
             <li>
-              <Link href={`/machines/${machine.id}`} className="text-gray-500 hover:text-gray-700">
+              <Link
+                href={`/machines/${machine.id}`}
+                className="text-gray-500 hover:text-gray-700">
                 {machine.name}
               </Link>
             </li>
@@ -147,10 +171,14 @@ export default function EditMachinePage() {
 
       {/* Form */}
       <div className="bg-white shadow rounded-lg">
-        <form onSubmit={handleSubmit} className="space-y-6 p-6">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-6 p-6">
           {/* Machine Name */}
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="name"
+              className="block text-sm font-medium text-gray-700">
               Machine Name *
             </label>
             <input
@@ -167,7 +195,9 @@ export default function EditMachinePage() {
 
           {/* Machine Type */}
           <div>
-            <label htmlFor="type" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="type"
+              className="block text-sm font-medium text-gray-700">
               Machine Type *
             </label>
             <select
@@ -176,10 +206,11 @@ export default function EditMachinePage() {
               required
               value={formData.type}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            >
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
               {MACHINE_TYPES.map((type) => (
-                <option key={type.value} value={type.value}>
+                <option
+                  key={type.value}
+                  value={type.value}>
                   {type.label}
                 </option>
               ))}
@@ -188,7 +219,9 @@ export default function EditMachinePage() {
 
           {/* Location */}
           <div>
-            <label htmlFor="location" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="location"
+              className="block text-sm font-medium text-gray-700">
               Location *
             </label>
             <input
@@ -203,9 +236,20 @@ export default function EditMachinePage() {
             />
           </div>
 
+          {/* Visual Identifier */}
+          <VisualIdentifier
+            color={formData.color}
+            pattern={formData.pattern}
+            onColorChange={handleColorChange}
+            onPatternChange={handlePatternChange}
+            previewName={formData.name || 'Machine Preview'}
+          />
+
           {/* Status */}
           <div>
-            <label htmlFor="status" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="status"
+              className="block text-sm font-medium text-gray-700">
               Status
             </label>
             <select
@@ -213,10 +257,11 @@ export default function EditMachinePage() {
               name="status"
               value={formData.status}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            >
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
               {MACHINE_STATUS.map((status) => (
-                <option key={status.value} value={status.value}>
+                <option
+                  key={status.value}
+                  value={status.value}>
                   {status.label}
                 </option>
               ))}
@@ -227,8 +272,7 @@ export default function EditMachinePage() {
           <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
             <Link
               href={`/machines/${machine.id}`}
-              className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
+              className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
               Cancel
             </Link>
             <button
@@ -238,8 +282,7 @@ export default function EditMachinePage() {
                 saving || !formData.name.trim() || !formData.location?.trim()
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700'
-              }`}
-            >
+              }`}>
               {saving ? 'Saving...' : 'Save Changes'}
             </button>
           </div>

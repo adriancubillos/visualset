@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import VisualIdentifier from '@/components/ui/VisualIdentifier';
+import { PatternType } from '@/utils/entityColors';
 import { MACHINE_TYPES, MACHINE_STATUS } from '@/config/workshop-properties';
 
 export default function NewMachinePage() {
@@ -11,6 +13,8 @@ export default function NewMachinePage() {
     type: MACHINE_TYPES[0].value,
     status: 'AVAILABLE',
     location: '',
+    color: '#3B82F6',
+    pattern: 'solid' as PatternType,
   });
   const [loading, setLoading] = useState(false);
 
@@ -41,7 +45,15 @@ export default function NewMachinePage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleColorChange = (color: string) => {
+    setFormData((prev) => ({ ...prev, color }));
+  };
+
+  const handlePatternChange = (pattern: PatternType) => {
+    setFormData((prev) => ({ ...prev, pattern }));
   };
 
   return (
@@ -54,10 +66,14 @@ export default function NewMachinePage() {
 
       {/* Form */}
       <div className="bg-white shadow rounded-lg">
-        <form onSubmit={handleSubmit} className="space-y-6 p-6">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-6 p-6">
           {/* Machine Name */}
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="name"
+              className="block text-sm font-medium text-gray-700">
               Machine Name *
             </label>
             <input
@@ -74,7 +90,9 @@ export default function NewMachinePage() {
 
           {/* Machine Type */}
           <div>
-            <label htmlFor="type" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="type"
+              className="block text-sm font-medium text-gray-700">
               Machine Type *
             </label>
             <select
@@ -83,10 +101,11 @@ export default function NewMachinePage() {
               required
               value={formData.type}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            >
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
               {MACHINE_TYPES.map((type) => (
-                <option key={type.value} value={type.value}>
+                <option
+                  key={type.value}
+                  value={type.value}>
                   {type.label}
                 </option>
               ))}
@@ -95,7 +114,9 @@ export default function NewMachinePage() {
 
           {/* Location */}
           <div>
-            <label htmlFor="location" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="location"
+              className="block text-sm font-medium text-gray-700">
               Location *
             </label>
             <input
@@ -110,9 +131,20 @@ export default function NewMachinePage() {
             />
           </div>
 
+          {/* Visual Identifier */}
+          <VisualIdentifier
+            color={formData.color}
+            pattern={formData.pattern}
+            onColorChange={handleColorChange}
+            onPatternChange={handlePatternChange}
+            previewName={formData.name || 'New Machine'}
+          />
+
           {/* Initial Status */}
           <div>
-            <label htmlFor="status" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="status"
+              className="block text-sm font-medium text-gray-700">
               Initial Status
             </label>
             <select
@@ -120,10 +152,11 @@ export default function NewMachinePage() {
               name="status"
               value={formData.status}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            >
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
               {MACHINE_STATUS.map((status) => (
-                <option key={status.value} value={status.value}>
+                <option
+                  key={status.value}
+                  value={status.value}>
                   {status.label}
                 </option>
               ))}
@@ -135,8 +168,7 @@ export default function NewMachinePage() {
             <button
               type="button"
               onClick={() => router.back()}
-              className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
+              className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
               Cancel
             </button>
             <button
@@ -146,8 +178,7 @@ export default function NewMachinePage() {
                 loading || !formData.name.trim() || !formData.location.trim()
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700'
-              }`}
-            >
+              }`}>
               {loading ? 'Adding...' : 'Add Machine'}
             </button>
           </div>

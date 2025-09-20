@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { AVAILABLE_SKILLS, OPERATOR_STATUS, OPERATOR_SHIFTS } from '@/config/workshop-properties';
+import VisualIdentifier from '@/components/ui/VisualIdentifier';
+import { PatternType } from '@/utils/entityColors';
 
 interface Operator {
   id: string;
@@ -12,22 +14,37 @@ interface Operator {
   skills: string[];
   status: string;
   shift: string;
-  availability: any;
+  availability: Record<string, string>;
+  color?: string;
+  pattern?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+interface FormData {
+  name: string;
+  email: string;
+  skills: string[];
+  shift: string;
+  availability: Record<string, string>;
+  status: string;
+  color: string;
+  pattern: string;
 }
 
 export default function EditOperatorPage() {
   const params = useParams();
   const router = useRouter();
   const [operator, setOperator] = useState<Operator | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     name: '',
     email: '',
-    skills: [] as string[],
-    status: 'ACTIVE',
+    skills: [],
     shift: 'DAY',
     availability: {},
+    status: 'ACTIVE',
+    color: '#3B82F6', // Default blue
+    pattern: 'solid',
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -46,10 +63,12 @@ export default function EditOperatorPage() {
         setFormData({
           name: operatorData.name,
           email: operatorData.email || '',
-          skills: operatorData.skills,
-          status: operatorData.status,
+          skills: operatorData.skills || [],
+          status: operatorData.status || 'ACTIVE',
           shift: operatorData.shift || 'DAY',
           availability: operatorData.availability || {},
+          color: operatorData.color || '#3B82F6',
+          pattern: operatorData.pattern || 'solid',
         });
         setLoading(false);
       } catch (error) {
@@ -93,16 +112,22 @@ export default function EditOperatorPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSkillToggle = (skill: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      skills: prev.skills.includes(skill)
-        ? prev.skills.filter(s => s !== skill)
-        : [...prev.skills, skill]
+      skills: prev.skills.includes(skill) ? prev.skills.filter((s) => s !== skill) : [...prev.skills, skill],
     }));
+  };
+
+  const handleColorChange = (color: string) => {
+    setFormData({ ...formData, color });
+  };
+
+  const handlePatternChange = (pattern: string) => {
+    setFormData({ ...formData, pattern });
   };
 
   if (loading) {
@@ -128,7 +153,9 @@ export default function EditOperatorPage() {
     return (
       <div className="text-center py-12">
         <div className="text-gray-500">Operator not found</div>
-        <Link href="/operators" className="text-blue-600 hover:text-blue-800 mt-2 inline-block">
+        <Link
+          href="/operators"
+          className="text-blue-600 hover:text-blue-800 mt-2 inline-block">
           Back to Operators
         </Link>
       </div>
@@ -139,10 +166,14 @@ export default function EditOperatorPage() {
     <div className="max-w-2xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <nav className="flex mb-4" aria-label="Breadcrumb">
+        <nav
+          className="flex mb-4"
+          aria-label="Breadcrumb">
           <ol className="flex items-center space-x-4">
             <li>
-              <Link href="/operators" className="text-gray-500 hover:text-gray-700">
+              <Link
+                href="/operators"
+                className="text-gray-500 hover:text-gray-700">
                 Operators
               </Link>
             </li>
@@ -150,7 +181,9 @@ export default function EditOperatorPage() {
               <span className="text-gray-400">/</span>
             </li>
             <li>
-              <Link href={`/operators/${operator.id}`} className="text-gray-500 hover:text-gray-700">
+              <Link
+                href={`/operators/${operator.id}`}
+                className="text-gray-500 hover:text-gray-700">
                 {operator.name}
               </Link>
             </li>
@@ -168,10 +201,14 @@ export default function EditOperatorPage() {
 
       {/* Form */}
       <div className="bg-white shadow rounded-lg">
-        <form onSubmit={handleSubmit} className="space-y-6 p-6">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-6 p-6">
           {/* Name */}
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="name"
+              className="block text-sm font-medium text-gray-700">
               Full Name *
             </label>
             <input
@@ -188,7 +225,9 @@ export default function EditOperatorPage() {
 
           {/* Email */}
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-gray-700">
               Email Address *
             </label>
             <input
@@ -205,29 +244,32 @@ export default function EditOperatorPage() {
 
           {/* Skills */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">
-              Skills *
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-3">Skills *</label>
             <div className="grid grid-cols-2 gap-3">
               {availableSkills.map((skill) => (
                 <label
                   key={skill.value}
-                  className="relative flex items-center p-3 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50"
-                >
+                  className="relative flex items-center p-3 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50">
                   <input
                     type="checkbox"
                     className="sr-only"
                     checked={formData.skills.includes(skill.value)}
                     onChange={() => handleSkillToggle(skill.value)}
                   />
-                  <div className={`w-4 h-4 rounded border-2 mr-3 flex items-center justify-center ${
-                    formData.skills.includes(skill.value)
-                      ? 'bg-blue-600 border-blue-600'
-                      : 'border-gray-300'
-                  }`}>
+                  <div
+                    className={`w-4 h-4 rounded border-2 mr-3 flex items-center justify-center ${
+                      formData.skills.includes(skill.value) ? 'bg-blue-600 border-blue-600' : 'border-gray-300'
+                    }`}>
                     {formData.skills.includes(skill.value) && (
-                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      <svg
+                        className="w-3 h-3 text-white"
+                        fill="currentColor"
+                        viewBox="0 0 20 20">
+                        <path
+                          fillRule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clipRule="evenodd"
+                        />
                       </svg>
                     )}
                   </div>
@@ -242,7 +284,9 @@ export default function EditOperatorPage() {
 
           {/* Shift */}
           <div>
-            <label htmlFor="shift" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="shift"
+              className="block text-sm font-medium text-gray-700">
               Default Shift
             </label>
             <select
@@ -250,10 +294,11 @@ export default function EditOperatorPage() {
               name="shift"
               value={formData.shift}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            >
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
               {OPERATOR_SHIFTS.map((shift) => (
-                <option key={shift.value} value={shift.value}>
+                <option
+                  key={shift.value}
+                  value={shift.value}>
                   {shift.label}
                 </option>
               ))}
@@ -262,7 +307,9 @@ export default function EditOperatorPage() {
 
           {/* Status */}
           <div>
-            <label htmlFor="status" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="status"
+              className="block text-sm font-medium text-gray-700">
               Status
             </label>
             <select
@@ -270,22 +317,31 @@ export default function EditOperatorPage() {
               name="status"
               value={formData.status}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            >
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
               {OPERATOR_STATUS.map((status) => (
-                <option key={status.value} value={status.value}>
+                <option
+                  key={status.value}
+                  value={status.value}>
                   {status.label}
                 </option>
               ))}
             </select>
           </div>
 
+          {/* Visual Identifier */}
+          <VisualIdentifier
+            color={formData.color || '#3B82F6'}
+            pattern={(formData.pattern as PatternType) || 'solid'}
+            onColorChange={handleColorChange}
+            onPatternChange={handlePatternChange}
+            previewName={formData.name || 'Operator Preview'}
+          />
+
           {/* Actions */}
           <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
             <Link
               href={`/operators/${operator.id}`}
-              className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
+              className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
               Cancel
             </Link>
             <button
@@ -295,8 +351,7 @@ export default function EditOperatorPage() {
                 saving || !formData.name.trim() || !formData.email.trim() || formData.skills.length === 0
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700'
-              }`}
-            >
+              }`}>
               {saving ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
