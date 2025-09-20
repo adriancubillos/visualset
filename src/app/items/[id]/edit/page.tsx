@@ -42,8 +42,10 @@ export default function EditItemPage() {
           fetch('/api/projects'),
         ]);
 
+        let itemData = null;
         if (itemResponse.ok) {
-          const itemData = await itemResponse.json();
+          itemData = await itemResponse.json();
+          console.log('Loaded item data:', itemData);
           setFormData({
             id: itemData.id,
             name: itemData.name,
@@ -57,8 +59,19 @@ export default function EditItemPage() {
 
         if (projectsResponse.ok) {
           const projectsData = await projectsResponse.json();
-          // Only show active projects
+          // Show active projects, but also include the current item's project if it's not active
           const activeProjects = projectsData.filter((project: Project) => project.status === 'ACTIVE');
+
+          // If item's current project is not in the active list, add it
+          if (itemData && itemData.project) {
+            const currentProjectInList = activeProjects.find((p: Project) => p.id === itemData.project.id);
+            if (!currentProjectInList) {
+              // Add the current project to the list so it can be selected
+              console.log('Adding current project to list:', itemData.project);
+              activeProjects.push(itemData.project);
+            }
+          }
+
           setProjects(activeProjects);
         } else {
           console.error('Failed to fetch projects');
