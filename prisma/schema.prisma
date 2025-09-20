@@ -41,6 +41,8 @@ model Machine {
   type      String
   status    MachineStatus @default(AVAILABLE)
   location  String // Physical location in workshop
+  color     String? // Hex color code for visual identification
+  pattern   String? // Pattern type: solid, striped, dotted, dashed
   tasks     Task[]
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
@@ -62,6 +64,8 @@ model Operator {
   status       OperatorStatus @default(ACTIVE)
   shift        String? // e.g. "DAY", "NIGHT", "SWING"
   availability Json // e.g. shift times { mon: "08-16", tue: "08-16" }
+  color        String? // Hex color code for visual identification
+  pattern      String? // Pattern type: solid, striped, dotted, dashed
   tasks        Task[]
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt

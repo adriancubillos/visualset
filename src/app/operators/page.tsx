@@ -6,6 +6,7 @@ import DataTable from '@/components/ui/DataTable';
 import SearchFilter from '@/components/ui/SearchFilter';
 import StatusBadge from '@/components/ui/StatusBadge';
 import TableActions from '@/components/ui/TableActions';
+import { OperatorColorIndicator } from '@/components/ui/ColorIndicator';
 
 interface Operator {
   id: string;
@@ -14,6 +15,8 @@ interface Operator {
   skills: string[];
   status: string;
   shift: string;
+  color?: string | null;
+  pattern?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -49,7 +52,7 @@ export default function OperatorsPage() {
       (operator) =>
         operator.name.toLowerCase().includes(query.toLowerCase()) ||
         operator.email.toLowerCase().includes(query.toLowerCase()) ||
-        operator.skills.some(skill => skill.toLowerCase().includes(query.toLowerCase()))
+        operator.skills.some((skill) => skill.toLowerCase().includes(query.toLowerCase())),
     );
     setFilteredOperators(filtered);
   };
@@ -66,9 +69,7 @@ export default function OperatorsPage() {
     }
 
     if (filters.skill) {
-      filtered = filtered.filter((operator) => 
-        operator.skills.includes(filters.skill)
-      );
+      filtered = filtered.filter((operator) => operator.skills.includes(filters.skill));
     }
 
     setFilteredOperators(filtered);
@@ -88,10 +89,22 @@ export default function OperatorsPage() {
   };
 
   const formatSkills = (skills: string[]) => {
-    return skills.map(skill => skill.replace(/_/g, ' ')).join(', ');
+    return skills.map((skill) => skill.replace(/_/g, ' ')).join(', ');
   };
 
   const columns = [
+    {
+      key: 'color' as keyof Operator,
+      header: '',
+      render: (_: unknown, operator: Operator) => (
+        <OperatorColorIndicator
+          operator={operator}
+          size="md"
+          showTooltip={true}
+          tooltipText={`${operator.name} color`}
+        />
+      ),
+    },
     {
       key: 'name' as keyof Operator,
       header: 'Name',
@@ -106,27 +119,24 @@ export default function OperatorsPage() {
       key: 'skills' as keyof Operator,
       header: 'Skills',
       sortable: false,
-      render: (skills: string[]) => (
-        <span className="text-sm text-gray-600">
-          {formatSkills(skills)}
-        </span>
-      ),
+      render: (skills: string[]) => <span className="text-sm text-gray-600">{formatSkills(skills)}</span>,
     },
     {
       key: 'status' as keyof Operator,
       header: 'Status',
       sortable: true,
       render: (status: string) => (
-        <StatusBadge status={status ? status.replace(/_/g, ' ') : 'Unknown'} variant={getStatusVariant(status)} />
+        <StatusBadge
+          status={status ? status.replace(/_/g, ' ') : 'Unknown'}
+          variant={getStatusVariant(status)}
+        />
       ),
     },
     {
       key: 'shift' as keyof Operator,
       header: 'Shift',
       sortable: true,
-      render: (shift: string) => (
-        <span className="capitalize">{shift ? shift.toLowerCase() : 'Unknown'}</span>
-      ),
+      render: (shift: string) => <span className="capitalize">{shift ? shift.toLowerCase() : 'Unknown'}</span>,
     },
   ];
 
@@ -176,7 +186,7 @@ export default function OperatorsPage() {
 
         if (response.ok) {
           // Remove operator from local state to update UI immediately
-          const updatedOperators = operators.filter(op => op.id !== operatorId);
+          const updatedOperators = operators.filter((op) => op.id !== operatorId);
           setOperators(updatedOperators);
           setFilteredOperators(updatedOperators);
         } else {
@@ -193,7 +203,7 @@ export default function OperatorsPage() {
 
   const handleStatusChange = async (operatorId: string, newStatus: string) => {
     try {
-      const operator = operators.find(op => op.id === operatorId);
+      const operator = operators.find((op) => op.id === operatorId);
       if (!operator) return;
 
       const response = await fetch(`/api/operators/${operatorId}`, {
@@ -201,17 +211,15 @@ export default function OperatorsPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           ...operator,
-          status: newStatus 
+          status: newStatus,
         }),
       });
 
       if (response.ok) {
         const updatedOperator = await response.json();
-        const updatedOperators = operators.map(op => 
-          op.id === operatorId ? updatedOperator : op
-        );
+        const updatedOperators = operators.map((op) => (op.id === operatorId ? updatedOperator : op));
         setOperators(updatedOperators);
         setFilteredOperators(updatedOperators);
       } else {
@@ -238,8 +246,7 @@ export default function OperatorsPage() {
             const newStatus = operator.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
             handleStatusChange(operator.id, newStatus);
           }}
-          className="text-green-600 hover:text-green-900 text-sm font-medium"
-        >
+          className="text-green-600 hover:text-green-900 text-sm font-medium">
           {operator.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
         </button>
       }
@@ -249,9 +256,9 @@ export default function OperatorsPage() {
   // Calculate statistics
   const stats = {
     total: operators.length,
-    active: operators.filter(o => o.status === 'ACTIVE').length,
-    onLeave: operators.filter(o => o.status === 'ON_LEAVE').length,
-    inactive: operators.filter(o => o.status === 'INACTIVE').length,
+    active: operators.filter((o) => o.status === 'ACTIVE').length,
+    onLeave: operators.filter((o) => o.status === 'ON_LEAVE').length,
+    inactive: operators.filter((o) => o.status === 'INACTIVE').length,
   };
 
   return (
@@ -264,8 +271,7 @@ export default function OperatorsPage() {
         </div>
         <Link
           href="/operators/new"
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
           <span className="mr-2">+</span>
           Add Operator
         </Link>

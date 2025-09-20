@@ -20,6 +20,8 @@ export async function POST(req: Request) {
         skills: body.skills ?? [],
         status: body.status ?? 'ACTIVE',
         shift: body.shift || null,
+        color: body.color || null,
+        pattern: body.pattern || null,
         availability: body.availability ?? {},
       },
     });

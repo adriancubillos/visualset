@@ -6,6 +6,7 @@ import DataTable from '@/components/ui/DataTable';
 import SearchFilter from '@/components/ui/SearchFilter';
 import StatusBadge from '@/components/ui/StatusBadge';
 import TableActions from '@/components/ui/TableActions';
+import { MachineColorIndicator } from '@/components/ui/ColorIndicator';
 
 interface Machine {
   id: string;
@@ -13,6 +14,8 @@ interface Machine {
   type: string;
   status: string;
   location: string;
+  color?: string | null;
+  pattern?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -48,7 +51,7 @@ export default function MachinesPage() {
       (machine) =>
         machine.name.toLowerCase().includes(query.toLowerCase()) ||
         machine.type.toLowerCase().includes(query.toLowerCase()) ||
-        machine.location.toLowerCase().includes(query.toLowerCase())
+        machine.location.toLowerCase().includes(query.toLowerCase()),
     );
     setFilteredMachines(filtered);
   };
@@ -87,10 +90,22 @@ export default function MachinesPage() {
   };
 
   const formatMachineType = (type: string) => {
-    return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    return type.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
   };
 
   const columns = [
+    {
+      key: 'color' as keyof Machine,
+      header: '',
+      render: (_: unknown, machine: Machine) => (
+        <MachineColorIndicator
+          machine={machine}
+          size="md"
+          showTooltip={true}
+          tooltipText={`${machine.name} color`}
+        />
+      ),
+    },
     {
       key: 'name' as keyof Machine,
       header: 'Machine Name',
@@ -107,7 +122,10 @@ export default function MachinesPage() {
       header: 'Status',
       sortable: true,
       render: (status: string) => (
-        <StatusBadge status={status ? status.replace(/_/g, ' ') : 'Unknown'} variant={getStatusVariant(status)} />
+        <StatusBadge
+          status={status ? status.replace(/_/g, ' ') : 'Unknown'}
+          variant={getStatusVariant(status)}
+        />
       ),
     },
     {
@@ -168,7 +186,7 @@ export default function MachinesPage() {
 
         if (response.ok) {
           // Remove machine from local state to update UI immediately
-          const updatedMachines = machines.filter(m => m.id !== machineId);
+          const updatedMachines = machines.filter((m) => m.id !== machineId);
           setMachines(updatedMachines);
           setFilteredMachines(updatedMachines);
         } else {
@@ -185,7 +203,7 @@ export default function MachinesPage() {
 
   const handleStatusChange = async (machineId: string, newStatus: string) => {
     try {
-      const machine = machines.find(m => m.id === machineId);
+      const machine = machines.find((m) => m.id === machineId);
       if (!machine) return;
 
       const response = await fetch(`/api/machines/${machineId}`, {
@@ -193,17 +211,15 @@ export default function MachinesPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           ...machine,
-          status: newStatus 
+          status: newStatus,
         }),
       });
 
       if (response.ok) {
         const updatedMachine = await response.json();
-        const updatedMachines = machines.map(m => 
-          m.id === machineId ? updatedMachine : m
-        );
+        const updatedMachines = machines.map((m) => (m.id === machineId ? updatedMachine : m));
         setMachines(updatedMachines);
         setFilteredMachines(updatedMachines);
       } else {
@@ -229,10 +245,10 @@ export default function MachinesPage() {
   // Calculate statistics
   const stats = {
     total: machines.length,
-    available: machines.filter(m => m.status === 'AVAILABLE').length,
-    inUse: machines.filter(m => m.status === 'IN_USE').length,
-    maintenance: machines.filter(m => m.status === 'MAINTENANCE').length,
-    offline: machines.filter(m => m.status === 'OFFLINE').length,
+    available: machines.filter((m) => m.status === 'AVAILABLE').length,
+    inUse: machines.filter((m) => m.status === 'IN_USE').length,
+    maintenance: machines.filter((m) => m.status === 'MAINTENANCE').length,
+    offline: machines.filter((m) => m.status === 'OFFLINE').length,
   };
 
   return (
@@ -245,8 +261,7 @@ export default function MachinesPage() {
         </div>
         <Link
           href="/machines/new"
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
           <span className="mr-2">+</span>
           Add Machine
         </Link>

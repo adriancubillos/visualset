@@ -6,13 +6,15 @@ import DataTable from '@/components/ui/DataTable';
 import SearchFilter from '@/components/ui/SearchFilter';
 import StatusBadge from '@/components/ui/StatusBadge';
 import TableActions from '@/components/ui/TableActions';
+import { ProjectColorIndicator } from '@/components/ui/ColorIndicator';
 
 interface Project {
   id: string;
   name: string;
   description: string;
   status: string;
-  color?: string;
+  color?: string | null;
+  pattern?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -47,7 +49,7 @@ export default function ProjectsPage() {
     const filtered = projects.filter(
       (project) =>
         project.name.toLowerCase().includes(query.toLowerCase()) ||
-        project.description.toLowerCase().includes(query.toLowerCase())
+        project.description.toLowerCase().includes(query.toLowerCase()),
     );
     setFilteredProjects(filtered);
   };
@@ -79,20 +81,21 @@ export default function ProjectsPage() {
 
   const columns = [
     {
+      key: 'color' as keyof Project,
+      header: '',
+      render: (_: unknown, project: Project) => (
+        <ProjectColorIndicator
+          project={project}
+          size="md"
+          showTooltip={true}
+          tooltipText={`${project.name} color`}
+        />
+      ),
+    },
+    {
       key: 'name' as keyof Project,
       header: 'Project Name',
       sortable: true,
-      render: (name: string, project: Project) => (
-        <div className="flex items-center space-x-3">
-          {project.color && (
-            <div 
-              className="w-4 h-4 rounded-full border border-gray-300"
-              style={{ backgroundColor: project.color }}
-            />
-          )}
-          <span>{name}</span>
-        </div>
-      ),
     },
     {
       key: 'description' as keyof Project,
@@ -104,7 +107,10 @@ export default function ProjectsPage() {
       header: 'Status',
       sortable: true,
       render: (status: string) => (
-        <StatusBadge status={status} variant={getStatusVariant(status)} />
+        <StatusBadge
+          status={status}
+          variant={getStatusVariant(status)}
+        />
       ),
     },
     {
@@ -142,7 +148,7 @@ export default function ProjectsPage() {
 
         if (response.ok) {
           // Remove project from local state to update UI immediately
-          const updatedProjects = projects.filter(p => p.id !== projectId);
+          const updatedProjects = projects.filter((p) => p.id !== projectId);
           setProjects(updatedProjects);
           setFilteredProjects(updatedProjects);
         } else {
@@ -176,8 +182,7 @@ export default function ProjectsPage() {
         </div>
         <Link
           href="/projects/new"
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
           <span className="mr-2">+</span>
           New Project
         </Link>

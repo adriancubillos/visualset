@@ -11,6 +11,32 @@ interface DashboardStats {
   activeOperators: number;
 }
 
+interface Project {
+  id: string;
+  name: string;
+  status: string;
+  updatedAt: string;
+}
+
+interface Task {
+  id: string;
+  title: string;
+  status: string;
+  updatedAt: string;
+}
+
+interface Machine {
+  id: string;
+  name: string;
+  status: string;
+}
+
+interface Operator {
+  id: string;
+  name: string;
+  status: string;
+}
+
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats>({
     activeProjects: 0,
@@ -27,21 +53,21 @@ export default function Dashboard() {
           fetch('/api/projects'),
           fetch('/api/tasks'),
           fetch('/api/machines'),
-          fetch('/api/operators')
+          fetch('/api/operators'),
         ]);
 
         const [projects, tasks, machines, operators] = await Promise.all([
           projectsRes.json(),
           tasksRes.json(),
           machinesRes.json(),
-          operatorsRes.json()
+          operatorsRes.json(),
         ]);
 
         setStats({
-          activeProjects: projects.filter((p: any) => p.status === 'ACTIVE').length,
-          runningTasks: tasks.filter((t: any) => t.status === 'IN_PROGRESS').length,
-          availableMachines: machines.filter((m: any) => m.status === 'AVAILABLE').length,
-          activeOperators: operators.filter((o: any) => o.status === 'ACTIVE').length,
+          activeProjects: projects.filter((p: Project) => p.status === 'ACTIVE').length,
+          runningTasks: tasks.filter((t: Task) => t.status === 'IN_PROGRESS').length,
+          availableMachines: machines.filter((m: Machine) => m.status === 'AVAILABLE').length,
+          activeOperators: operators.filter((o: Operator) => o.status === 'ACTIVE').length,
         });
       } catch (error) {
         console.error('Error fetching dashboard stats:', error);
@@ -60,16 +86,13 @@ export default function Dashboard() {
     { label: 'Active Operators', value: stats.activeOperators.toString(), change: '', changeType: 'neutral' },
   ];
 
-  const [recentTasks, setRecentTasks] = useState<any[]>([]);
-  const [recentProjects, setRecentProjects] = useState<any[]>([]);
+  const [recentTasks, setRecentTasks] = useState<Task[]>([]);
+  const [recentProjects, setRecentProjects] = useState<Project[]>([]);
 
   useEffect(() => {
     const fetchRecentData = async () => {
       try {
-        const [tasksRes, projectsRes] = await Promise.all([
-          fetch('/api/tasks'),
-          fetch('/api/projects')
-        ]);
+        const [tasksRes, projectsRes] = await Promise.all([fetch('/api/tasks'), fetch('/api/projects')]);
 
         if (tasksRes.ok) {
           const tasks = await tasksRes.json();
@@ -89,18 +112,18 @@ export default function Dashboard() {
   }, []);
 
   const recentActivity = [
-    ...recentTasks.map((task: any) => ({
+    ...recentTasks.map((task: Task) => ({
       id: task.id,
-      type: 'task',
+      type: 'task' as const,
       message: `Task "${task.title}" - ${task.status}`,
-      time: new Date(task.updatedAt).toLocaleDateString()
+      time: new Date(task.updatedAt).toLocaleDateString(),
     })),
-    ...recentProjects.map((project: any) => ({
+    ...recentProjects.map((project: Project) => ({
       id: project.id,
-      type: 'project', 
+      type: 'project' as const,
       message: `Project "${project.name}" - ${project.status}`,
-      time: new Date(project.updatedAt).toLocaleDateString()
-    }))
+      time: new Date(project.updatedAt).toLocaleDateString(),
+    })),
   ];
 
   const quickActions = [
@@ -120,31 +143,37 @@ export default function Dashboard() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {loading ? (
-          Array.from({ length: 4 }).map((_, index) => (
-            <div key={index} className="bg-white rounded-lg shadow p-6 animate-pulse">
-              <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-              <div className="h-8 bg-gray-200 rounded w-1/2"></div>
-            </div>
-          ))
-        ) : (
-          statsDisplay.map((stat) => (
-          <div key={stat.label} className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">{stat.label}</p>
-                <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
+        {loading
+          ? Array.from({ length: 4 }).map((_, index) => (
+              <div
+                key={index}
+                className="bg-white rounded-lg shadow p-6 animate-pulse">
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                <div className="h-8 bg-gray-200 rounded w-1/2"></div>
               </div>
-              <div className={`text-sm ${
-                stat.changeType === 'increase' ? 'text-green-600' : 
-                stat.changeType === 'decrease' ? 'text-red-600' : 'text-gray-600'
-              }`}>
-                {stat.change}
+            ))
+          : statsDisplay.map((stat) => (
+              <div
+                key={stat.label}
+                className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">{stat.label}</p>
+                    <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
+                  </div>
+                  <div
+                    className={`text-sm ${
+                      stat.changeType === 'increase'
+                        ? 'text-green-600'
+                        : stat.changeType === 'decrease'
+                        ? 'text-red-600'
+                        : 'text-gray-600'
+                    }`}>
+                    {stat.change}
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-          ))
-        )}
+            ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -159,9 +188,9 @@ export default function Dashboard() {
                 <Link
                   key={action.label}
                   href={action.href}
-                  className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <div className={`w-10 h-10 ${action.color} rounded-lg flex items-center justify-center text-white mr-3`}>
+                  className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                  <div
+                    className={`w-10 h-10 ${action.color} rounded-lg flex items-center justify-center text-white mr-3`}>
                     {action.icon}
                   </div>
                   <span className="text-sm font-medium text-gray-900">{action.label}</span>
@@ -179,14 +208,12 @@ export default function Dashboard() {
           <div className="p-6">
             <div className="space-y-4">
               {recentActivity.map((activity) => (
-                <div key={activity.id} className="flex items-start space-x-3">
-                  <StatusBadge 
-                    status={activity.type} 
-                    variant={
-                      activity.type === 'task' ? 'success' :
-                      activity.type === 'machine' ? 'error' :
-                      activity.type === 'project' ? 'info' : 'default'
-                    }
+                <div
+                  key={activity.id}
+                  className="flex items-start space-x-3">
+                  <StatusBadge
+                    status={activity.type}
+                    variant={activity.type === 'task' ? 'success' : activity.type === 'project' ? 'info' : 'default'}
                     size="sm"
                   />
                   <div className="flex-1 min-w-0">
@@ -202,7 +229,9 @@ export default function Dashboard() {
 
       {/* Navigation Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Link href="/schedule" className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
+        <Link
+          href="/schedule"
+          className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
           <div className="flex items-center">
             <div className="text-2xl mr-4">📅</div>
             <div>
@@ -212,7 +241,9 @@ export default function Dashboard() {
           </div>
         </Link>
 
-        <Link href="/projects" className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
+        <Link
+          href="/projects"
+          className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
           <div className="flex items-center">
             <div className="text-2xl mr-4">📁</div>
             <div>
@@ -222,7 +253,9 @@ export default function Dashboard() {
           </div>
         </Link>
 
-        <Link href="/machines" className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
+        <Link
+          href="/machines"
+          className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
           <div className="flex items-center">
             <div className="text-2xl mr-4">⚙️</div>
             <div>
