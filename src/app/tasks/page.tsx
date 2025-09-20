@@ -126,9 +126,11 @@ export default function TasksPage() {
         return 'success';
       case 'IN_PROGRESS':
         return 'info';
+      case 'SCHEDULED':
+        return 'info';
       case 'PENDING':
         return 'warning';
-      case 'CANCELLED':
+      case 'BLOCKED':
         return 'error';
       default:
         return 'default';
@@ -278,9 +280,10 @@ export default function TasksPage() {
             const key = status.value.toLowerCase().replace('_', '');
             const colorMap: { [key: string]: 'yellow' | 'blue' | 'green' | 'red' | 'gray' } = {
               pending: 'yellow',
+              scheduled: 'blue',
               inprogress: 'blue',
               completed: 'green',
-              cancelled: 'red',
+              blocked: 'red',
             };
             return {
               label: status.label,

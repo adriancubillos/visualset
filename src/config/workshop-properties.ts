@@ -54,10 +54,10 @@ export const MACHINE_STATUS = [
 
 export const TASK_STATUS = [
   { value: 'PENDING', label: 'Pending' },
+  { value: 'SCHEDULED', label: 'Scheduled' },
   { value: 'IN_PROGRESS', label: 'In Progress' },
   { value: 'COMPLETED', label: 'Completed' },
-  { value: 'CANCELLED', label: 'Cancelled' },
-  { value: 'ON_HOLD', label: 'On Hold' },
+  { value: 'BLOCKED', label: 'Blocked' },
 ] as const;
 
 export const TASK_PRIORITY = [
@@ -76,26 +76,25 @@ export const PROJECT_STATUS = [
 ] as const;
 
 // Helper functions to get labels by value
-export const getSkillLabel = (value: string) => 
-  AVAILABLE_SKILLS.find(skill => skill.value === value)?.label || value;
+export const getSkillLabel = (value: string) => AVAILABLE_SKILLS.find((skill) => skill.value === value)?.label || value;
 
-export const getMachineTypeLabel = (value: string) => 
-  MACHINE_TYPES.find(type => type.value === value)?.label || value;
+export const getMachineTypeLabel = (value: string) =>
+  MACHINE_TYPES.find((type) => type.value === value)?.label || value;
 
-export const getOperatorStatusLabel = (value: string) => 
-  OPERATOR_STATUS.find(status => status.value === value)?.label || value;
+export const getOperatorStatusLabel = (value: string) =>
+  OPERATOR_STATUS.find((status) => status.value === value)?.label || value;
 
-export const getOperatorShiftLabel = (value: string) => 
-  OPERATOR_SHIFTS.find(shift => shift.value === value)?.label || value;
+export const getOperatorShiftLabel = (value: string) =>
+  OPERATOR_SHIFTS.find((shift) => shift.value === value)?.label || value;
 
-export const getMachineStatusLabel = (value: string) => 
-  MACHINE_STATUS.find(status => status.value === value)?.label || value;
+export const getMachineStatusLabel = (value: string) =>
+  MACHINE_STATUS.find((status) => status.value === value)?.label || value;
 
-export const getTaskStatusLabel = (value: string) => 
-  TASK_STATUS.find(status => status.value === value)?.label || value;
+export const getTaskStatusLabel = (value: string) =>
+  TASK_STATUS.find((status) => status.value === value)?.label || value;
 
-export const getTaskPriorityLabel = (value: string) => 
-  TASK_PRIORITY.find(priority => priority.value === value)?.label || value;
+export const getTaskPriorityLabel = (value: string) =>
+  TASK_PRIORITY.find((priority) => priority.value === value)?.label || value;
 
-export const getProjectStatusLabel = (value: string) => 
-  PROJECT_STATUS.find(status => status.value === value)?.label || value;
+export const getProjectStatusLabel = (value: string) =>
+  PROJECT_STATUS.find((status) => status.value === value)?.label || value;

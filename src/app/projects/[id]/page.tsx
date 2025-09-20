@@ -286,11 +286,17 @@ export default function ProjectDetailPage() {
                         )}
 
                         {/* Tasks with problematic statuses */}
-                        {item.tasks.filter((t) => !['IN_PROGRESS', 'COMPLETED'].includes(t.status)).length > 0 && (
+                        {item.tasks.filter(
+                          (t) => !['PENDING', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED'].includes(t.status),
+                        ).length > 0 && (
                           <div className="flex items-center text-xs text-red-700 bg-red-50 px-2 py-1 rounded">
                             <span className="mr-1">🚨</span>
-                            {item.tasks.filter((t) => !['IN_PROGRESS', 'COMPLETED'].includes(t.status)).length} task(s)
-                            need attention
+                            {
+                              item.tasks.filter(
+                                (t) => !['PENDING', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED'].includes(t.status),
+                              ).length
+                            }{' '}
+                            task(s) need attention
                           </div>
                         )}
                       </div>

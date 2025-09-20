@@ -61,9 +61,11 @@ export default function TaskDetailPage() {
         return 'success';
       case 'IN_PROGRESS':
         return 'info';
+      case 'SCHEDULED':
+        return 'info';
       case 'PENDING':
         return 'warning';
-      case 'CANCELLED':
+      case 'BLOCKED':
         return 'error';
       default:
         return 'default';
@@ -90,9 +92,9 @@ export default function TaskDetailPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           ...task,
-          status: newStatus 
+          status: newStatus,
         }),
       });
 
@@ -144,7 +146,9 @@ export default function TaskDetailPage() {
     return (
       <div className="text-center py-12">
         <div className="text-gray-500">Task not found</div>
-        <Link href="/tasks" className="text-blue-600 hover:text-blue-800 mt-2 inline-block">
+        <Link
+          href="/tasks"
+          className="text-blue-600 hover:text-blue-800 mt-2 inline-block">
           Back to Tasks
         </Link>
       </div>
@@ -156,10 +160,14 @@ export default function TaskDetailPage() {
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <nav className="flex mb-4" aria-label="Breadcrumb">
+          <nav
+            className="flex mb-4"
+            aria-label="Breadcrumb">
             <ol className="flex items-center space-x-4">
               <li>
-                <Link href="/tasks" className="text-gray-500 hover:text-gray-700">
+                <Link
+                  href="/tasks"
+                  className="text-gray-500 hover:text-gray-700">
                   Tasks
                 </Link>
               </li>
@@ -173,26 +181,28 @@ export default function TaskDetailPage() {
           </nav>
           <h1 className="text-3xl font-bold text-gray-900">{task.title}</h1>
           <div className="mt-2 flex items-center space-x-4">
-            <StatusBadge status={task.status} variant={getStatusVariant(task.status)} />
-            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(task.priority)}`}>
+            <StatusBadge
+              status={task.status}
+              variant={getStatusVariant(task.status)}
+            />
+            <span
+              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(
+                task.priority,
+              )}`}>
               {task.priority} Priority
             </span>
-            <span className="text-gray-500">
-              {task.durationMin} minutes
-            </span>
+            <span className="text-gray-500">{task.durationMin} minutes</span>
           </div>
         </div>
         <div className="flex space-x-3">
           <Link
             href={`/tasks/${task.id}/edit`}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
+            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
             Edit
           </Link>
           <button
             onClick={handleDelete}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-          >
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
             Delete
           </button>
         </div>
@@ -202,7 +212,7 @@ export default function TaskDetailPage() {
       <div className="bg-white shadow rounded-lg p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
         <div className="flex flex-wrap gap-3">
-          {['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'].map((status) => (
+          {['PENDING', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'BLOCKED'].map((status) => (
             <button
               key={status}
               onClick={() => handleStatusChange(status)}
@@ -211,8 +221,7 @@ export default function TaskDetailPage() {
                 task.status === status
                   ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
                   : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
-              }`}
-            >
+              }`}>
               Mark as {status.replace('_', ' ')}
             </button>
           ))}
@@ -233,13 +242,19 @@ export default function TaskDetailPage() {
             <div>
               <dt className="text-sm font-medium text-gray-500">Status</dt>
               <dd className="mt-1">
-                <StatusBadge status={task.status} variant={getStatusVariant(task.status)} />
+                <StatusBadge
+                  status={task.status}
+                  variant={getStatusVariant(task.status)}
+                />
               </dd>
             </div>
             <div>
               <dt className="text-sm font-medium text-gray-500">Priority</dt>
               <dd className="mt-1">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(task.priority)}`}>
+                <span
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(
+                    task.priority,
+                  )}`}>
                   {task.priority}
                 </span>
               </dd>
@@ -261,9 +276,7 @@ export default function TaskDetailPage() {
             )}
             <div>
               <dt className="text-sm font-medium text-gray-500">Created</dt>
-              <dd className="mt-1 text-sm text-gray-900">
-                {new Date(task.createdAt).toLocaleDateString()}
-              </dd>
+              <dd className="mt-1 text-sm text-gray-900">{new Date(task.createdAt).toLocaleDateString()}</dd>
             </div>
             {task.description && (
               <div className="sm:col-span-2">
@@ -286,7 +299,9 @@ export default function TaskDetailPage() {
               <dt className="text-sm font-medium text-gray-500">Project</dt>
               <dd className="mt-1 text-sm text-gray-900">
                 {task.project ? (
-                  <Link href={`/projects/${task.project.id}`} className="text-blue-600 hover:text-blue-800">
+                  <Link
+                    href={`/projects/${task.project.id}`}
+                    className="text-blue-600 hover:text-blue-800">
                     {task.project.name}
                   </Link>
                 ) : (
@@ -298,7 +313,9 @@ export default function TaskDetailPage() {
               <dt className="text-sm font-medium text-gray-500">Machine</dt>
               <dd className="mt-1 text-sm text-gray-900">
                 {task.machine ? (
-                  <Link href={`/machines/${task.machine.id}`} className="text-blue-600 hover:text-blue-800">
+                  <Link
+                    href={`/machines/${task.machine.id}`}
+                    className="text-blue-600 hover:text-blue-800">
                     {task.machine.name}
                   </Link>
                 ) : (
@@ -310,7 +327,9 @@ export default function TaskDetailPage() {
               <dt className="text-sm font-medium text-gray-500">Operator</dt>
               <dd className="mt-1 text-sm text-gray-900">
                 {task.operator ? (
-                  <Link href={`/operators/${task.operator.id}`} className="text-blue-600 hover:text-blue-800">
+                  <Link
+                    href={`/operators/${task.operator.id}`}
+                    className="text-blue-600 hover:text-blue-800">
                     {task.operator.name}
                   </Link>
                 ) : (
