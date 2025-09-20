@@ -13,7 +13,7 @@ async function main() {
   await prisma.operator.deleteMany();
   await prisma.machine.deleteMany();
 
-  // --- Machines ---
+  // --- Machines (10 machines with diverse types and locations) ---
   const machines = await Promise.all([
     prisma.machine.create({
       data: { name: 'Cortadora CNC-001', type: 'CNC', status: 'AVAILABLE', location: 'Workshop A - Bay 1' },
@@ -33,61 +33,244 @@ async function main() {
     prisma.machine.create({
       data: { name: 'Cortadora Laser', type: 'Laser', status: 'AVAILABLE', location: 'Workshop B - Station 1' },
     }),
+    prisma.machine.create({
+      data: { name: 'Torno CNC-003', type: 'CNC', status: 'AVAILABLE', location: 'Workshop A - Bay 5' },
+    }),
+    prisma.machine.create({
+      data: { name: 'Prensa Hidraulica', type: 'Press', status: 'AVAILABLE', location: 'Workshop C - Area 1' },
+    }),
+    prisma.machine.create({
+      data: { name: 'Centro Mecanizado MC-400', type: 'CNC', status: 'IN_USE', location: 'Workshop A - Bay 6' },
+    }),
+    prisma.machine.create({
+      data: { name: 'Estacion de Ensamble', type: 'Assembly', status: 'AVAILABLE', location: 'Workshop C - Area 2' },
+    }),
   ]);
 
-  // --- Operators ---
-  const operators = await Promise.all([
-    prisma.operator.create({
-      data: {
-        name: 'Paula Castillo',
-        email: 'paula.castillo@workshop.com',
-        skills: ['CNC_MILL', 'WELDING'],
-        status: 'ACTIVE',
-        shift: 'DAY',
-        availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
-      },
-    }),
-    prisma.operator.create({
-      data: {
-        name: 'Jorge Gonzalez',
-        email: 'jorge.gonzalez@workshop.com',
-        skills: ['CNC_MILL', 'DRILL_PRESS', 'ASSEMBLY'],
-        status: 'ACTIVE',
-        shift: 'DAY',
-        availability: { mon: '09-17', tue: '09-17', wed: '09-17', thu: '09-17', fri: '09-17' },
-      },
-    }),
-    prisma.operator.create({
-      data: {
-        name: 'Mike Davis',
-        email: 'mike.davis@workshop.com',
-        skills: ['WELDING', 'ASSEMBLY'],
-        status: 'ACTIVE',
-        shift: 'EVENING',
-        availability: { mon: '07-15', tue: '07-15', wed: '07-15', thu: '07-15', fri: '07-15' },
-      },
-    }),
-    prisma.operator.create({
-      data: {
-        name: 'Ana Rodriguez',
-        email: 'ana.rodriguez@workshop.com',
-        skills: ['3D_PRINTING', 'QUALITY_CONTROL'],
-        status: 'ACTIVE',
-        shift: 'DAY',
-        availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
-      },
-    }),
-    prisma.operator.create({
-      data: {
-        name: 'Carlos Mendez',
-        email: 'carlos.mendez@workshop.com',
-        skills: ['LASER_CUTTING', 'SHEET_METAL'],
-        status: 'ACTIVE',
-        shift: 'DAY',
-        availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
-      },
-    }),
-  ]);
+  // --- Operators (30 operators with diverse skills) ---
+  const operatorData = [
+    {
+      name: 'Paula Castillo',
+      email: 'paula.castillo@workshop.com',
+      skills: ['CNC_MILL', 'WELDING'],
+      shift: 'DAY',
+      availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
+    },
+    {
+      name: 'Jorge Gonzalez',
+      email: 'jorge.gonzalez@workshop.com',
+      skills: ['CNC_MILL', 'DRILL_PRESS', 'ASSEMBLY'],
+      shift: 'DAY',
+      availability: { mon: '09-17', tue: '09-17', wed: '09-17', thu: '09-17', fri: '09-17' },
+    },
+    {
+      name: 'Mike Davis',
+      email: 'mike.davis@workshop.com',
+      skills: ['WELDING', 'ASSEMBLY'],
+      shift: 'EVENING',
+      availability: { mon: '07-15', tue: '07-15', wed: '07-15', thu: '07-15', fri: '07-15' },
+    },
+    {
+      name: 'Ana Rodriguez',
+      email: 'ana.rodriguez@workshop.com',
+      skills: ['3D_PRINTING', 'QUALITY_CONTROL'],
+      shift: 'DAY',
+      availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
+    },
+    {
+      name: 'Carlos Mendez',
+      email: 'carlos.mendez@workshop.com',
+      skills: ['LASER_CUTTING', 'SHEET_METAL'],
+      shift: 'DAY',
+      availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
+    },
+    {
+      name: 'Alice Johnson',
+      email: 'alice.johnson@workshop.com',
+      skills: ['CNC_MILL', 'CNC_LATHE'],
+      shift: 'DAY',
+      availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
+    },
+    {
+      name: 'Bob Smith',
+      email: 'bob.smith@workshop.com',
+      skills: ['WELDING', 'SHEET_METAL'],
+      shift: 'DAY',
+      availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
+    },
+    {
+      name: 'Carol Davis',
+      email: 'carol.davis@workshop.com',
+      skills: ['QUALITY_CONTROL', 'ASSEMBLY'],
+      shift: 'EVENING',
+      availability: { mon: '16-00', tue: '16-00', wed: '16-00', thu: '16-00', fri: '16-00' },
+    },
+    {
+      name: 'David Wilson',
+      email: 'david.wilson@workshop.com',
+      skills: ['ASSEMBLY', 'DRILL_PRESS'],
+      shift: 'DAY',
+      availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
+    },
+    {
+      name: 'Eva Martinez',
+      email: 'eva.martinez@workshop.com',
+      skills: ['3D_PRINTING', 'ASSEMBLY'],
+      shift: 'DAY',
+      availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
+    },
+    {
+      name: 'Frank Brown',
+      email: 'frank.brown@workshop.com',
+      skills: ['DRILL_PRESS', 'CNC_MILL'],
+      shift: 'NIGHT',
+      availability: { mon: '22-06', tue: '22-06', wed: '22-06', thu: '22-06', fri: '22-06' },
+    },
+    {
+      name: 'Grace Lee',
+      email: 'grace.lee@workshop.com',
+      skills: ['LASER_CUTTING', 'QUALITY_CONTROL'],
+      shift: 'DAY',
+      availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
+    },
+    {
+      name: 'Henry Chen',
+      email: 'henry.chen@workshop.com',
+      skills: ['CNC_LATHE', 'CNC_MILL'],
+      shift: 'EVENING',
+      availability: { mon: '16-00', tue: '16-00', wed: '16-00', thu: '16-00', fri: '16-00' },
+    },
+    {
+      name: 'Isabel Garcia',
+      email: 'isabel.garcia@workshop.com',
+      skills: ['SHEET_METAL', 'WELDING'],
+      shift: 'DAY',
+      availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
+    },
+    {
+      name: 'Jack Thompson',
+      email: 'jack.thompson@workshop.com',
+      skills: ['CNC_MILL', 'ASSEMBLY'],
+      shift: 'DAY',
+      availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
+    },
+    {
+      name: 'Karen White',
+      email: 'karen.white@workshop.com',
+      skills: ['3D_PRINTING', 'LASER_CUTTING'],
+      shift: 'DAY',
+      availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
+    },
+    {
+      name: 'Luis Rodriguez',
+      email: 'luis.rodriguez@workshop.com',
+      skills: ['WELDING', 'SHEET_METAL'],
+      shift: 'NIGHT',
+      availability: { mon: '22-06', tue: '22-06', wed: '22-06', thu: '22-06', fri: '22-06' },
+    },
+    {
+      name: 'Maria Gonzalez',
+      email: 'maria.gonzalez@workshop.com',
+      skills: ['ASSEMBLY', 'QUALITY_CONTROL'],
+      shift: 'EVENING',
+      availability: { mon: '16-00', tue: '16-00', wed: '16-00', thu: '16-00', fri: '16-00' },
+    },
+    {
+      name: 'Nathan Kim',
+      email: 'nathan.kim@workshop.com',
+      skills: ['3D_PRINTING', 'CNC_MILL'],
+      shift: 'DAY',
+      availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
+    },
+    {
+      name: 'Olivia Turner',
+      email: 'olivia.turner@workshop.com',
+      skills: ['DRILL_PRESS', 'ASSEMBLY'],
+      shift: 'DAY',
+      availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
+    },
+    {
+      name: 'Peter Adams',
+      email: 'peter.adams@workshop.com',
+      skills: ['CNC_LATHE', 'WELDING'],
+      shift: 'EVENING',
+      availability: { mon: '16-00', tue: '16-00', wed: '16-00', thu: '16-00', fri: '16-00' },
+    },
+    {
+      name: 'Quinn Foster',
+      email: 'quinn.foster@workshop.com',
+      skills: ['LASER_CUTTING', 'SHEET_METAL'],
+      shift: 'DAY',
+      availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
+    },
+    {
+      name: 'Rachel Cooper',
+      email: 'rachel.cooper@workshop.com',
+      skills: ['CNC_MILL', 'QUALITY_CONTROL'],
+      shift: 'DAY',
+      availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
+    },
+    {
+      name: 'Steve Mitchell',
+      email: 'steve.mitchell@workshop.com',
+      skills: ['SHEET_METAL', 'WELDING'],
+      shift: 'NIGHT',
+      availability: { mon: '22-06', tue: '22-06', wed: '22-06', thu: '22-06', fri: '22-06' },
+    },
+    {
+      name: 'Tina Parker',
+      email: 'tina.parker@workshop.com',
+      skills: ['3D_PRINTING', 'ASSEMBLY'],
+      shift: 'DAY',
+      availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
+    },
+    {
+      name: 'Ulrich Weber',
+      email: 'ulrich.weber@workshop.com',
+      skills: ['CNC_LATHE', 'CNC_MILL'],
+      shift: 'DAY',
+      availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
+    },
+    {
+      name: 'Victoria Young',
+      email: 'victoria.young@workshop.com',
+      skills: ['WELDING', 'DRILL_PRESS'],
+      shift: 'EVENING',
+      availability: { mon: '16-00', tue: '16-00', wed: '16-00', thu: '16-00', fri: '16-00' },
+    },
+    {
+      name: 'William Bell',
+      email: 'william.bell@workshop.com',
+      skills: ['LASER_CUTTING', 'QUALITY_CONTROL'],
+      shift: 'DAY',
+      availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
+    },
+    {
+      name: 'Xander Price',
+      email: 'xander.price@workshop.com',
+      skills: ['CNC_MILL', 'ASSEMBLY'],
+      shift: 'DAY',
+      availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
+    },
+    {
+      name: 'Yolanda Cruz',
+      email: 'yolanda.cruz@workshop.com',
+      skills: ['SHEET_METAL', '3D_PRINTING'],
+      shift: 'EVENING',
+      availability: { mon: '16-00', tue: '16-00', wed: '16-00', thu: '16-00', fri: '16-00' },
+    },
+  ];
+
+  const operators = await Promise.all(
+    operatorData.map((data) =>
+      prisma.operator.create({
+        data: {
+          ...data,
+          status: 'ACTIVE' as const,
+        },
+      }),
+    ),
+  );
 
   console.log(`✅ Created ${machines.length} machines`);
   console.log(`✅ Created ${operators.length} operators`);
@@ -168,7 +351,16 @@ async function main() {
   console.log(`✅ Created ${allItems.length} items across projects`);
 
   // --- Tasks (8-12 tasks per item) ---
-  const scheduledTasks: any[] = [];
+  const scheduledTasks: {
+    title: string;
+    description: string;
+    durationMin: number;
+    status: 'PENDING' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED';
+    itemId: string;
+    machineId: string | null;
+    operatorId: string | null;
+    scheduledAt: Date | null;
+  }[] = [];
   const startOfDay = 8; // 8 AM
   const endOfDay = 17; // 5 PM
 
@@ -200,8 +392,7 @@ async function main() {
     return { machine: availableMachine, operator: availableOperator };
   };
 
-  let currentDate = new Date();
-  let taskCounter = 1;
+  const currentDate = new Date();
 
   // Create tasks for each item
   for (const item of allItems) {
@@ -277,7 +468,6 @@ async function main() {
           scheduledAt: null,
         });
       }
-      taskCounter++;
     }
   }
 
