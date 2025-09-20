@@ -31,7 +31,11 @@ export default function SearchFilter({
     filters.forEach((filter) => {
       const currentValue = activeFilters[filter.key];
       // Only clear if there's a current value AND it's not available in the current options
-      if (currentValue && filter.options.length > 0 && !filter.options.some((option) => option.value === currentValue)) {
+      if (
+        currentValue &&
+        filter.options.length > 0 &&
+        !filter.options.some((option) => option.value === currentValue)
+      ) {
         // Current selection is no longer available in options, clear it
         delete newActiveFilters[filter.key];
         filtersChanged = true;
