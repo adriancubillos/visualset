@@ -33,6 +33,7 @@ export default function EditMachinePage() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isColorPatternValid, setIsColorPatternValid] = useState(true);
 
   useEffect(() => {
     const fetchMachine = async () => {
@@ -243,6 +244,9 @@ export default function EditMachinePage() {
             onColorChange={handleColorChange}
             onPatternChange={handlePatternChange}
             previewName={formData.name || 'Machine Preview'}
+            entityType="machine"
+            entityId={params.id as string}
+            onValidationChange={setIsColorPatternValid}
           />
 
           {/* Status */}
@@ -277,9 +281,9 @@ export default function EditMachinePage() {
             </Link>
             <button
               type="submit"
-              disabled={saving || !formData.name.trim() || !formData.location?.trim()}
+              disabled={saving || !formData.name.trim() || !formData.location?.trim() || !isColorPatternValid}
               className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                saving || !formData.name.trim() || !formData.location?.trim()
+                saving || !formData.name.trim() || !formData.location?.trim() || !isColorPatternValid
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700'
               }`}>

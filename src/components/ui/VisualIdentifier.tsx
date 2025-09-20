@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { OperatorColorIndicator } from './ColorIndicator';
 import { COLOR_PALETTE, PatternType } from '@/utils/entityColors';
+import { validateColorPatternUniqueness, getValidationErrorMessage, ValidationResult } from '@/utils/colorValidation';
 
 interface VisualIdentifierProps {
   color: string;
@@ -8,6 +9,9 @@ interface VisualIdentifierProps {
   onColorChange: (color: string) => void;
   onPatternChange: (pattern: PatternType) => void;
   previewName?: string;
+  entityType?: 'operator' | 'machine';
+  entityId?: string; // For edit mode, to exclude current entity from validation
+  onValidationChange?: (isValid: boolean) => void;
 }
 
 const PATTERN_OPTIONS = [
@@ -24,10 +28,41 @@ export default function VisualIdentifier({
   onColorChange,
   onPatternChange,
   previewName = 'Preview',
+  entityType = 'operator',
+  entityId,
+  onValidationChange,
 }: VisualIdentifierProps) {
+  const [validationResult, setValidationResult] = useState<ValidationResult>({ isValid: true });
+  const [isValidating, setIsValidating] = useState(false);
+
+  // Validate color/pattern combination whenever they change
+  useEffect(() => {
+    const validateCombination = async () => {
+      if (!color || !pattern) return;
+
+      setIsValidating(true);
+      const result = await validateColorPatternUniqueness(
+        color,
+        pattern,
+        entityType,
+        entityId, // Exclude current entity in edit mode
+      );
+
+      setValidationResult(result);
+      setIsValidating(false);
+      onValidationChange?.(result.isValid);
+    };
+
+    // Debounce validation to avoid too many API calls
+    const timeoutId = setTimeout(validateCombination, 500);
+    return () => clearTimeout(timeoutId);
+  }, [color, pattern, entityType, entityId, onValidationChange]);
+
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-3">Visual Identifier</label>
+      <label className="block text-sm font-medium text-gray-700 mb-3">
+        Visual Identifier {!validationResult.isValid && <span className="text-red-500">*</span>}
+      </label>
       <div className="space-y-4">
         {/* Color Selection */}
         <div>
@@ -80,6 +115,31 @@ export default function VisualIdentifier({
           />
           <span className="text-sm text-gray-600">{previewName}</span>
         </div>
+
+        {/* Validation Message */}
+        {!validationResult.isValid && (
+          <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <svg
+                  className="h-5 w-5 text-red-400"
+                  viewBox="0 0 20 20"
+                  fill="currentColor">
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-red-800">{getValidationErrorMessage(validationResult)}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {isValidating && <div className="mt-2 text-sm text-gray-500">Checking availability...</div>}
       </div>
     </div>
   );

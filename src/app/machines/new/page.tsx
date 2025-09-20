@@ -17,6 +17,7 @@ export default function NewMachinePage() {
     pattern: 'solid' as PatternType,
   });
   const [loading, setLoading] = useState(false);
+  const [isColorPatternValid, setIsColorPatternValid] = useState(true);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,6 +139,8 @@ export default function NewMachinePage() {
             onColorChange={handleColorChange}
             onPatternChange={handlePatternChange}
             previewName={formData.name || 'New Machine'}
+            entityType="machine"
+            onValidationChange={setIsColorPatternValid}
           />
 
           {/* Initial Status */}
@@ -173,9 +176,21 @@ export default function NewMachinePage() {
             </button>
             <button
               type="submit"
-              disabled={loading || !formData.name.trim() || !formData.location.trim()}
+              disabled={
+                loading ||
+                !formData.name.trim() ||
+                !formData.location.trim() ||
+                !formData.color ||
+                !formData.pattern ||
+                !isColorPatternValid
+              }
               className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                loading || !formData.name.trim() || !formData.location.trim()
+                loading ||
+                !formData.name.trim() ||
+                !formData.location.trim() ||
+                !formData.color ||
+                !formData.pattern ||
+                !isColorPatternValid
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700'
               }`}>
