@@ -3,43 +3,53 @@ import React from 'react';
 // Color palette for entities - consistent colors with different patterns
 export const COLOR_PALETTE = [
   {
-    hex: '#3b82f6',
-    tailwind: 'bg-blue-500 border-blue-600 hover:bg-blue-600',
-    pattern: 'solid',
-  },
-  {
-    hex: '#10b981',
-    tailwind: 'bg-green-500 border-green-600 hover:bg-green-600',
-    pattern: 'solid',
-  },
-  {
-    hex: '#8b5cf6',
-    tailwind: 'bg-purple-500 border-purple-600 hover:bg-purple-600',
-    pattern: 'solid',
-  },
-  {
-    hex: '#f59e0b',
-    tailwind: 'bg-orange-500 border-orange-600 hover:bg-orange-600',
-    pattern: 'solid',
-  },
-  {
-    hex: '#ec4899',
-    tailwind: 'bg-pink-500 border-pink-600 hover:bg-pink-600',
-    pattern: 'solid',
-  },
-  {
-    hex: '#6366f1',
-    tailwind: 'bg-indigo-500 border-indigo-600 hover:bg-indigo-600',
-    pattern: 'solid',
-  },
-  {
-    hex: '#ef4444',
+    hex: '#ef4444', // Bright Red
     tailwind: 'bg-red-500 border-red-600 hover:bg-red-600',
     pattern: 'solid',
   },
   {
-    hex: '#06b6d4',
+    hex: '#f97316', // Bright Orange
+    tailwind: 'bg-orange-500 border-orange-600 hover:bg-orange-600',
+    pattern: 'solid',
+  },
+  {
+    hex: '#eab308', // Golden Yellow
+    tailwind: 'bg-yellow-500 border-yellow-600 hover:bg-yellow-600',
+    pattern: 'solid',
+  },
+  {
+    hex: '#22c55e', // Bright Green
+    tailwind: 'bg-green-500 border-green-600 hover:bg-green-600',
+    pattern: 'solid',
+  },
+  {
+    hex: '#06b6d4', // Cyan/Turquoise
     tailwind: 'bg-cyan-500 border-cyan-600 hover:bg-cyan-600',
+    pattern: 'solid',
+  },
+  {
+    hex: '#3b82f6', // Royal Blue
+    tailwind: 'bg-blue-500 border-blue-600 hover:bg-blue-600',
+    pattern: 'solid',
+  },
+  {
+    hex: '#8b5cf6', // Purple
+    tailwind: 'bg-purple-500 border-purple-600 hover:bg-purple-600',
+    pattern: 'solid',
+  },
+  {
+    hex: '#ec4899', // Hot Pink
+    tailwind: 'bg-pink-500 border-pink-600 hover:bg-pink-600',
+    pattern: 'solid',
+  },
+  {
+    hex: '#84cc16', // Lime Green
+    tailwind: 'bg-lime-500 border-lime-600 hover:bg-lime-600',
+    pattern: 'solid',
+  },
+  {
+    hex: '#6366f1', // Indigo
+    tailwind: 'bg-indigo-500 border-indigo-600 hover:bg-indigo-600',
     pattern: 'solid',
   },
 ];
@@ -47,9 +57,10 @@ export const COLOR_PALETTE = [
 // Pattern types for visual differentiation
 export const PATTERN_TYPES = {
   solid: 'solid',
-  striped: 'striped-diagonal',
-  dotted: 'dotted',
-  dashed: 'dashed-border',
+  diagonalLeft: 'diagonal-left',
+  diagonalRight: 'diagonal-right',
+  horizontal: 'horizontal-lines',
+  vertical: 'vertical-lines',
 } as const;
 
 export type PatternType = keyof typeof PATTERN_TYPES;
@@ -136,35 +147,52 @@ function getPatternStyles(color: string, pattern: PatternType): React.CSSPropert
     case 'solid':
       return baseStyle;
 
-    case 'striped':
+    case 'diagonalLeft':
       return {
-        ...baseStyle,
+        backgroundColor: adjustColorOpacity(color, 0.3),
+        backgroundImage: `repeating-linear-gradient(
+          135deg,
+          transparent,
+          transparent 2px,
+          ${color} 2px,
+          ${color} 4px
+        )`,
+      };
+
+    case 'diagonalRight':
+      return {
+        backgroundColor: adjustColorOpacity(color, 0.3),
         backgroundImage: `repeating-linear-gradient(
           45deg,
-          ${color},
-          ${color} 4px,
-          ${adjustColorOpacity(color, 0.7)} 4px,
-          ${adjustColorOpacity(color, 0.7)} 8px
+          transparent,
+          transparent 2px,
+          ${color} 2px,
+          ${color} 4px
         )`,
       };
 
-    case 'dotted':
+    case 'horizontal':
       return {
-        ...baseStyle,
-        backgroundImage: `radial-gradient(
-          circle at 2px 2px,
-          ${adjustColorOpacity(color, 0.8)} 1px,
-          transparent 1px
+        backgroundColor: adjustColorOpacity(color, 0.3),
+        backgroundImage: `repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 2px,
+          ${color} 2px,
+          ${color} 4px
         )`,
-        backgroundSize: '8px 8px',
       };
 
-    case 'dashed':
+    case 'vertical':
       return {
-        ...baseStyle,
-        borderStyle: 'dashed',
-        borderWidth: '2px',
-        borderColor: adjustColorOpacity(color, 0.8),
+        backgroundColor: adjustColorOpacity(color, 0.3),
+        backgroundImage: `repeating-linear-gradient(
+          90deg,
+          transparent,
+          transparent 2px,
+          ${color} 2px,
+          ${color} 4px
+        )`,
       };
 
     default:

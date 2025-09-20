@@ -14,7 +14,7 @@ export default function NewOperatorPage() {
     status: 'ACTIVE',
     shift: 'DAY',
     color: '#3B82F6',
-    pattern: 'solid' as 'solid' | 'striped' | 'dotted' | 'dashed',
+    pattern: 'solid' as 'solid' | 'diagonalLeft' | 'diagonalRight' | 'horizontal' | 'vertical',
     availability: {},
   });
   const [loading, setLoading] = useState(false);
@@ -162,22 +162,29 @@ export default function NewOperatorPage() {
               {/* Color Selection */}
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-2">Color</label>
-                <div className="grid grid-cols-8 gap-2">
-                  {['#EF4444', '#F97316', '#F59E0B', '#EAB308', '#22C55E', '#14B8A6', '#3B82F6', '#8B5CF6'].map(
-                    (color) => (
-                      <button
-                        key={color}
-                        type="button"
-                        onClick={() => setFormData((prev) => ({ ...prev, color }))}
-                        className={`w-8 h-8 rounded-lg border-2 transition-all ${
-                          formData.color === color
-                            ? 'border-gray-800 scale-110'
-                            : 'border-gray-300 hover:border-gray-400'
-                        }`}
-                        style={{ backgroundColor: color }}
-                      />
-                    ),
-                  )}
+                <div className="grid grid-cols-10 gap-2">
+                  {[
+                    '#EF4444',
+                    '#F97316',
+                    '#EAB308',
+                    '#22C55E',
+                    '#06B6D4',
+                    '#3B82F6',
+                    '#8B5CF6',
+                    '#EC4899',
+                    '#84CC16',
+                    '#6366F1',
+                  ].map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      onClick={() => setFormData((prev) => ({ ...prev, color }))}
+                      className={`w-8 h-8 rounded-lg border-2 transition-all ${
+                        formData.color === color ? 'border-gray-800 scale-110' : 'border-gray-300 hover:border-gray-400'
+                      }`}
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
                 </div>
               </div>
 
@@ -187,9 +194,10 @@ export default function NewOperatorPage() {
                 <div className="grid grid-cols-4 gap-2">
                   {[
                     { value: 'solid', label: 'Solid' },
-                    { value: 'striped', label: 'Striped' },
-                    { value: 'dotted', label: 'Dotted' },
-                    { value: 'dashed', label: 'Dashed' },
+                    { value: 'diagonalLeft', label: 'Diagonal Left' },
+                    { value: 'diagonalRight', label: 'Diagonal Right' },
+                    { value: 'horizontal', label: 'Horizontal' },
+                    { value: 'vertical', label: 'Vertical' },
                   ].map((pattern) => (
                     <button
                       key={pattern.value}
@@ -197,7 +205,12 @@ export default function NewOperatorPage() {
                       onClick={() =>
                         setFormData((prev) => ({
                           ...prev,
-                          pattern: pattern.value as 'solid' | 'striped' | 'dotted' | 'dashed',
+                          pattern: pattern.value as
+                            | 'solid'
+                            | 'diagonalLeft'
+                            | 'diagonalRight'
+                            | 'horizontal'
+                            | 'vertical',
                         }))
                       }
                       className={`px-3 py-2 text-xs font-medium rounded-md border transition-all ${
