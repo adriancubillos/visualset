@@ -56,6 +56,45 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
     const { id } = await context.params;
     const body = await req.json();
 
+    // If trying to set status to COMPLETED, validate that all tasks are completed
+    if (body.status === 'COMPLETED') {
+      const itemWithTasks = await prisma.item.findUnique({
+        where: { id },
+        include: {
+          tasks: {
+            select: {
+              id: true,
+              title: true,
+              status: true,
+            },
+          },
+        },
+      });
+
+      if (!itemWithTasks) {
+        return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+      }
+
+      // Check if there are any incomplete tasks
+      const incompleteTasks = itemWithTasks.tasks.filter((task) => task.status !== 'COMPLETED');
+
+      if (incompleteTasks.length > 0) {
+        const taskTitles = incompleteTasks.map((task) => task.title).join(', ');
+        return NextResponse.json(
+          {
+            error: 'Cannot complete item with incomplete tasks',
+            details: `The following tasks must be completed first: ${taskTitles}`,
+            incompleteTasks: incompleteTasks.map((task) => ({
+              id: task.id,
+              title: task.title,
+              status: task.status,
+            })),
+          },
+          { status: 400 },
+        );
+      }
+    }
+
     const item = await prisma.item.update({
       where: { id },
       data: {

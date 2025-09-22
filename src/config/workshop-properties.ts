@@ -75,6 +75,12 @@ export const PROJECT_STATUS = [
   { value: 'CANCELLED', label: 'Cancelled' },
 ] as const;
 
+export const ITEM_STATUS = [
+  { value: 'ACTIVE', label: 'Active' },
+  { value: 'ON_HOLD', label: 'On Hold' },
+  { value: 'COMPLETED', label: 'Completed' },
+] as const;
+
 // Helper functions to get labels by value
 export const getSkillLabel = (value: string) => AVAILABLE_SKILLS.find((skill) => skill.value === value)?.label || value;
 
@@ -98,3 +104,6 @@ export const getTaskPriorityLabel = (value: string) =>
 
 export const getProjectStatusLabel = (value: string) =>
   PROJECT_STATUS.find((status) => status.value === value)?.label || value;
+
+export const getItemStatusLabel = (value: string) =>
+  ITEM_STATUS.find((status) => status.value === value)?.label || value;

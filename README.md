@@ -14,6 +14,7 @@ An item can not be completed unless al its tasks are completed
 collapse things
 
 ✅ FIXED: projects/id project details streamlined - removed duplicate status and reduced space usage
+✅ FIXED: Item completion validation - items can only be marked as completed when all tasks are completed
 
 # visualset
 
