@@ -33,6 +33,45 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const { id } = await params;
     const body = await req.json();
 
+    // If trying to set status to COMPLETED, validate that all items are completed
+    if (body.status === 'COMPLETED') {
+      const projectWithItems = await prisma.project.findUnique({
+        where: { id },
+        include: {
+          items: {
+            select: {
+              id: true,
+              name: true,
+              status: true,
+            },
+          },
+        },
+      });
+
+      if (!projectWithItems) {
+        return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+      }
+
+      // Check if there are any incomplete items
+      const incompleteItems = projectWithItems.items.filter((item) => item.status !== 'COMPLETED');
+
+      if (incompleteItems.length > 0) {
+        const itemNames = incompleteItems.map((item) => item.name).join(', ');
+        return NextResponse.json(
+          {
+            error: 'Cannot complete project with incomplete items',
+            details: `The following items must be completed first: ${itemNames}`,
+            incompleteItems: incompleteItems.map((item) => ({
+              id: item.id,
+              name: item.name,
+              status: item.status,
+            })),
+          },
+          { status: 400 },
+        );
+      }
+    }
+
     // Check if color is being updated and validate uniqueness
     if (body.color) {
       const existingProject = await prisma.project.findFirst({

@@ -15,6 +15,7 @@ collapse things
 
 ✅ FIXED: projects/id project details streamlined - removed duplicate status and reduced space usage
 ✅ FIXED: Item completion validation - items can only be marked as completed when all tasks are completed
+✅ FIXED: Project completion validation - projects can only be marked as completed when all items are completed
 
 # visualset
 

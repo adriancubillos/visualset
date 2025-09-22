@@ -7,6 +7,7 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import ColorIndicator from '@/components/ui/ColorIndicator';
 import StatisticsCards from '@/components/ui/StatisticsCards';
 import { PatternType } from '@/utils/entityColors';
+import { checkProjectCompletionReadiness } from '@/utils/projectValidation';
 
 interface Project {
   id: string;
@@ -175,10 +176,44 @@ export default function ProjectDetailPage() {
         </div>
 
         <div className="flex items-center space-x-4">
-          <StatusBadge
-            status={project.status}
-            variant={getStatusVariant(project.status)}
-          />
+          <div className="text-right">
+            <StatusBadge
+              status={project.status}
+              variant={getStatusVariant(project.status)}
+            />
+
+            {/* Project Completion Readiness Indicator */}
+            {(() => {
+              if (!project.items) return null;
+
+              const completionStatus = checkProjectCompletionReadiness(
+                project.items.map((item) => ({
+                  id: item.id,
+                  name: item.name,
+                  status: item.status,
+                })),
+              );
+
+              if (project.status === 'COMPLETED') {
+                return <div className="mt-2 text-xs text-green-600 font-medium">✓ Project Completed</div>;
+              }
+
+              if (completionStatus.canComplete) {
+                return <div className="mt-2 text-xs text-green-600 font-medium">✓ Ready for completion</div>;
+              }
+
+              if (completionStatus.totalItems === 0) {
+                return <div className="mt-2 text-xs text-yellow-600 font-medium">⚠ No items added</div>;
+              }
+
+              return (
+                <div className="mt-2 text-xs text-red-600 font-medium">
+                  ✗ {completionStatus.incompleteItems.length} item
+                  {completionStatus.incompleteItems.length !== 1 ? 's' : ''} remaining
+                </div>
+              );
+            })()}
+          </div>
           <div className="flex space-x-2">
             <Link
               href={`/projects/${project.id}/edit`}

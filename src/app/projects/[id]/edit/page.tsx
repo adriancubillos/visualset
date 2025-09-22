@@ -5,6 +5,13 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ColorPicker from '@/components/ui/ColorPicker';
 import { PROJECT_STATUS } from '@/config/workshop-properties';
+import { checkProjectCompletionReadiness, getProjectCompletionMessage } from '@/utils/projectValidation';
+
+interface Item {
+  id: string;
+  name: string;
+  status: string;
+}
 
 interface Project {
   id: string;
@@ -12,6 +19,7 @@ interface Project {
   description: string;
   status: string;
   color?: string;
+  items?: Item[];
   createdAt: string;
   updatedAt: string;
 }
@@ -25,9 +33,11 @@ export default function EditProjectPage() {
     description: '',
     status: 'ACTIVE',
     color: '',
+    items: [] as Item[],
   });
   const [usedColors, setUsedColors] = useState<string[]>([]);
   const [colorError, setColorError] = useState('');
+  const [statusValidationError, setStatusValidationError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -59,6 +69,7 @@ export default function EditProjectPage() {
           description: projectData.description || '',
           status: projectData.status,
           color: projectData.color || '',
+          items: projectData.items || [],
         });
         setLoading(false);
       } catch (error) {
@@ -74,6 +85,7 @@ export default function EditProjectPage() {
     e.preventDefault();
     setSaving(true);
     setColorError('');
+    setStatusValidationError(null);
 
     try {
       const response = await fetch(`/api/projects/${params.id}`, {
@@ -88,8 +100,19 @@ export default function EditProjectPage() {
         router.push(`/projects/${params.id}`);
       } else {
         const errorData = await response.json();
-        if (response.status === 400 && errorData.error.includes('color')) {
-          setColorError(errorData.error);
+
+        if (response.status === 400) {
+          if (errorData.error.includes('color')) {
+            setColorError(errorData.error);
+          } else if (errorData.details) {
+            // This is a completion validation error
+            setStatusValidationError(errorData.details);
+            if (process.env.NODE_ENV === 'development') {
+              console.warn('Project completion validation failed:', errorData.details);
+            }
+          } else {
+            setStatusValidationError(errorData.error || 'Failed to update project');
+          }
         } else {
           console.error('Failed to update project:', errorData.error);
         }
@@ -104,7 +127,20 @@ export default function EditProjectPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+
+    // Clear validation errors when relevant fields change
+    if (name === 'status' && statusValidationError) {
+      setStatusValidationError(null);
+    }
+    if (name === 'color' && colorError) {
+      setColorError('');
+    }
   };
+
+  // Get completion status for the current project
+  const completionStatus = formData.items ? checkProjectCompletionReadiness(formData.items) : null;
+  const isAttemptingCompletion = formData.status === 'COMPLETED';
+  const showCompletionWarning = isAttemptingCompletion && completionStatus && !completionStatus.canComplete;
 
   if (loading) {
     return (
@@ -175,6 +211,48 @@ export default function EditProjectPage() {
         <p className="mt-2 text-gray-600">Update project information</p>
       </div>
 
+      {/* Global Error Message */}
+      {statusValidationError && (
+        <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-400 rounded-md">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg
+                className="h-5 w-5 text-red-400"
+                viewBox="0 0 20 20"
+                fill="currentColor">
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <div className="ml-3 flex-1">
+              <h3 className="text-sm font-medium text-red-800">Unable to update project</h3>
+              <p className="text-sm text-red-700 mt-1">{statusValidationError}</p>
+            </div>
+            <div className="ml-4 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setStatusValidationError(null)}
+                className="inline-flex text-red-400 hover:text-red-600 focus:outline-none focus:text-red-600">
+                <span className="sr-only">Dismiss</span>
+                <svg
+                  className="h-5 w-5"
+                  viewBox="0 0 20 20"
+                  fill="currentColor">
+                  <path
+                    fillRule="evenodd"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Form */}
       <div className="bg-white shadow rounded-lg">
         <form
@@ -238,6 +316,79 @@ export default function EditProjectPage() {
                 </option>
               ))}
             </select>
+
+            {/* Completion Status Info */}
+            {completionStatus && (
+              <div className="mt-2">
+                {completionStatus.totalItems > 0 && (
+                  <div className="text-sm text-gray-600">
+                    Progress: {completionStatus.completedItems}/{completionStatus.totalItems} items completed (
+                    {completionStatus.completionPercentage}%)
+                  </div>
+                )}
+
+                {showCompletionWarning && (
+                  <div className="mt-1 p-3 bg-red-50 border border-red-200 rounded-md">
+                    <div className="flex">
+                      <div className="flex-shrink-0">
+                        <svg
+                          className="h-5 w-5 text-red-400"
+                          viewBox="0 0 20 20"
+                          fill="currentColor">
+                          <path
+                            fillRule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-sm font-medium text-red-800">Cannot complete project</p>
+                        <p className="text-sm text-red-700">{getProjectCompletionMessage(completionStatus)}</p>
+                        {completionStatus.incompleteItems.length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-xs font-medium text-red-800">Incomplete items:</p>
+                            <ul className="text-xs text-red-700 mt-1 space-y-1">
+                              {completionStatus.incompleteItems.map((item) => (
+                                <li
+                                  key={item.id}
+                                  className="flex items-center">
+                                  <span className="w-2 h-2 bg-red-400 rounded-full mr-2"></span>
+                                  {item.name} ({item.status})
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {isAttemptingCompletion && completionStatus.canComplete && (
+                  <div className="mt-1 p-3 bg-green-50 border border-green-200 rounded-md">
+                    <div className="flex">
+                      <div className="flex-shrink-0">
+                        <svg
+                          className="h-5 w-5 text-green-400"
+                          viewBox="0 0 20 20"
+                          fill="currentColor">
+                          <path
+                            fillRule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-sm font-medium text-green-800">Ready for completion</p>
+                        <p className="text-sm text-green-700">{getProjectCompletionMessage(completionStatus)}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Color Picker */}
