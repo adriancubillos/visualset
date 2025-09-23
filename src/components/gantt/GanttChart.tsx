@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import GanttTaskBar from './GanttTaskBar';
-import { convertTaskTimeForDisplay, toDisplayTimezoneStartOfDay, getDisplayTimezoneOffset } from '@/utils/timezone';
+import { convertTaskTimeForDisplay, toDisplayTimezoneStartOfDay } from '@/utils/timezone';
 
 export interface GanttTask {
   id: string;
@@ -107,12 +107,62 @@ export default function GanttChart({ projects, currentMonth, currentDate, viewMo
   const days = getDaysForView(internalCurrentDate, viewMode);
   const dayWidth = viewMode === 'day' ? 200 : viewMode === 'week' ? 80 : 40; // Wider columns for day/week view
 
+  // Filter projects/items/tasks based on view mode and selected date
+  const getFilteredProjects = () => {
+    if (viewMode !== 'day') {
+      return projects; // Show all for week/month view
+    }
+
+    // For day view, only show projects/items that have tasks on the selected day
+    const selectedDay = days[0]; // In day view, there's only one day
+    const selectedDayStart = new Date(selectedDay);
+    const selectedDayEnd = new Date(selectedDay);
+    selectedDayEnd.setDate(selectedDayEnd.getDate() + 1); // Next day
+
+    const filteredProjects = projects
+      .map((project) => {
+        const filteredItems = project.items
+          .map((item) => {
+            const filteredTasks = item.tasks.filter((task) => {
+              if (!task.startDate || !task.endDate) return false;
+
+              // Convert UTC task times to display timezone
+              const { start: localStartDate, end: localEndDate } = convertTaskTimeForDisplay(
+                typeof task.startDate === 'string' ? task.startDate : task.startDate.toISOString(),
+                task.durationMin,
+              );
+
+              // Check if task overlaps with selected day
+              return localStartDate < selectedDayEnd && localEndDate >= selectedDayStart;
+            });
+
+            return {
+              ...item,
+              tasks: filteredTasks,
+            };
+          })
+          .filter((item) => item.tasks.length > 0); // Only include items with tasks
+
+        return {
+          ...project,
+          items: filteredItems,
+        };
+      })
+      .filter((project) => project.items.length > 0); // Only include projects with items
+
+    return filteredProjects;
+  };
+
+  const filteredProjects = getFilteredProjects();
+
   console.log('GanttChart render:', {
     viewMode,
     currentDate: internalCurrentDate.toDateString(),
     daysCount: days.length,
     dayWidth,
     totalWidth: days.length * dayWidth,
+    originalProjectsCount: projects.length,
+    filteredProjectsCount: filteredProjects.length,
   });
 
   console.log('Timeline setup:', {
@@ -150,7 +200,7 @@ export default function GanttChart({ projects, currentMonth, currentDate, viewMo
   };
 
   const expandAllProjects = () => {
-    const allProjectIds = new Set(projects.map((p) => p.id));
+    const allProjectIds = new Set(filteredProjects.map((p) => p.id));
     setExpandedProjects(allProjectIds);
   };
 
@@ -161,7 +211,7 @@ export default function GanttChart({ projects, currentMonth, currentDate, viewMo
 
   const expandAllItems = () => {
     const allItemIds = new Set<string>();
-    projects.forEach((project) => {
+    filteredProjects.forEach((project) => {
       if (expandedProjects.has(project.id)) {
         project.items.forEach((item) => allItemIds.add(item.id));
       }
@@ -330,7 +380,7 @@ export default function GanttChart({ projects, currentMonth, currentDate, viewMo
   const renderHierarchyColumn = () => {
     const hierarchyRows: React.ReactElement[] = [];
 
-    projects.forEach((project) => {
+    filteredProjects.forEach((project) => {
       const isProjectExpanded = expandedProjects.has(project.id);
 
       // Project row hierarchy
@@ -455,7 +505,7 @@ export default function GanttChart({ projects, currentMonth, currentDate, viewMo
   const renderTimelineContent = () => {
     const timelineRows: React.ReactElement[] = [];
 
-    projects.forEach((project) => {
+    filteredProjects.forEach((project) => {
       const isProjectExpanded = expandedProjects.has(project.id);
 
       // Project row timeline
@@ -674,9 +724,18 @@ export default function GanttChart({ projects, currentMonth, currentDate, viewMo
         </div>
       </div>
 
-      {projects.length === 0 && (
+      {filteredProjects.length === 0 && (
         <div className="p-8 text-center text-gray-500">
-          <p>No scheduled tasks found for this month.</p>
+          <p>
+            {viewMode === 'day'
+              ? `No scheduled tasks found for ${internalCurrentDate.toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  month: 'long',
+                  day: 'numeric',
+                  year: 'numeric',
+                })}.`
+              : `No scheduled tasks found for this ${viewMode}.`}
+          </p>
         </div>
       )}
     </div>
