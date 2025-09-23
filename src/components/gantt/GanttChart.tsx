@@ -84,14 +84,6 @@ export default function GanttChart({ projects, currentMonth, currentDate, viewMo
         const maxScrollLeft = timelineContentRef.current.scrollWidth - containerWidth;
         const scrollLeft = Math.max(0, Math.min(targetScrollPosition, maxScrollLeft));
 
-        console.log('Auto-scrolling to current date:', {
-          currentDayOfMonth,
-          dayWidth,
-          containerWidth,
-          targetScrollPosition,
-          scrollLeft,
-        });
-
         // Smooth scroll to the position
         timelineContentRef.current.scrollTo({
           left: scrollLeft,
@@ -191,24 +183,7 @@ export default function GanttChart({ projects, currentMonth, currentDate, viewMo
 
   const filteredProjects = getFilteredProjects();
 
-  console.log('GanttChart render:', {
-    viewMode,
-    currentDate: internalCurrentDate.toDateString(),
-    daysCount: days.length,
-    dayWidth,
-    totalWidth: days.length * dayWidth,
-    originalProjectsCount: projects.length,
-    filteredProjectsCount: filteredProjects.length,
-    viewDateRange: `${days[0].toDateString()} to ${days[days.length - 1].toDateString()}`,
-  });
-
-  console.log('Timeline setup:', {
-    totalDays: days.length,
-    dayWidth,
-    totalWidth: days.length * dayWidth,
-    lastDay: days[days.length - 1]?.getDate(),
-  });
-
+  // Handlers for expanding/collapsing projects and items
   const toggleProjectExpanded = (projectId: string) => {
     const newExpanded = new Set(expandedProjects);
     if (newExpanded.has(projectId)) {
@@ -289,10 +264,7 @@ export default function GanttChart({ projects, currentMonth, currentDate, viewMo
 
   // Handle scrolling for the timeline content area
   const handleTimelineContentScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const scrollLeft = e.currentTarget.scrollLeft;
     const scrollTop = e.currentTarget.scrollTop;
-
-    console.log('Timeline content scroll:', { scrollLeft, scrollTop });
 
     // Sync vertical scroll with hierarchy
     if (hierarchyContentRef.current && hierarchyContentRef.current.scrollTop !== scrollTop) {
