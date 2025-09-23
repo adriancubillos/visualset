@@ -88,12 +88,11 @@ export default function TaskDetailPage() {
   const handleStatusChange = async (newStatus: string) => {
     try {
       const response = await fetch(`/api/tasks/${params.id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...task,
           status: newStatus,
         }),
       });
