@@ -70,9 +70,23 @@ export function getDisplayTimezoneName(): string {
  */
 export function toDisplayTimezone(date: Date): Date {
   const offsetHours = getDisplayTimezoneOffset();
-  const utcTime = date.getTime();
-  const displayTime = utcTime + offsetHours * 60 * 60 * 1000;
-  return new Date(displayTime);
+
+  // Get UTC components
+  const utcYear = date.getUTCFullYear();
+  const utcMonth = date.getUTCMonth();
+  const utcDate = date.getUTCDate();
+  const utcHours = date.getUTCHours();
+  const utcMinutes = date.getUTCMinutes();
+  const utcSeconds = date.getUTCSeconds();
+  const utcMs = date.getUTCMilliseconds();
+
+  // Apply timezone offset to get display timezone components
+  const displayHours = utcHours + offsetHours;
+
+  // Create date in display timezone, handling day rollover
+  const displayDate = new Date(utcYear, utcMonth, utcDate, displayHours, utcMinutes, utcSeconds, utcMs);
+
+  return displayDate;
 }
 
 /**
