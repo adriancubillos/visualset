@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import ScheduleCalendar from '@/components/ScheduleCalendar';
 import GanttChart from '@/components/gantt/GanttChart';
+import { getCurrentDisplayTimezoneDate } from '@/utils/timezone';
 
 interface GanttTask {
   id: string;
@@ -46,8 +47,8 @@ export default function SchedulePage() {
   const [activeTab, setActiveTab] = useState<'calendar' | 'gantt'>('calendar');
   const [ganttData, setGanttData] = useState<GanttData | null>(null);
   const [loading, setLoading] = useState(false);
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState(getCurrentDisplayTimezoneDate());
+  const [currentDate, setCurrentDate] = useState(getCurrentDisplayTimezoneDate());
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('month');
 
   useEffect(() => {
@@ -126,11 +127,13 @@ export default function SchedulePage() {
   };
 
   const goToCurrentMonth = () => {
-    setCurrentMonth(new Date());
-    setCurrentDate(new Date());
+    const displayNow = getCurrentDisplayTimezoneDate();
+    setCurrentMonth(displayNow);
+    setCurrentDate(displayNow);
   };
 
   const formatDateTitle = (date: Date) => {
+    // Format the date directly since navigation dates are already in the correct timezone context
     switch (viewMode) {
       case 'day':
         return date.toLocaleDateString('en-US', {
@@ -147,13 +150,19 @@ export default function SchedulePage() {
         return `${weekStart.toLocaleDateString('en-US', {
           month: 'short',
           day: 'numeric',
-        })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+        })} - ${weekEnd.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        })}`;
       case 'month':
       default:
-        return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        return date.toLocaleDateString('en-US', {
+          month: 'long',
+          year: 'numeric',
+        });
     }
   };
-
   return (
     <div className="container mx-auto p-4">
       <div className="mb-6">
@@ -256,7 +265,7 @@ export default function SchedulePage() {
                   <button
                     onClick={() => {
                       setViewMode('week');
-                      setCurrentDate(new Date()); // Set to today for week view
+                      setCurrentDate(getCurrentDisplayTimezoneDate()); // Set to today for week view
                     }}
                     className={`px-4 py-2 text-sm font-medium border-t border-b focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
                       viewMode === 'week'
@@ -268,7 +277,7 @@ export default function SchedulePage() {
                   <button
                     onClick={() => {
                       setViewMode('day');
-                      setCurrentDate(new Date()); // Set to today for day view
+                      setCurrentDate(getCurrentDisplayTimezoneDate()); // Set to today for day view
                     }}
                     className={`px-4 py-2 text-sm font-medium border rounded-r-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
                       viewMode === 'day'

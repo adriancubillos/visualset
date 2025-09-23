@@ -3,7 +3,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import GanttTaskBar from './GanttTaskBar';
-import { convertTaskTimeForDisplay, toDisplayTimezoneStartOfDay } from '@/utils/timezone';
+import {
+  convertTaskTimeForDisplay,
+  toDisplayTimezoneStartOfDay,
+  getCurrentDisplayTimezoneDate,
+} from '@/utils/timezone';
 
 export interface GanttTask {
   id: string;
@@ -109,13 +113,13 @@ export default function GanttChart({ projects, currentMonth, currentDate, viewMo
 
     switch (mode) {
       case 'day':
-        // Use centralized function to get start of day in display timezone
+        // Use timezone-aware function to get the correct day in display timezone
         const dayStart = toDisplayTimezoneStartOfDay(date);
         days.push(dayStart);
         break;
 
       case 'week':
-        // Get the start of the week (Sunday) in display timezone
+        // Use timezone-aware function to get the correct week in display timezone
         const weekStart = toDisplayTimezoneStartOfDay(date);
         weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Set to Sunday
 
@@ -692,6 +696,7 @@ export default function GanttChart({ projects, currentMonth, currentDate, viewMo
                 style={{ minWidth: days.length * dayWidth }}>
                 {days.map((day, index) => {
                   const formatDay = (date: Date) => {
+                    // Format the date directly without timezone conversion for navigation consistency
                     switch (viewMode) {
                       case 'day':
                         return date.toLocaleDateString('en-US', {
@@ -713,6 +718,7 @@ export default function GanttChart({ projects, currentMonth, currentDate, viewMo
                   const formatDayOfWeek = (date: Date) => {
                     if (viewMode === 'day') return '';
                     if (viewMode === 'week') return '';
+                    // Format the date directly without timezone conversion for navigation consistency
                     return date.toLocaleDateString('en-US', { weekday: 'short' });
                   };
 
@@ -722,8 +728,10 @@ export default function GanttChart({ projects, currentMonth, currentDate, viewMo
                   };
 
                   const isToday = (date: Date) => {
-                    const today = new Date();
-                    return date.toDateString() === today.toDateString();
+                    // Get today in the display timezone (GMT-5)
+                    const todayInDisplayTz = getCurrentDisplayTimezoneDate();
+                    // Compare the dates in their date-only format
+                    return date.toDateString() === todayInDisplayTz.toDateString();
                   };
 
                   return (
