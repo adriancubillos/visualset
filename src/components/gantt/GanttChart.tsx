@@ -3,10 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import GanttTaskBar from './GanttTaskBar';
-import {
-  convertTaskTimeForDisplay,
-  getCurrentDisplayTimezoneDate,
-} from '@/utils/timezone';
+import { convertTaskTimeForDisplay, getCurrentDisplayTimezoneDate } from '@/utils/timezone';
 
 export interface GanttTask {
   id: string;
@@ -134,7 +131,7 @@ export default function GanttChart({ projects, currentMonth, currentDate, viewMo
         // The date passed in is already in display timezone context from the parent
         const year = date.getFullYear();
         const month = date.getMonth();
-        
+
         // Create first and last day using the same timezone context as the passed date
         const firstDay = new Date(year, month, 1);
         const lastDay = new Date(year, month + 1, 0);
