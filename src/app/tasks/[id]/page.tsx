@@ -20,6 +20,10 @@ interface Task {
     id: string;
     name: string;
   };
+  item?: {
+    id: string;
+    name: string;
+  };
   machine?: {
     id: string;
     name: string;
@@ -293,7 +297,7 @@ export default function TaskDetailPage() {
           <h2 className="text-lg font-semibold text-gray-900">Assignments</h2>
         </div>
         <div className="px-6 py-4">
-          <dl className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-3">
+          <dl className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <dt className="text-sm font-medium text-gray-500">Project</dt>
               <dd className="mt-1 text-sm text-gray-900">
@@ -305,6 +309,20 @@ export default function TaskDetailPage() {
                   </Link>
                 ) : (
                   'No project assigned'
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sm font-medium text-gray-500">Item</dt>
+              <dd className="mt-1 text-sm text-gray-900">
+                {task.item ? (
+                  <Link
+                    href={`/items/${task.item.id}`}
+                    className="text-blue-600 hover:text-blue-800">
+                    {task.item.name}
+                  </Link>
+                ) : (
+                  'No item assigned'
                 )}
               </dd>
             </div>

@@ -32,6 +32,7 @@ export default function EditTaskPage() {
     priority: 'MEDIUM',
     scheduledAt: '',
     durationMin: 60,
+    projectId: '',
     itemId: '',
     machineId: '',
     operatorId: '',
@@ -41,7 +42,8 @@ export default function EditTaskPage() {
   const [dateWarning, setDateWarning] = useState('');
 
   // Fetch data for dropdowns
-  const [items, setItems] = useState<{ id: string; name: string; project?: { name: string } }[]>([]);
+  const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
+  const [items, setItems] = useState<{ id: string; name: string; projectId: string }[]>([]);
   const [machines, setMachines] = useState<{ id: string; name: string }[]>([]);
   const [operators, setOperators] = useState<{ id: string; name: string }[]>([]);
 
@@ -78,17 +80,20 @@ export default function EditTaskPage() {
           priority: taskData.priority || 'MEDIUM',
           scheduledAt: scheduledAt,
           durationMin: taskData.durationMin,
+          projectId: taskData.project?.id || '',
           itemId: taskData.item?.id || '',
-          machineId: taskData.machineId || '',
-          operatorId: taskData.operatorId || '',
+          machineId: taskData.machine?.id || '',
+          operatorId: taskData.operator?.id || '',
         });
 
         // Set dropdown data - extract items from projects response
         if (itemsRes.ok) {
           const projectsData = await itemsRes.json();
+          setProjects(projectsData.map((p: { id: string; name: string }) => ({ id: p.id, name: p.name })));
+
           const allItems = projectsData.flatMap(
             (p: { id: string; name: string; items?: { id: string; name: string }[] }) =>
-              (p.items || []).map((item: { id: string; name: string }) => ({ ...item, project: { name: p.name } })),
+              (p.items || []).map((item: { id: string; name: string }) => ({ ...item, projectId: p.id })),
           );
           setItems(allItems);
         }
@@ -112,6 +117,15 @@ export default function EditTaskPage() {
 
     fetchData();
   }, [params.id]);
+
+  const handleProjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const projectId = e.target.value;
+    setFormData((prev) => ({ ...prev, projectId, itemId: '' })); // Reset item when project changes
+  };
+
+  const getFilteredItems = () => {
+    return items.filter((item) => item.projectId === formData.projectId);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,6 +174,17 @@ export default function EditTaskPage() {
       ...prev,
       [name]: name === 'durationMin' ? parseInt(value) || 0 : value,
     }));
+
+    // Check if date is in the past when a date is selected
+    if (name === 'scheduledAt' && value) {
+      const selectedDateTime = new Date(value);
+      const now = new Date();
+      if (selectedDateTime < now) {
+        setDateWarning('Warning: This date and time is in the past.');
+      } else {
+        setDateWarning('');
+      }
+    }
   };
 
   if (loading) {
@@ -273,6 +298,30 @@ export default function EditTaskPage() {
             />
           </div>
 
+          {/* Project Assignment */}
+          <div>
+            <label
+              htmlFor="projectId"
+              className="block text-sm font-medium text-gray-700">
+              Project
+            </label>
+            <select
+              id="projectId"
+              name="projectId"
+              value={formData.projectId}
+              onChange={handleProjectChange}
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+              <option value="">No Project</option>
+              {projects.map((project) => (
+                <option
+                  key={project.id}
+                  value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Item Assignment */}
           <div>
             <label
@@ -285,13 +334,14 @@ export default function EditTaskPage() {
               name="itemId"
               value={formData.itemId}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+              disabled={!formData.projectId}
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed">
               <option value="">No Item</option>
-              {items.map((item) => (
+              {getFilteredItems().map((item) => (
                 <option
                   key={item.id}
                   value={item.id}>
-                  {item.name} {item.project ? `(${item.project.name})` : ''}
+                  {item.name}
                 </option>
               ))}
             </select>

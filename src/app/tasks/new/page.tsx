@@ -22,6 +22,7 @@ function NewTaskPageContent() {
     scheduledAt: defaultScheduledAt,
     durationMin: 60,
     projectId: searchParams.get('project') || '',
+    itemId: '',
     machineId: searchParams.get('machine') || '',
     operatorId: searchParams.get('operator') || '',
   });
@@ -29,6 +30,7 @@ function NewTaskPageContent() {
 
   // Fetch data for dropdowns
   const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
+  const [items, setItems] = useState<{ id: string; name: string; projectId: string }[]>([]);
   const [machines, setMachines] = useState<{ id: string; name: string }[]>([]);
   const [operators, setOperators] = useState<{ id: string; name: string }[]>([]);
 
@@ -36,7 +38,7 @@ function NewTaskPageContent() {
     const fetchDropdownData = async () => {
       try {
         const [projectsRes, machinesRes, operatorsRes] = await Promise.all([
-          fetch('/api/projects'),
+          fetch('/api/projects?include=items'),
           fetch('/api/machines'),
           fetch('/api/operators'),
         ]);
@@ -44,6 +46,13 @@ function NewTaskPageContent() {
         if (projectsRes.ok) {
           const projectsData = await projectsRes.json();
           setProjects(projectsData.map((p: { id: string; name: string }) => ({ id: p.id, name: p.name })));
+
+          // Extract all items from all projects
+          const allItems = projectsData.flatMap(
+            (p: { id: string; name: string; items?: { id: string; name: string }[] }) =>
+              (p.items || []).map((item: { id: string; name: string }) => ({ ...item, projectId: p.id })),
+          );
+          setItems(allItems);
         }
 
         if (machinesRes.ok) {
@@ -62,6 +71,15 @@ function NewTaskPageContent() {
 
     fetchDropdownData();
   }, []);
+
+  const handleProjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const projectId = e.target.value;
+    setFormData((prev) => ({ ...prev, projectId, itemId: '' })); // Reset item when project changes
+  };
+
+  const getFilteredItems = () => {
+    return items.filter((item) => item.projectId === formData.projectId);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -167,20 +185,47 @@ function NewTaskPageContent() {
             <label
               htmlFor="projectId"
               className="block text-sm font-medium text-gray-700">
-              Project
+              Project *
             </label>
             <select
               id="projectId"
               name="projectId"
+              required
               value={formData.projectId}
-              onChange={handleChange}
+              onChange={handleProjectChange}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-              <option value="">No Project</option>
+              <option value="">Select a Project</option>
               {projects.map((project) => (
                 <option
                   key={project.id}
                   value={project.id}>
                   {project.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Item Assignment */}
+          <div>
+            <label
+              htmlFor="itemId"
+              className="block text-sm font-medium text-gray-700">
+              Item *
+            </label>
+            <select
+              id="itemId"
+              name="itemId"
+              required
+              value={formData.itemId}
+              onChange={handleChange}
+              disabled={!formData.projectId}
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed">
+              <option value="">Select an Item</option>
+              {getFilteredItems().map((item) => (
+                <option
+                  key={item.id}
+                  value={item.id}>
+                  {item.name}
                 </option>
               ))}
             </select>

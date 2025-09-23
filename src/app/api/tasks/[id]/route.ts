@@ -12,7 +12,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const task = await prisma.task.findUnique({
       where: { id },
       include: {
-        item: true,
+        item: {
+          include: {
+            project: true,
+          },
+        },
         machine: true,
         operator: true,
       },
@@ -61,7 +65,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         scheduledAt: scheduledAt,
       },
       include: {
-        item: true,
+        item: {
+          include: {
+            project: true,
+          },
+        },
         machine: true,
         operator: true,
       },
@@ -84,7 +92,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       where: { id },
       data: body,
       include: {
-        item: true,
+        item: {
+          include: {
+            project: true,
+          },
+        },
         machine: true,
         operator: true,
       },
