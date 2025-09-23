@@ -1,16 +1,10 @@
 # TMP
 
-Next steps (pick one)
-
-Create a small seed script to populate the fresh DB with example Projects → Items → Tasks (useful for manual testing).
 Start fixing the ESLint issues across the UI.
-Refactor frontend components/pages to consume Items (I can do this incrementally).
 
 Expand tests to cover edge cases for routes already added (validation errors, bad inputs).
 Add CI (GitHub Actions) to run tests on PRs/commits.
 Tighten test types further (remove any remaining any where possible).
-
-An item can not be completed unless al its tasks are completed
 collapse things
 
 ✅ FIXED: projects/id project details streamlined - removed duplicate status and reduced space usage
