@@ -47,6 +47,7 @@ export default function GanttPage() {
   const [data, setData] = useState<GanttData | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(new Date()); // For day/week views
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [operatorFilter, setOperatorFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -246,7 +247,10 @@ export default function GanttPage() {
             <div className="flex items-center space-x-4">
               <div className="flex rounded-md shadow-sm">
                 <button
-                  onClick={() => setViewMode('month')}
+                  onClick={() => {
+                    setViewMode('month');
+                    // Keep currentMonth as is for month view
+                  }}
                   className={`px-4 py-2 text-sm font-medium border rounded-l-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
                     viewMode === 'month'
                       ? 'text-white bg-blue-600 border-blue-600 hover:bg-blue-700'
@@ -255,7 +259,10 @@ export default function GanttPage() {
                   Month
                 </button>
                 <button
-                  onClick={() => setViewMode('week')}
+                  onClick={() => {
+                    setViewMode('week');
+                    setCurrentDate(new Date()); // Set to today for week view
+                  }}
                   className={`px-4 py-2 text-sm font-medium border-t border-b focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
                     viewMode === 'week'
                       ? 'text-white bg-blue-600 border-blue-600 hover:bg-blue-700'
@@ -264,7 +271,10 @@ export default function GanttPage() {
                   Week
                 </button>
                 <button
-                  onClick={() => setViewMode('day')}
+                  onClick={() => {
+                    setViewMode('day');
+                    setCurrentDate(new Date()); // Set to today for day view
+                  }}
                   className={`px-4 py-2 text-sm font-medium border rounded-r-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
                     viewMode === 'day'
                       ? 'text-white bg-blue-600 border-blue-600 hover:bg-blue-700'
@@ -284,6 +294,7 @@ export default function GanttPage() {
           <GanttChart
             projects={data.projects}
             currentMonth={currentMonth}
+            currentDate={currentDate}
             viewMode={viewMode}
           />
         ) : (

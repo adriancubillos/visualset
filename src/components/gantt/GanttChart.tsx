@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import GanttTaskBar from './GanttTaskBar';
 import { convertTaskTimeForDisplay } from '@/utils/timezone';
@@ -42,18 +42,28 @@ export interface GanttProject {
 interface GanttChartProps {
   projects: GanttProject[];
   currentMonth: Date;
+  currentDate?: Date;
   viewMode?: ViewMode;
   onViewModeChange?: (mode: ViewMode) => void;
 }
 
 type ViewMode = 'day' | 'week' | 'month';
 
-export default function GanttChart({ projects, currentMonth, viewMode = 'month', onViewModeChange }: GanttChartProps) {
+export default function GanttChart({ projects, currentMonth, currentDate, viewMode = 'month' }: GanttChartProps) {
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
-  const [currentDate, setCurrentDate] = useState<Date>(currentMonth);
+  const [internalCurrentDate, setInternalCurrentDate] = useState<Date>(currentDate || currentMonth);
   const timelineContentRef = useRef<HTMLDivElement>(null);
   const hierarchyContentRef = useRef<HTMLDivElement>(null);
+
+  // Update internal date when props change
+  useEffect(() => {
+    if (viewMode === 'month') {
+      setInternalCurrentDate(currentMonth);
+    } else if (currentDate) {
+      setInternalCurrentDate(currentDate);
+    }
+  }, [currentDate, currentMonth, viewMode]);
 
   // Generate days based on view mode
   const getDaysForView = (date: Date, mode: ViewMode) => {
@@ -61,13 +71,21 @@ export default function GanttChart({ projects, currentMonth, viewMode = 'month',
 
     switch (mode) {
       case 'day':
-        days.push(new Date(date));
+        // Convert the current date to GMT-5 for consistency with task dates
+        const gmt5Date = new Date(date.getTime() - 5 * 60 * 60 * 1000);
+        const dayStart = new Date(gmt5Date.getUTCFullYear(), gmt5Date.getUTCMonth(), gmt5Date.getUTCDate());
+        days.push(dayStart);
         break;
 
       case 'week':
-        // Get the start of the week (Sunday)
-        const startOfWeek = new Date(date);
-        startOfWeek.setDate(date.getDate() - date.getDay());
+        // Get the start of the week (Sunday) in GMT-5
+        const gmt5WeekDate = new Date(date.getTime() - 5 * 60 * 60 * 1000);
+        const startOfWeek = new Date(
+          gmt5WeekDate.getUTCFullYear(),
+          gmt5WeekDate.getUTCMonth(),
+          gmt5WeekDate.getUTCDate(),
+        );
+        startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay()); // Set to Sunday
 
         for (let i = 0; i < 7; i++) {
           const day = new Date(startOfWeek);
@@ -92,12 +110,12 @@ export default function GanttChart({ projects, currentMonth, viewMode = 'month',
     return days;
   };
 
-  const days = getDaysForView(currentDate, viewMode);
+  const days = getDaysForView(internalCurrentDate, viewMode);
   const dayWidth = viewMode === 'day' ? 200 : viewMode === 'week' ? 80 : 40; // Wider columns for day/week view
 
   console.log('GanttChart render:', {
     viewMode,
-    currentDate: currentDate.toDateString(),
+    currentDate: internalCurrentDate.toDateString(),
     daysCount: days.length,
     dayWidth,
     totalWidth: days.length * dayWidth,
@@ -162,7 +180,7 @@ export default function GanttChart({ projects, currentMonth, viewMode = 'month',
   };
 
   const navigateToday = () => {
-    setCurrentDate(new Date());
+    setInternalCurrentDate(new Date());
   };
 
   // Get display title based on view mode
@@ -176,8 +194,8 @@ export default function GanttChart({ projects, currentMonth, viewMode = 'month',
         options.day = 'numeric';
         break;
       case 'week':
-        const startOfWeek = new Date(currentDate);
-        startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
+        const startOfWeek = new Date(internalCurrentDate);
+        startOfWeek.setDate(internalCurrentDate.getDate() - internalCurrentDate.getDay());
         const endOfWeek = new Date(startOfWeek);
         endOfWeek.setDate(startOfWeek.getDate() + 6);
         return `${startOfWeek.toLocaleDateString('en-US', {
@@ -189,7 +207,7 @@ export default function GanttChart({ projects, currentMonth, viewMode = 'month',
         options.month = 'long';
         break;
     }
-    return currentDate.toLocaleDateString('en-US', options);
+    return internalCurrentDate.toLocaleDateString('en-US', options);
   };
 
   // Handle scrolling for the timeline content area
@@ -228,12 +246,35 @@ export default function GanttChart({ projects, currentMonth, viewMode = 'month',
     const viewStartDate = days[0];
     const viewEndDate = days[days.length - 1];
 
+    console.log('Task position debug:', {
+      taskId: task.id,
+      taskTitle: task.title,
+      localStartDate: localStartDate.toDateString(),
+      localEndDate: localEndDate.toDateString(),
+      viewMode,
+      viewStartDate: viewStartDate.toDateString(),
+      viewEndDate: viewEndDate.toDateString(),
+      daysLength: days.length,
+    });
+
     // Extend the end of view to end of day
     const viewEndDateEndOfDay = new Date(viewEndDate);
     viewEndDateEndOfDay.setHours(23, 59, 59, 999);
 
+    console.log('Overlap check:', {
+      taskId: task.id,
+      localEndDate: localEndDate.toISOString(),
+      viewStartDate: viewStartDate.toISOString(),
+      localStartDate: localStartDate.toISOString(),
+      viewEndDateEndOfDay: viewEndDateEndOfDay.toISOString(),
+      condition1: localEndDate < viewStartDate,
+      condition2: localStartDate > viewEndDateEndOfDay,
+      willReturn: localEndDate < viewStartDate || localStartDate > viewEndDateEndOfDay,
+    });
+
     // Check if task overlaps with current view
     if (localEndDate < viewStartDate || localStartDate > viewEndDateEndOfDay) {
+      console.log('Returning null for task:', task.id, 'due to no overlap');
       return null; // Task is outside current view
     }
 
@@ -276,10 +317,21 @@ export default function GanttChart({ projects, currentMonth, viewMode = 'month',
     // Calculate duration in days
     const durationDays = Math.max(1, endPosition - startPosition + 1);
 
-    return {
+    const position = {
       left: startPosition * dayWidth,
       width: durationDays * dayWidth - 2, // -2 for border
     };
+
+    console.log('Task position result:', {
+      taskId: task.id,
+      startPosition,
+      endPosition,
+      durationDays,
+      dayWidth,
+      position,
+    });
+
+    return position;
   }; // Render only the hierarchy column (left sidebar)
   const renderHierarchyColumn = () => {
     const hierarchyRows: React.ReactElement[] = [];
