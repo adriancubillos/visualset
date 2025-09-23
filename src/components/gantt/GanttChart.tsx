@@ -65,6 +65,44 @@ export default function GanttChart({ projects, currentMonth, currentDate, viewMo
     }
   }, [currentDate, currentMonth, viewMode]);
 
+  // Auto-scroll to current date in month view
+  useEffect(() => {
+    if (viewMode === 'month' && timelineContentRef.current) {
+      // Add a small delay to ensure DOM is fully rendered
+      const scrollTimeout = setTimeout(() => {
+        if (!timelineContentRef.current) return;
+
+        const today = new Date();
+        const currentDayOfMonth = today.getDate();
+
+        // Calculate scroll position to center on current date
+        const dayWidth = 40; // Month view day width
+        const containerWidth = timelineContentRef.current.clientWidth;
+        const targetScrollPosition = (currentDayOfMonth - 1) * dayWidth - containerWidth / 2 + dayWidth / 2;
+
+        // Ensure scroll position is within bounds
+        const maxScrollLeft = timelineContentRef.current.scrollWidth - containerWidth;
+        const scrollLeft = Math.max(0, Math.min(targetScrollPosition, maxScrollLeft));
+
+        console.log('Auto-scrolling to current date:', {
+          currentDayOfMonth,
+          dayWidth,
+          containerWidth,
+          targetScrollPosition,
+          scrollLeft,
+        });
+
+        // Smooth scroll to the position
+        timelineContentRef.current.scrollTo({
+          left: scrollLeft,
+          behavior: 'smooth',
+        });
+      }, 100);
+
+      return () => clearTimeout(scrollTimeout);
+    }
+  }, [viewMode, internalCurrentDate]);
+
   // Generate days based on view mode
   const getDaysForView = (date: Date, mode: ViewMode) => {
     const days = [];
