@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import GanttTaskBar from './GanttTaskBar';
 import { convertTaskTimeForDisplay, getCurrentDisplayTimezoneDate } from '@/utils/timezone';
@@ -140,14 +140,14 @@ export default function GanttChart({ projects, currentMonth, currentDate, viewMo
   const days = getDaysForView(internalCurrentDate, viewMode);
   const dayWidth = viewMode === 'day' ? 200 : viewMode === 'week' ? 80 : 40; // Wider columns for day/week view
 
-  // Filter projects/items/tasks based on view mode and selected date range
-  const getFilteredProjects = () => {
+  // Memoize filtered projects to avoid recalculating on every render
+  const filteredProjects = useMemo(() => {
     // Get the date range for the current view
     const viewStartDate = days[0];
     const viewEndDate = new Date(days[days.length - 1]);
     viewEndDate.setDate(viewEndDate.getDate() + 1); // Add one day to make it exclusive end
 
-    const filteredProjects = projects
+    return projects
       .map((project) => {
         const filteredItems = project.items
           .map((item) => {
@@ -177,11 +177,7 @@ export default function GanttChart({ projects, currentMonth, currentDate, viewMo
         };
       })
       .filter((project) => project.items.length > 0); // Only include projects with items
-
-    return filteredProjects;
-  };
-
-  const filteredProjects = getFilteredProjects();
+  }, [projects, days]);
 
   // Handlers for expanding/collapsing projects and items
   const toggleProjectExpanded = (projectId: string) => {
@@ -263,125 +259,146 @@ export default function GanttChart({ projects, currentMonth, currentDate, viewMo
   };
 
   // Handle scrolling for the timeline content area
-  const handleTimelineContentScroll = (e: React.UIEvent<HTMLDivElement>) => {
+  const handleTimelineContentScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const scrollTop = e.currentTarget.scrollTop;
 
     // Sync vertical scroll with hierarchy
     if (hierarchyContentRef.current && hierarchyContentRef.current.scrollTop !== scrollTop) {
       hierarchyContentRef.current.scrollTop = scrollTop;
     }
-  };
+  }, []);
 
   // Handle vertical scrolling for the hierarchy content area
-  const handleHierarchyContentScroll = (e: React.UIEvent<HTMLDivElement>) => {
+  const handleHierarchyContentScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const scrollTop = e.currentTarget.scrollTop;
 
     if (timelineContentRef.current && timelineContentRef.current.scrollTop !== scrollTop) {
       timelineContentRef.current.scrollTop = scrollTop;
     }
-  };
+  }, []);
 
-  // Calculate position for a task bar
-  const getTaskPosition = (task: GanttTask) => {
-    if (!task.startDate || !task.endDate) return null;
-
-    // Convert UTC task times to GMT-5 for display using utility function
-    const { start: localStartDate, end: localEndDate } = convertTaskTimeForDisplay(
-      typeof task.startDate === 'string' ? task.startDate : task.startDate.toISOString(),
-      task.durationMin,
-    );
-
-    // Check if task is within the current view range
-    const viewStartDate = days[0];
-    const viewEndDate = days[days.length - 1];
-
-    console.log('Task position debug:', {
-      taskId: task.id,
-      taskTitle: task.title,
-      localStartDate: localStartDate.toDateString(),
-      localEndDate: localEndDate.toDateString(),
-      viewMode,
-      viewStartDate: viewStartDate.toDateString(),
-      viewEndDate: viewEndDate.toDateString(),
-      daysLength: days.length,
-    });
-
-    // Extend the end of view to end of day
-    const viewEndDateEndOfDay = new Date(viewEndDate);
-    viewEndDateEndOfDay.setHours(23, 59, 59, 999);
-
-    console.log('Overlap check:', {
-      taskId: task.id,
-      localEndDate: localEndDate.toISOString(),
-      viewStartDate: viewStartDate.toISOString(),
-      localStartDate: localStartDate.toISOString(),
-      viewEndDateEndOfDay: viewEndDateEndOfDay.toISOString(),
-      condition1: localEndDate < viewStartDate,
-      condition2: localStartDate > viewEndDateEndOfDay,
-      willReturn: localEndDate < viewStartDate || localStartDate > viewEndDateEndOfDay,
-    });
-
-    // Check if task overlaps with current view
-    if (localEndDate < viewStartDate || localStartDate > viewEndDateEndOfDay) {
-      console.log('Returning null for task:', task.id, 'due to no overlap');
-      return null; // Task is outside current view
-    }
-
-    // Find the position within the view
-    let startPosition = 0;
-    let endPosition = 0;
-
-    // Calculate start position
-    for (let i = 0; i < days.length; i++) {
-      const dayStart = new Date(days[i]);
-      dayStart.setHours(0, 0, 0, 0);
-      const dayEnd = new Date(days[i]);
-      dayEnd.setHours(23, 59, 59, 999);
-
-      if (localStartDate >= dayStart && localStartDate <= dayEnd) {
-        startPosition = i;
-        break;
-      } else if (localStartDate < dayStart) {
-        startPosition = i;
-        break;
+  // Memoize helper functions for day formatting to prevent recreation on every render
+  const formatDay = useCallback(
+    (date: Date) => {
+      // Format the date directly without timezone conversion for navigation consistency
+      switch (viewMode) {
+        case 'day':
+          return date.toLocaleDateString('en-US', {
+            weekday: 'long',
+            month: 'short',
+            day: 'numeric',
+          });
+        case 'week':
+          return date.toLocaleDateString('en-US', {
+            weekday: 'short',
+            day: 'numeric',
+          });
+        case 'month':
+        default:
+          return date.getDate().toString();
       }
-    }
+    },
+    [viewMode],
+  );
 
-    // Calculate end position
-    for (let i = days.length - 1; i >= 0; i--) {
-      const dayStart = new Date(days[i]);
-      dayStart.setHours(0, 0, 0, 0);
-      const dayEnd = new Date(days[i]);
-      dayEnd.setHours(23, 59, 59, 999);
+  const formatDayOfWeek = useCallback(
+    (date: Date) => {
+      if (viewMode === 'day') return '';
+      if (viewMode === 'week') return '';
+      // Format the date directly without timezone conversion for navigation consistency
+      return date.toLocaleDateString('en-US', { weekday: 'short' });
+    },
+    [viewMode],
+  );
 
-      if (localEndDate >= dayStart && localEndDate <= dayEnd) {
-        endPosition = i;
-        break;
-      } else if (localEndDate > dayEnd) {
-        endPosition = i;
-        break;
+  const isWeekend = useCallback((date: Date) => {
+    const dayOfWeek = date.getDay();
+    return dayOfWeek === 0 || dayOfWeek === 6;
+  }, []);
+
+  // Memoize today's date to avoid calling getCurrentDisplayTimezoneDate repeatedly
+  const todayInDisplayTz = useMemo(() => getCurrentDisplayTimezoneDate(), []);
+
+  const isToday = useCallback(
+    (date: Date) => {
+      // Compare the dates in their date-only format
+      return date.toDateString() === todayInDisplayTz.toDateString();
+    },
+    [todayInDisplayTz],
+  );
+  const getTaskPosition = useCallback(
+    (task: GanttTask) => {
+      if (!task.startDate || !task.endDate) return null;
+
+      // Convert UTC task times to GMT-5 for display using utility function
+      const { start: localStartDate, end: localEndDate } = convertTaskTimeForDisplay(
+        typeof task.startDate === 'string' ? task.startDate : task.startDate.toISOString(),
+        task.durationMin,
+      );
+
+      // Check if task is within the current view range
+      const viewStartDate = days[0];
+      const viewEndDate = days[days.length - 1];
+
+      // Extend the end of view to end of day
+      const viewEndDateEndOfDay = new Date(viewEndDate);
+      viewEndDateEndOfDay.setHours(23, 59, 59, 999);
+
+      // Check if task overlaps with current view
+      if (localEndDate < viewStartDate || localStartDate > viewEndDateEndOfDay) {
+        return null; // Task is outside current view
       }
-    }
 
-    // Calculate duration in days
-    const durationDays = Math.max(1, endPosition - startPosition + 1);
+      // Find the position within the view
+      let startPosition = 0;
+      let endPosition = 0;
 
-    const position = {
-      left: startPosition * dayWidth,
-      width: durationDays * dayWidth - 2, // -2 for border
-    };
+      // Calculate start position
+      for (let i = 0; i < days.length; i++) {
+        const dayStart = new Date(days[i]);
+        dayStart.setHours(0, 0, 0, 0);
+        const dayEnd = new Date(days[i]);
+        dayEnd.setHours(23, 59, 59, 999);
 
-    console.log('Task position result:', {
-      taskId: task.id,
-      startPosition,
-      endPosition,
-      durationDays,
-      dayWidth,
-      position,
-    });
+        if (localStartDate >= dayStart && localStartDate <= dayEnd) {
+          startPosition = i;
+          break;
+        } else if (localStartDate < dayStart) {
+          startPosition = i;
+          break;
+        }
+      }
 
-    return position;
-  }; // Render only the hierarchy column (left sidebar)
+      // Calculate end position
+      for (let i = days.length - 1; i >= 0; i--) {
+        const dayStart = new Date(days[i]);
+        dayStart.setHours(0, 0, 0, 0);
+        const dayEnd = new Date(days[i]);
+        dayEnd.setHours(23, 59, 59, 999);
+
+        if (localEndDate >= dayStart && localEndDate <= dayEnd) {
+          endPosition = i;
+          break;
+        } else if (localEndDate > dayEnd) {
+          endPosition = i;
+          break;
+        }
+      }
+
+      // Calculate duration in days
+      const durationDays = Math.max(1, endPosition - startPosition + 1);
+
+      const position = {
+        left: startPosition * dayWidth,
+        width: durationDays * dayWidth - 2, // -2 for border
+      };
+
+      return position;
+    },
+    [days, dayWidth],
+  );
+
+  // Render only the hierarchy column (left sidebar)
   const renderHierarchyColumn = () => {
     const hierarchyRows: React.ReactElement[] = [];
 
@@ -638,6 +655,7 @@ export default function GanttChart({ projects, currentMonth, currentDate, viewMo
           <div
             ref={hierarchyContentRef}
             className="flex-1 overflow-y-auto"
+            style={{ willChange: 'scroll-position' }}
             onScroll={handleHierarchyContentScroll}>
             {renderHierarchyColumn()}
           </div>
@@ -647,8 +665,12 @@ export default function GanttChart({ projects, currentMonth, currentDate, viewMo
         <div
           ref={timelineContentRef}
           className="flex-1 overflow-auto"
-          onScroll={handleTimelineContentScroll}
-          style={{ maxHeight: '600px' }}>
+          style={{
+            maxHeight: '600px',
+            willChange: 'scroll-position',
+            transform: 'translateZ(0)', // Force GPU acceleration
+          }}
+          onScroll={handleTimelineContentScroll}>
           <div style={{ minWidth: days.length * dayWidth }}>
             {/* Timeline header */}
             <div className="bg-gray-100 border-b border-gray-300 sticky top-0 z-10">
@@ -656,45 +678,6 @@ export default function GanttChart({ projects, currentMonth, currentDate, viewMo
                 className="flex"
                 style={{ minWidth: days.length * dayWidth }}>
                 {days.map((day, index) => {
-                  const formatDay = (date: Date) => {
-                    // Format the date directly without timezone conversion for navigation consistency
-                    switch (viewMode) {
-                      case 'day':
-                        return date.toLocaleDateString('en-US', {
-                          weekday: 'long',
-                          month: 'short',
-                          day: 'numeric',
-                        });
-                      case 'week':
-                        return date.toLocaleDateString('en-US', {
-                          weekday: 'short',
-                          day: 'numeric',
-                        });
-                      case 'month':
-                      default:
-                        return date.getDate().toString();
-                    }
-                  };
-
-                  const formatDayOfWeek = (date: Date) => {
-                    if (viewMode === 'day') return '';
-                    if (viewMode === 'week') return '';
-                    // Format the date directly without timezone conversion for navigation consistency
-                    return date.toLocaleDateString('en-US', { weekday: 'short' });
-                  };
-
-                  const isWeekend = (date: Date) => {
-                    const dayOfWeek = date.getDay();
-                    return dayOfWeek === 0 || dayOfWeek === 6;
-                  };
-
-                  const isToday = (date: Date) => {
-                    // Get today in the display timezone (GMT-5)
-                    const todayInDisplayTz = getCurrentDisplayTimezoneDate();
-                    // Compare the dates in their date-only format
-                    return date.toDateString() === todayInDisplayTz.toDateString();
-                  };
-
                   return (
                     <div
                       key={index}
