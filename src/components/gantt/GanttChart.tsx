@@ -5,7 +5,6 @@ import Link from 'next/link';
 import GanttTaskBar from './GanttTaskBar';
 import {
   convertTaskTimeForDisplay,
-  toDisplayTimezoneStartOfDay,
   getCurrentDisplayTimezoneDate,
 } from '@/utils/timezone';
 
@@ -113,14 +112,14 @@ export default function GanttChart({ projects, currentMonth, currentDate, viewMo
 
     switch (mode) {
       case 'day':
-        // Use timezone-aware function to get the correct day in display timezone
-        const dayStart = toDisplayTimezoneStartOfDay(date);
+        // The date passed in is already in display timezone context from the parent
+        const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
         days.push(dayStart);
         break;
 
       case 'week':
-        // Use timezone-aware function to get the correct week in display timezone
-        const weekStart = toDisplayTimezoneStartOfDay(date);
+        // The date passed in is already in display timezone context from the parent
+        const weekStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
         weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Set to Sunday
 
         for (let i = 0; i < 7; i++) {
@@ -132,13 +131,16 @@ export default function GanttChart({ projects, currentMonth, currentDate, viewMo
 
       case 'month':
       default:
+        // The date passed in is already in display timezone context from the parent
         const year = date.getFullYear();
         const month = date.getMonth();
+        
+        // Create first and last day using the same timezone context as the passed date
         const firstDay = new Date(year, month, 1);
         const lastDay = new Date(year, month + 1, 0);
 
-        for (let day = firstDay; day <= lastDay; day.setDate(day.getDate() + 1)) {
-          days.push(new Date(day));
+        for (let currentDay = new Date(firstDay); currentDay <= lastDay; currentDay.setDate(currentDay.getDate() + 1)) {
+          days.push(new Date(currentDay));
         }
         break;
     }
@@ -259,10 +261,6 @@ export default function GanttChart({ projects, currentMonth, currentDate, viewMo
 
   const collapseAllItems = () => {
     setExpandedItems(new Set());
-  };
-
-  const navigateToday = () => {
-    setInternalCurrentDate(new Date());
   };
 
   // Get display title based on view mode
@@ -616,14 +614,8 @@ export default function GanttChart({ projects, currentMonth, currentDate, viewMo
           {/* Left side - Current view info */}
           <div className="text-lg font-semibold text-gray-900">{getViewTitle()}</div>
 
-          {/* Right side - Today button and expand/collapse controls */}
+          {/* Right side - expand/collapse controls */}
           <div className="flex items-center space-x-4">
-            <button
-              onClick={navigateToday}
-              className="px-3 py-1 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded border border-blue-300">
-              Today
-            </button>
-
             <div className="flex space-x-1">
               {/* Project expand/collapse buttons */}
               <div className="flex space-x-1">

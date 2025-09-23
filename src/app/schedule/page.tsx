@@ -44,11 +44,19 @@ interface GanttData {
 }
 
 export default function SchedulePage() {
+  // Helper function to get current date in display timezone
+  const getTodayInDisplayTimezone = () => {
+    // Use the proper timezone utility that respects the user's timezone setting
+    const displayNow = getCurrentDisplayTimezoneDate();
+    // Return just the date part to avoid time-related issues
+    return new Date(displayNow.getFullYear(), displayNow.getMonth(), displayNow.getDate());
+  };
+
   const [activeTab, setActiveTab] = useState<'calendar' | 'gantt'>('calendar');
   const [ganttData, setGanttData] = useState<GanttData | null>(null);
   const [loading, setLoading] = useState(false);
-  const [currentMonth, setCurrentMonth] = useState(getCurrentDisplayTimezoneDate());
-  const [currentDate, setCurrentDate] = useState(getCurrentDisplayTimezoneDate());
+  const [currentMonth, setCurrentMonth] = useState(getTodayInDisplayTimezone());
+  const [currentDate, setCurrentDate] = useState(getTodayInDisplayTimezone());
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('month');
 
   useEffect(() => {
@@ -127,9 +135,9 @@ export default function SchedulePage() {
   };
 
   const goToCurrentMonth = () => {
-    const displayNow = getCurrentDisplayTimezoneDate();
-    setCurrentMonth(displayNow);
-    setCurrentDate(displayNow);
+    const todayInDisplayTz = getTodayInDisplayTimezone();
+    setCurrentMonth(todayInDisplayTz);
+    setCurrentDate(todayInDisplayTz);
   };
 
   const formatDateTitle = (date: Date) => {
@@ -265,7 +273,7 @@ export default function SchedulePage() {
                   <button
                     onClick={() => {
                       setViewMode('week');
-                      setCurrentDate(getCurrentDisplayTimezoneDate()); // Set to today for week view
+                      setCurrentDate(getTodayInDisplayTimezone()); // Set to today for week view
                     }}
                     className={`px-4 py-2 text-sm font-medium border-t border-b focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
                       viewMode === 'week'
@@ -277,7 +285,7 @@ export default function SchedulePage() {
                   <button
                     onClick={() => {
                       setViewMode('day');
-                      setCurrentDate(getCurrentDisplayTimezoneDate()); // Set to today for day view
+                      setCurrentDate(getTodayInDisplayTimezone()); // Set to today for day view
                     }}
                     className={`px-4 py-2 text-sm font-medium border rounded-r-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
                       viewMode === 'day'

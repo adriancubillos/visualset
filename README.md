@@ -6,6 +6,7 @@ Expand tests to cover edge cases for routes already added (validation errors, ba
 Add CI (GitHub Actions) to run tests on PRs/commits.
 Tighten test types further (remove any remaining any where possible).
 collapse things
+remove console logs
 
 ✅ FIXED: projects/id project details streamlined - removed duplicate status and reduced space usage
 ✅ FIXED: Item completion validation - items can only be marked as completed when all tasks are completed
