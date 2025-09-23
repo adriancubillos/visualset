@@ -28,7 +28,7 @@ export default function EditTaskPage() {
   const params = useParams();
   const router = useRouter();
   const { projects, items, machines, operators, loading: dataLoading } = useTaskFormData();
-  
+
   const [task, setTask] = useState<Task | null>(null);
   const [formData, setFormData] = useState({
     title: '',
@@ -90,11 +90,11 @@ export default function EditTaskPage() {
   }, [params.id]);
 
   const handleProjectChange = (projectId: string) => {
-    setFormData(prev => ({ ...prev, projectId }));
+    setFormData((prev) => ({ ...prev, projectId }));
   };
 
   const handleItemChange = (itemId: string) => {
-    setFormData(prev => ({ ...prev, itemId }));
+    setFormData((prev) => ({ ...prev, itemId }));
   };
 
   // Show loading state while fetching data
@@ -315,7 +315,7 @@ export default function EditTaskPage() {
             label="Machine"
             value={formData.machineId}
             options={machines}
-            onChange={(value) => setFormData(prev => ({ ...prev, machineId: value }))}
+            onChange={(value) => setFormData((prev) => ({ ...prev, machineId: value }))}
           />
 
           {/* Operator Assignment */}
@@ -325,7 +325,7 @@ export default function EditTaskPage() {
             label="Operator"
             value={formData.operatorId}
             options={operators}
-            onChange={(value) => setFormData(prev => ({ ...prev, operatorId: value }))}
+            onChange={(value) => setFormData((prev) => ({ ...prev, operatorId: value }))}
           />
 
           {/* Priority and Status */}
