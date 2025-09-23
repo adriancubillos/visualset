@@ -107,17 +107,12 @@ export default function GanttChart({ projects, currentMonth, currentDate, viewMo
   const days = getDaysForView(internalCurrentDate, viewMode);
   const dayWidth = viewMode === 'day' ? 200 : viewMode === 'week' ? 80 : 40; // Wider columns for day/week view
 
-  // Filter projects/items/tasks based on view mode and selected date
+  // Filter projects/items/tasks based on view mode and selected date range
   const getFilteredProjects = () => {
-    if (viewMode !== 'day') {
-      return projects; // Show all for week/month view
-    }
-
-    // For day view, only show projects/items that have tasks on the selected day
-    const selectedDay = days[0]; // In day view, there's only one day
-    const selectedDayStart = new Date(selectedDay);
-    const selectedDayEnd = new Date(selectedDay);
-    selectedDayEnd.setDate(selectedDayEnd.getDate() + 1); // Next day
+    // Get the date range for the current view
+    const viewStartDate = days[0];
+    const viewEndDate = new Date(days[days.length - 1]);
+    viewEndDate.setDate(viewEndDate.getDate() + 1); // Add one day to make it exclusive end
 
     const filteredProjects = projects
       .map((project) => {
@@ -132,8 +127,8 @@ export default function GanttChart({ projects, currentMonth, currentDate, viewMo
                 task.durationMin,
               );
 
-              // Check if task overlaps with selected day
-              return localStartDate < selectedDayEnd && localEndDate >= selectedDayStart;
+              // Check if task overlaps with the current view date range
+              return localStartDate < viewEndDate && localEndDate >= viewStartDate;
             });
 
             return {
@@ -163,6 +158,7 @@ export default function GanttChart({ projects, currentMonth, currentDate, viewMo
     totalWidth: days.length * dayWidth,
     originalProjectsCount: projects.length,
     filteredProjectsCount: filteredProjects.length,
+    viewDateRange: `${days[0].toDateString()} to ${days[days.length - 1].toDateString()}`,
   });
 
   console.log('Timeline setup:', {
@@ -734,7 +730,19 @@ export default function GanttChart({ projects, currentMonth, currentDate, viewMo
                   day: 'numeric',
                   year: 'numeric',
                 })}.`
-              : `No scheduled tasks found for this ${viewMode}.`}
+              : viewMode === 'week'
+              ? `No scheduled tasks found for the week of ${days[0].toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                })} - ${days[days.length - 1].toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                })}.`
+              : `No scheduled tasks found for ${internalCurrentDate.toLocaleDateString('en-US', {
+                  month: 'long',
+                  year: 'numeric',
+                })}.`}
           </p>
         </div>
       )}
