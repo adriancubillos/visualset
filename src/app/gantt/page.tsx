@@ -50,6 +50,7 @@ export default function GanttPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [operatorFilter, setOperatorFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('month');
 
   useEffect(() => {
     const fetchGanttData = async () => {
@@ -244,13 +245,31 @@ export default function GanttPage() {
             {/* View Controls */}
             <div className="flex items-center space-x-4">
               <div className="flex rounded-md shadow-sm">
-                <button className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-blue-600 rounded-l-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <button
+                  onClick={() => setViewMode('month')}
+                  className={`px-4 py-2 text-sm font-medium border rounded-l-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                    viewMode === 'month'
+                      ? 'text-white bg-blue-600 border-blue-600 hover:bg-blue-700'
+                      : 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50'
+                  }`}>
                   Month
                 </button>
-                <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border-t border-b border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <button
+                  onClick={() => setViewMode('week')}
+                  className={`px-4 py-2 text-sm font-medium border-t border-b focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                    viewMode === 'week'
+                      ? 'text-white bg-blue-600 border-blue-600 hover:bg-blue-700'
+                      : 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50'
+                  }`}>
                   Week
                 </button>
-                <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <button
+                  onClick={() => setViewMode('day')}
+                  className={`px-4 py-2 text-sm font-medium border rounded-r-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                    viewMode === 'day'
+                      ? 'text-white bg-blue-600 border-blue-600 hover:bg-blue-700'
+                      : 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50'
+                  }`}>
                   Day
                 </button>
               </div>
@@ -265,6 +284,7 @@ export default function GanttPage() {
           <GanttChart
             projects={data.projects}
             currentMonth={currentMonth}
+            viewMode={viewMode}
           />
         ) : (
           <div className="bg-white rounded-lg shadow p-6 text-center">

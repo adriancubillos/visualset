@@ -42,31 +42,66 @@ export interface GanttProject {
 interface GanttChartProps {
   projects: GanttProject[];
   currentMonth: Date;
+  viewMode?: ViewMode;
+  onViewModeChange?: (mode: ViewMode) => void;
 }
 
-export default function GanttChart({ projects, currentMonth }: GanttChartProps) {
+type ViewMode = 'day' | 'week' | 'month';
+
+export default function GanttChart({ projects, currentMonth, viewMode = 'month', onViewModeChange }: GanttChartProps) {
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [currentDate, setCurrentDate] = useState<Date>(currentMonth);
   const timelineContentRef = useRef<HTMLDivElement>(null);
   const hierarchyContentRef = useRef<HTMLDivElement>(null);
 
-  // Generate days for the current month
-  const getDaysInMonth = (date: Date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
+  // Generate days based on view mode
+  const getDaysForView = (date: Date, mode: ViewMode) => {
     const days = [];
 
-    for (let day = firstDay; day <= lastDay; day.setDate(day.getDate() + 1)) {
-      days.push(new Date(day));
+    switch (mode) {
+      case 'day':
+        days.push(new Date(date));
+        break;
+
+      case 'week':
+        // Get the start of the week (Sunday)
+        const startOfWeek = new Date(date);
+        startOfWeek.setDate(date.getDate() - date.getDay());
+
+        for (let i = 0; i < 7; i++) {
+          const day = new Date(startOfWeek);
+          day.setDate(startOfWeek.getDate() + i);
+          days.push(day);
+        }
+        break;
+
+      case 'month':
+      default:
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+
+        for (let day = firstDay; day <= lastDay; day.setDate(day.getDate() + 1)) {
+          days.push(new Date(day));
+        }
+        break;
     }
 
     return days;
   };
 
-  const days = getDaysInMonth(currentMonth);
-  const dayWidth = 40; // Width of each day column in pixels
+  const days = getDaysForView(currentDate, viewMode);
+  const dayWidth = viewMode === 'day' ? 200 : viewMode === 'week' ? 80 : 40; // Wider columns for day/week view
+
+  console.log('GanttChart render:', {
+    viewMode,
+    currentDate: currentDate.toDateString(),
+    daysCount: days.length,
+    dayWidth,
+    totalWidth: days.length * dayWidth,
+  });
 
   console.log('Timeline setup:', {
     totalDays: days.length,
@@ -126,6 +161,37 @@ export default function GanttChart({ projects, currentMonth }: GanttChartProps) 
     setExpandedItems(new Set());
   };
 
+  const navigateToday = () => {
+    setCurrentDate(new Date());
+  };
+
+  // Get display title based on view mode
+  const getViewTitle = () => {
+    const options: Intl.DateTimeFormatOptions = {};
+    switch (viewMode) {
+      case 'day':
+        options.weekday = 'long';
+        options.year = 'numeric';
+        options.month = 'long';
+        options.day = 'numeric';
+        break;
+      case 'week':
+        const startOfWeek = new Date(currentDate);
+        startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        return `${startOfWeek.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+        })} - ${endOfWeek.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+      case 'month':
+        options.year = 'numeric';
+        options.month = 'long';
+        break;
+    }
+    return currentDate.toLocaleDateString('en-US', options);
+  };
+
   // Handle scrolling for the timeline content area
   const handleTimelineContentScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const scrollLeft = e.currentTarget.scrollLeft;
@@ -158,30 +224,60 @@ export default function GanttChart({ projects, currentMonth }: GanttChartProps) 
       task.durationMin,
     );
 
-    // The days array is built with dates like new Date(year, month, day) which are local dates
-    // so we need to match that by using the local date components
-    const currentYear = currentMonth.getFullYear();
-    const currentMonthIndex = currentMonth.getMonth();
+    // Check if task is within the current view range
+    const viewStartDate = days[0];
+    const viewEndDate = days[days.length - 1];
 
-    // Get the day of month from the local start date
-    const taskStartDay = localStartDate.getDate();
-    const taskStartMonth = localStartDate.getMonth();
-    const taskStartYear = localStartDate.getFullYear();
+    // Extend the end of view to end of day
+    const viewEndDateEndOfDay = new Date(viewEndDate);
+    viewEndDateEndOfDay.setHours(23, 59, 59, 999);
 
-    // Check if task is in the current month
-    if (taskStartYear !== currentYear || taskStartMonth !== currentMonthIndex) {
-      return null; // Task is outside current month
+    // Check if task overlaps with current view
+    if (localEndDate < viewStartDate || localStartDate > viewEndDateEndOfDay) {
+      return null; // Task is outside current view
     }
 
-    // Position is based on day of month minus 1 (to make it 0-indexed)
-    const daysSinceMonthStart = taskStartDay - 1;
+    // Find the position within the view
+    let startPosition = 0;
+    let endPosition = 0;
+
+    // Calculate start position
+    for (let i = 0; i < days.length; i++) {
+      const dayStart = new Date(days[i]);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(days[i]);
+      dayEnd.setHours(23, 59, 59, 999);
+
+      if (localStartDate >= dayStart && localStartDate <= dayEnd) {
+        startPosition = i;
+        break;
+      } else if (localStartDate < dayStart) {
+        startPosition = i;
+        break;
+      }
+    }
+
+    // Calculate end position
+    for (let i = days.length - 1; i >= 0; i--) {
+      const dayStart = new Date(days[i]);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(days[i]);
+      dayEnd.setHours(23, 59, 59, 999);
+
+      if (localEndDate >= dayStart && localEndDate <= dayEnd) {
+        endPosition = i;
+        break;
+      } else if (localEndDate > dayEnd) {
+        endPosition = i;
+        break;
+      }
+    }
 
     // Calculate duration in days
-    const taskEndDay = localEndDate.getDate();
-    const durationDays = Math.max(1, taskEndDay - taskStartDay + 1);
+    const durationDays = Math.max(1, endPosition - startPosition + 1);
 
     return {
-      left: daysSinceMonthStart * dayWidth,
+      left: startPosition * dayWidth,
       width: durationDays * dayWidth - 2, // -2 for border
     };
   }; // Render only the hierarchy column (left sidebar)
@@ -379,6 +475,57 @@ export default function GanttChart({ projects, currentMonth }: GanttChartProps) 
           display: none;
         }
       `}</style>
+
+      {/* Top control bar */}
+      <div className="border-b border-gray-200 bg-gray-50 px-4 py-3">
+        <div className="flex items-center justify-between">
+          {/* Left side - Current view info */}
+          <div className="text-lg font-semibold text-gray-900">{getViewTitle()}</div>
+
+          {/* Right side - Today button and expand/collapse controls */}
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={navigateToday}
+              className="px-3 py-1 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded border border-blue-300">
+              Today
+            </button>
+
+            <div className="flex space-x-1">
+              {/* Project expand/collapse buttons */}
+              <div className="flex space-x-1">
+                <button
+                  onClick={expandAllProjects}
+                  className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                  title="Expand All Projects">
+                  📁+
+                </button>
+                <button
+                  onClick={collapseAllProjects}
+                  className="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
+                  title="Collapse All Projects">
+                  📁-
+                </button>
+              </div>
+              {/* Item expand/collapse buttons */}
+              <div className="flex space-x-1 ml-2">
+                <button
+                  onClick={expandAllItems}
+                  className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
+                  title="Expand All Items">
+                  📦+
+                </button>
+                <button
+                  onClick={collapseAllItems}
+                  className="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
+                  title="Collapse All Items">
+                  📦-
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Content with synchronized scrolling */}
       <div
         className="flex"
@@ -387,40 +534,8 @@ export default function GanttChart({ projects, currentMonth }: GanttChartProps) 
         <div className="w-80 border-r border-gray-200 bg-gray-50 flex flex-col">
           {/* Fixed header for hierarchy */}
           <div className="border-b border-gray-300 bg-gray-100 py-3 px-4 flex-shrink-0">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center">
               <span className="font-semibold text-gray-700">Project / Item / Task</span>
-              <div className="flex space-x-1">
-                {/* Project expand/collapse buttons */}
-                <div className="flex space-x-1">
-                  <button
-                    onClick={expandAllProjects}
-                    className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
-                    title="Expand All Projects">
-                    📁+
-                  </button>
-                  <button
-                    onClick={collapseAllProjects}
-                    className="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
-                    title="Collapse All Projects">
-                    📁-
-                  </button>
-                </div>
-                {/* Item expand/collapse buttons */}
-                <div className="flex space-x-1 ml-2">
-                  <button
-                    onClick={expandAllItems}
-                    className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
-                    title="Expand All Items">
-                    📦+
-                  </button>
-                  <button
-                    onClick={collapseAllItems}
-                    className="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
-                    title="Collapse All Items">
-                    📦-
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -446,12 +561,36 @@ export default function GanttChart({ projects, currentMonth }: GanttChartProps) 
                 className="flex"
                 style={{ minWidth: days.length * dayWidth }}>
                 {days.map((day, index) => {
-                  const formatDay = (date: Date) => date.getDate().toString();
-                  const formatDayOfWeek = (date: Date) => date.toLocaleDateString('en-US', { weekday: 'short' });
+                  const formatDay = (date: Date) => {
+                    switch (viewMode) {
+                      case 'day':
+                        return date.toLocaleDateString('en-US', {
+                          weekday: 'long',
+                          month: 'short',
+                          day: 'numeric',
+                        });
+                      case 'week':
+                        return date.toLocaleDateString('en-US', {
+                          weekday: 'short',
+                          day: 'numeric',
+                        });
+                      case 'month':
+                      default:
+                        return date.getDate().toString();
+                    }
+                  };
+
+                  const formatDayOfWeek = (date: Date) => {
+                    if (viewMode === 'day') return '';
+                    if (viewMode === 'week') return '';
+                    return date.toLocaleDateString('en-US', { weekday: 'short' });
+                  };
+
                   const isWeekend = (date: Date) => {
                     const dayOfWeek = date.getDay();
                     return dayOfWeek === 0 || dayOfWeek === 6;
                   };
+
                   const isToday = (date: Date) => {
                     const today = new Date();
                     return date.toDateString() === today.toDateString();
@@ -465,10 +604,15 @@ export default function GanttChart({ projects, currentMonth }: GanttChartProps) 
                       } ${isToday(day) ? 'bg-blue-100 border-blue-300' : ''}`}
                       style={{ width: dayWidth, minWidth: dayWidth }}>
                       <div className="py-2">
-                        <div className={`text-xs font-medium ${isToday(day) ? 'text-blue-600' : 'text-gray-600'}`}>
-                          {formatDayOfWeek(day)}
-                        </div>
-                        <div className={`text-sm font-semibold ${isToday(day) ? 'text-blue-700' : 'text-gray-800'}`}>
+                        {viewMode === 'month' && (
+                          <div className={`text-xs font-medium ${isToday(day) ? 'text-blue-600' : 'text-gray-600'}`}>
+                            {formatDayOfWeek(day)}
+                          </div>
+                        )}
+                        <div
+                          className={`${viewMode === 'day' ? 'text-xs' : 'text-sm'} font-semibold ${
+                            isToday(day) ? 'text-blue-700' : 'text-gray-800'
+                          }`}>
                           {formatDay(day)}
                         </div>
                       </div>
