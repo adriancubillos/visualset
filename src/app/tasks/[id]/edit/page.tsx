@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { formatDateTimeGMTMinus5, parseGMTMinus5DateTime } from '@/utils/timezone';
+import { formatDateTimeGMTMinus5, parseGMTMinus5DateTime, getCurrentDisplayTimezoneDate } from '@/utils/timezone';
 import { TASK_PRIORITY, TASK_STATUS } from '@/config/workshop-properties';
 
 interface Task {
@@ -38,6 +38,7 @@ export default function EditTaskPage() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [dateWarning, setDateWarning] = useState('');
 
   // Fetch data for dropdowns
   const [items, setItems] = useState<{ id: string; name: string; project?: { name: string } }[]>([]);
@@ -410,13 +411,28 @@ export default function EditTaskPage() {
                     onChange={(e) => {
                       const date = e.target.value;
                       const time = formData.scheduledAt ? formData.scheduledAt.split('T')[1] : '09:00';
+
+                      // Check if date is in the past and show warning
+                      if (date) {
+                        const selectedDate = new Date(date);
+                        const today = getCurrentDisplayTimezoneDate();
+                        today.setHours(0, 0, 0, 0); // Reset time for comparison
+
+                        if (selectedDate < today) {
+                          setDateWarning('Warning: Scheduled date is in the past');
+                        } else {
+                          setDateWarning('');
+                        }
+                      } else {
+                        setDateWarning('');
+                      }
+
                       setFormData((prev) => ({
                         ...prev,
                         scheduledAt: date ? `${date}T${time}` : '',
                       }));
                     }}
                     className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    min={new Date().toISOString().split('T')[0]}
                   />
                 </div>
                 <div>
@@ -445,6 +461,7 @@ export default function EditTaskPage() {
                 </div>
               </div>
               <p className="mt-1 text-xs text-gray-500">Leave empty if no specific schedule is required</p>
+              {dateWarning && <p className="mt-1 text-xs text-yellow-600">{dateWarning}</p>}
             </div>
 
             <div>
