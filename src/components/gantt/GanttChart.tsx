@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import GanttTaskBar from './GanttTaskBar';
-import { convertTaskTimeForDisplay } from '@/utils/timezone';
+import { convertTaskTimeForDisplay, toDisplayTimezoneStartOfDay, getDisplayTimezoneOffset } from '@/utils/timezone';
 
 export interface GanttTask {
   id: string;
@@ -71,25 +71,19 @@ export default function GanttChart({ projects, currentMonth, currentDate, viewMo
 
     switch (mode) {
       case 'day':
-        // Convert the current date to GMT-5 for consistency with task dates
-        const gmt5Date = new Date(date.getTime() - 5 * 60 * 60 * 1000);
-        const dayStart = new Date(gmt5Date.getUTCFullYear(), gmt5Date.getUTCMonth(), gmt5Date.getUTCDate());
+        // Use centralized function to get start of day in display timezone
+        const dayStart = toDisplayTimezoneStartOfDay(date);
         days.push(dayStart);
         break;
 
       case 'week':
-        // Get the start of the week (Sunday) in GMT-5
-        const gmt5WeekDate = new Date(date.getTime() - 5 * 60 * 60 * 1000);
-        const startOfWeek = new Date(
-          gmt5WeekDate.getUTCFullYear(),
-          gmt5WeekDate.getUTCMonth(),
-          gmt5WeekDate.getUTCDate(),
-        );
-        startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay()); // Set to Sunday
+        // Get the start of the week (Sunday) in display timezone
+        const weekStart = toDisplayTimezoneStartOfDay(date);
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Set to Sunday
 
         for (let i = 0; i < 7; i++) {
-          const day = new Date(startOfWeek);
-          day.setDate(startOfWeek.getDate() + i);
+          const day = new Date(weekStart);
+          day.setDate(weekStart.getDate() + i);
           days.push(day);
         }
         break;

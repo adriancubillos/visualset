@@ -1,45 +1,115 @@
-// Timezone utility functions for consistent GMT-5 handling
-const GMT_MINUS_5_OFFSET_HOURS = -5; // GMT-5 offset in hours
+// Centralized timezone configuration for the entire application
+// Change this value to update the display timezone globally
+const DISPLAY_TIMEZONE_OFFSET_HOURS = -5; // GMT-5 offset in hours
+const DISPLAY_TIMEZONE_NAME = 'GMT-5'; // For display/logging purposes
 
 /**
- * Convert a UTC Date object to GMT-5 timezone for display
+ * Get the current display timezone offset in hours
+ * This is the single source of truth for timezone configuration
  */
-export function toGMTMinus5(date: Date): Date {
-  // Create a new date that represents the same moment in GMT-5
-  const utcTime = date.getTime();
-  const gmt5Time = utcTime + GMT_MINUS_5_OFFSET_HOURS * 60 * 60 * 1000;
-  return new Date(gmt5Time);
+export function getDisplayTimezoneOffset(): number {
+  return DISPLAY_TIMEZONE_OFFSET_HOURS;
 }
 
 /**
- * Create a Date object from date/time components in GMT-5
+ * Get the display timezone name for UI display
  */
-export function createGMTMinus5Date(year: number, month: number, day: number, hours: number, minutes: number): Date {
-  // Create date in GMT-5
+export function getDisplayTimezoneName(): string {
+  return DISPLAY_TIMEZONE_NAME;
+}
+
+/**
+ * Convert a UTC Date object to the configured display timezone
+ */
+export function toDisplayTimezone(date: Date): Date {
+  // Create a new date that represents the same moment in display timezone
+  const utcTime = date.getTime();
+  const displayTime = utcTime + DISPLAY_TIMEZONE_OFFSET_HOURS * 60 * 60 * 1000;
+  return new Date(displayTime);
+}
+
+/**
+ * Create a Date object representing the start of a day in the display timezone
+ * This ensures consistent date generation for views and comparisons
+ */
+export function createDisplayTimezoneDate(year: number, month: number, day: number): Date {
+  // Create a date at midnight in the display timezone, then convert to local date object
+  // This avoids timezone conversion issues when creating Date objects
+  const displayDate = new Date();
+  const offsetMs = DISPLAY_TIMEZONE_OFFSET_HOURS * 60 * 60 * 1000;
+  displayDate.setTime(Date.UTC(year, month, day) - offsetMs);
+
+  // Return a local date that represents the start of the day in display timezone
+  const localDate = new Date(displayDate.getUTCFullYear(), displayDate.getUTCMonth(), displayDate.getUTCDate());
+  return localDate;
+}
+
+/**
+ * Get the current date/time in the display timezone
+ */
+export function getCurrentDisplayTimezoneDate(): Date {
+  return toDisplayTimezone(new Date());
+}
+
+/**
+ * Convert a date to the start of day in display timezone
+ * Useful for view generation and date comparisons
+ */
+export function toDisplayTimezoneStartOfDay(date: Date): Date {
+  const displayDate = toDisplayTimezone(date);
+  return new Date(displayDate.getFullYear(), displayDate.getMonth(), displayDate.getDate());
+}
+
+/**
+ * Create a Date object from date/time components in display timezone
+ */
+export function createDisplayTimezoneDateTime(
+  year: number,
+  month: number,
+  day: number,
+  hours: number,
+  minutes: number,
+): Date {
+  // Create date in display timezone
   const date = new Date();
   date.setUTCFullYear(year);
   date.setUTCMonth(month - 1); // Month is 0-indexed
   date.setUTCDate(day);
-  date.setUTCHours(hours + 5); // Add 5 hours to convert GMT-5 to UTC
+  date.setUTCHours(hours - DISPLAY_TIMEZONE_OFFSET_HOURS); // Convert display timezone to UTC
   date.setUTCMinutes(minutes);
   date.setUTCSeconds(0);
   date.setUTCMilliseconds(0);
   return date;
 }
 
+// Legacy functions - kept for backward compatibility but use display timezone functions
 /**
- * Format a UTC Date object for display in GMT-5 timezone
+ * @deprecated Use toDisplayTimezone() instead
  */
-export function formatDateTimeGMTMinus5(date: Date): { date: string; time: string } {
-  // Convert UTC date to GMT-5 by subtracting 5 hours
-  const gmt5Time = new Date(date.getTime() - 5 * 60 * 60 * 1000);
+export function toGMTMinus5(date: Date): Date {
+  return toDisplayTimezone(date);
+}
+
+/**
+ * @deprecated Use createDisplayTimezoneDateTime() instead
+ */
+export function createGMTMinus5Date(year: number, month: number, day: number, hours: number, minutes: number): Date {
+  return createDisplayTimezoneDateTime(year, month, day, hours, minutes);
+}
+
+/**
+ * Format a UTC Date object for display in the configured display timezone
+ */
+export function formatDateTimeForDisplay(date: Date): { date: string; time: string } {
+  // Convert UTC date to display timezone
+  const displayTime = new Date(date.getTime() + DISPLAY_TIMEZONE_OFFSET_HOURS * 60 * 60 * 1000);
 
   // Use UTC methods to avoid local timezone interference
-  const year = gmt5Time.getUTCFullYear();
-  const month = String(gmt5Time.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(gmt5Time.getUTCDate()).padStart(2, '0');
-  const hours = String(gmt5Time.getUTCHours()).padStart(2, '0');
-  const minutes = String(gmt5Time.getUTCMinutes()).padStart(2, '0');
+  const year = displayTime.getUTCFullYear();
+  const month = String(displayTime.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(displayTime.getUTCDate()).padStart(2, '0');
+  const hours = String(displayTime.getUTCHours()).padStart(2, '0');
+  const minutes = String(displayTime.getUTCMinutes()).padStart(2, '0');
 
   return {
     date: `${year}-${month}-${day}`,
@@ -48,18 +118,25 @@ export function formatDateTimeGMTMinus5(date: Date): { date: string; time: strin
 }
 
 /**
- * Parse date and time strings as GMT-5 and return UTC Date
+ * @deprecated Use formatDateTimeForDisplay() instead
  */
-export function parseGMTMinus5DateTime(dateStr: string, timeStr: string): Date {
+export function formatDateTimeGMTMinus5(date: Date): { date: string; time: string } {
+  return formatDateTimeForDisplay(date);
+}
+
+/**
+ * Parse date and time strings as display timezone and return UTC Date
+ */
+export function parseDisplayTimezoneDateTime(dateStr: string, timeStr: string): Date {
   const [year, month, day] = dateStr.split('-').map(Number);
   const [hours, minutes] = timeStr.split(':').map(Number);
 
-  // Create UTC date by adding 5 hours to GMT-5 input
+  // Create UTC date by converting from display timezone
   const utcDate = new Date();
   utcDate.setUTCFullYear(year);
   utcDate.setUTCMonth(month - 1); // Month is 0-indexed
   utcDate.setUTCDate(day);
-  utcDate.setUTCHours(hours + 5); // Convert GMT-5 to UTC by adding 5 hours
+  utcDate.setUTCHours(hours - DISPLAY_TIMEZONE_OFFSET_HOURS); // Convert display timezone to UTC
   utcDate.setUTCMinutes(minutes);
   utcDate.setUTCSeconds(0);
   utcDate.setUTCMilliseconds(0);
@@ -68,15 +145,22 @@ export function parseGMTMinus5DateTime(dateStr: string, timeStr: string): Date {
 }
 
 /**
+ * @deprecated Use parseDisplayTimezoneDateTime() instead
+ */
+export function parseGMTMinus5DateTime(dateStr: string, timeStr: string): Date {
+  return parseDisplayTimezoneDateTime(dateStr, timeStr);
+}
+
+/**
  * Convert UTC task time to proper Date object for calendar/gantt positioning
  * Ensures consistent timezone handling across all components
  */
 export function convertTaskTimeForDisplay(scheduledAt: string, durationMin: number): { start: Date; end: Date } {
-  // Convert UTC task time to GMT-5 for display consistency
+  // Convert UTC task time to display timezone for consistency
   const taskStartUTC = new Date(scheduledAt);
-  const { date: dateStr, time: timeStr } = formatDateTimeGMTMinus5(taskStartUTC);
+  const { date: dateStr, time: timeStr } = formatDateTimeForDisplay(taskStartUTC);
 
-  // Create proper GMT-5 date object preserving the original date
+  // Create proper display timezone date object preserving the original date
   const [year, month, day] = dateStr.split('-').map(Number);
   const [hours, minutes] = timeStr.split(':').map(Number);
 
