@@ -303,15 +303,16 @@ export default function EditTaskPage() {
             <label
               htmlFor="projectId"
               className="block text-sm font-medium text-gray-700">
-              Project
+              Project *
             </label>
             <select
               id="projectId"
               name="projectId"
+              required
               value={formData.projectId}
               onChange={handleProjectChange}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-              <option value="">No Project</option>
+              <option value="">Select a Project</option>
               {projects.map((project) => (
                 <option
                   key={project.id}
@@ -327,16 +328,17 @@ export default function EditTaskPage() {
             <label
               htmlFor="itemId"
               className="block text-sm font-medium text-gray-700">
-              Item
+              Item *
             </label>
             <select
               id="itemId"
               name="itemId"
+              required
               value={formData.itemId}
               onChange={handleChange}
               disabled={!formData.projectId}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed">
-              <option value="">No Item</option>
+              <option value="">Select an Item</option>
               {getFilteredItems().map((item) => (
                 <option
                   key={item.id}
@@ -542,9 +544,11 @@ export default function EditTaskPage() {
             </Link>
             <button
               type="submit"
-              disabled={saving || !formData.title.trim()}
+              disabled={saving || !formData.title.trim() || !formData.projectId || !formData.itemId}
               className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                saving || !formData.title.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+                saving || !formData.title.trim() || !formData.projectId || !formData.itemId
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-blue-600 hover:bg-blue-700'
               }`}>
               {saving ? 'Saving...' : 'Save Changes'}
             </button>

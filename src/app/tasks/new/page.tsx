@@ -1,13 +1,17 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { parseGMTMinus5DateTime, formatDateTimeForDisplay, getCurrentDisplayTimezoneDate } from '@/utils/timezone';
+import { formatDateTimeForDisplay, parseGMTMinus5DateTime, getCurrentDisplayTimezoneDate } from '@/utils/timezone';
 import { TASK_PRIORITY, TASK_STATUS } from '@/config/workshop-properties';
+import { useTaskFormData } from '@/hooks/useTaskFormData';
+import ProjectItemSelect from '@/components/forms/ProjectItemSelect';
+import AssignmentSelect from '@/components/forms/AssignmentSelect';
 
 function NewTaskPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { projects, items, machines, operators, loading: dataLoading } = useTaskFormData();
 
   // Initialize with current date and time in display timezone
   const currentUTCDate = new Date();
@@ -28,57 +32,33 @@ function NewTaskPageContent() {
   });
   const [loading, setLoading] = useState(false);
 
-  // Fetch data for dropdowns
-  const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
-  const [items, setItems] = useState<{ id: string; name: string; projectId: string }[]>([]);
-  const [machines, setMachines] = useState<{ id: string; name: string }[]>([]);
-  const [operators, setOperators] = useState<{ id: string; name: string }[]>([]);
+  // Show loading state while fetching dropdown data
+  if (dataLoading) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2 mb-8"></div>
+          <div className="bg-gray-200 h-96 rounded-lg"></div>
+        </div>
+      </div>
+    );
+  }
 
-  useEffect(() => {
-    const fetchDropdownData = async () => {
-      try {
-        const [projectsRes, machinesRes, operatorsRes] = await Promise.all([
-          fetch('/api/projects?include=items'),
-          fetch('/api/machines'),
-          fetch('/api/operators'),
-        ]);
-
-        if (projectsRes.ok) {
-          const projectsData = await projectsRes.json();
-          setProjects(projectsData.map((p: { id: string; name: string }) => ({ id: p.id, name: p.name })));
-
-          // Extract all items from all projects
-          const allItems = projectsData.flatMap(
-            (p: { id: string; name: string; items?: { id: string; name: string }[] }) =>
-              (p.items || []).map((item: { id: string; name: string }) => ({ ...item, projectId: p.id })),
-          );
-          setItems(allItems);
-        }
-
-        if (machinesRes.ok) {
-          const machinesData = await machinesRes.json();
-          setMachines(machinesData.map((m: { id: string; name: string }) => ({ id: m.id, name: m.name })));
-        }
-
-        if (operatorsRes.ok) {
-          const operatorsData = await operatorsRes.json();
-          setOperators(operatorsData.map((o: { id: string; name: string }) => ({ id: o.id, name: o.name })));
-        }
-      } catch (error) {
-        console.error('Error fetching dropdown data:', error);
-      }
-    };
-
-    fetchDropdownData();
-  }, []);
-
-  const handleProjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const projectId = e.target.value;
-    setFormData((prev) => ({ ...prev, projectId, itemId: '' })); // Reset item when project changes
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === 'durationMin' ? parseInt(value) || 0 : value,
+    }));
   };
 
-  const getFilteredItems = () => {
-    return items.filter((item) => item.projectId === formData.projectId);
+  const handleProjectChange = (projectId: string) => {
+    setFormData((prev) => ({ ...prev, projectId }));
+  };
+
+  const handleItemChange = (itemId: string) => {
+    setFormData((prev) => ({ ...prev, itemId }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -120,14 +100,6 @@ function NewTaskPageContent() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === 'durationMin' ? parseInt(value) || 0 : value,
-    }));
   };
 
   return (
@@ -180,104 +152,36 @@ function NewTaskPageContent() {
             />
           </div>
 
-          {/* Project Assignment */}
-          <div>
-            <label
-              htmlFor="projectId"
-              className="block text-sm font-medium text-gray-700">
-              Project *
-            </label>
-            <select
-              id="projectId"
-              name="projectId"
-              required
-              value={formData.projectId}
-              onChange={handleProjectChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-              <option value="">Select a Project</option>
-              {projects.map((project) => (
-                <option
-                  key={project.id}
-                  value={project.id}>
-                  {project.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Item Assignment */}
-          <div>
-            <label
-              htmlFor="itemId"
-              className="block text-sm font-medium text-gray-700">
-              Item *
-            </label>
-            <select
-              id="itemId"
-              name="itemId"
-              required
-              value={formData.itemId}
-              onChange={handleChange}
-              disabled={!formData.projectId}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed">
-              <option value="">Select an Item</option>
-              {getFilteredItems().map((item) => (
-                <option
-                  key={item.id}
-                  value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Project and Item Assignment */}
+          <ProjectItemSelect
+            projectId={formData.projectId}
+            itemId={formData.itemId}
+            projects={projects}
+            items={items}
+            onProjectChange={handleProjectChange}
+            onItemChange={handleItemChange}
+            required={true}
+          />
 
           {/* Machine Assignment */}
-          <div>
-            <label
-              htmlFor="machineId"
-              className="block text-sm font-medium text-gray-700">
-              Machine
-            </label>
-            <select
-              id="machineId"
-              name="machineId"
-              value={formData.machineId}
-              onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-              <option value="">No Machine Required</option>
-              {machines.map((machine) => (
-                <option
-                  key={machine.id}
-                  value={machine.id}>
-                  {machine.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <AssignmentSelect
+            id="machineId"
+            name="machineId"
+            label="Machine"
+            value={formData.machineId}
+            options={machines}
+            onChange={(value) => setFormData((prev) => ({ ...prev, machineId: value }))}
+          />
 
           {/* Operator Assignment */}
-          <div>
-            <label
-              htmlFor="operatorId"
-              className="block text-sm font-medium text-gray-700">
-              Operator
-            </label>
-            <select
-              id="operatorId"
-              name="operatorId"
-              value={formData.operatorId}
-              onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-              <option value="">Unassigned</option>
-              {operators.map((operator) => (
-                <option
-                  key={operator.id}
-                  value={operator.id}>
-                  {operator.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <AssignmentSelect
+            id="operatorId"
+            name="operatorId"
+            label="Operator"
+            value={formData.operatorId}
+            options={operators}
+            onChange={(value) => setFormData((prev) => ({ ...prev, operatorId: value }))}
+          />
 
           {/* Priority and Status */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -411,9 +315,11 @@ function NewTaskPageContent() {
             </button>
             <button
               type="submit"
-              disabled={loading || !formData.title.trim()}
+              disabled={loading || !formData.title.trim() || !formData.projectId || !formData.itemId}
               className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                loading || !formData.title.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+                loading || !formData.title.trim() || !formData.projectId || !formData.itemId
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-blue-600 hover:bg-blue-700'
               }`}>
               {loading ? 'Creating...' : 'Create Task'}
             </button>
