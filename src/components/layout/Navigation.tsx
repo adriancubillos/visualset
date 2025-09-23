@@ -7,7 +7,6 @@ import TimezoneStatus from '../ui/TimezoneStatus';
 const navigationItems = [
   { name: 'Dashboard', href: '/', icon: '📊' },
   { name: 'Schedule', href: '/schedule', icon: '📅' },
-  { name: 'Gantt', href: '/gantt', icon: '📈' },
   { name: 'Projects', href: '/projects', icon: '📁' },
   { name: 'Items', href: '/items', icon: '📦' },
   { name: 'Tasks', href: '/tasks', icon: '✅' },
@@ -46,7 +45,7 @@ export default function Navigation() {
               })}
             </div>
           </div>
-          <div className="flex items-center">
+          <div className="flex items-center mr-8">
             <TimezoneStatus />
           </div>
         </div>
