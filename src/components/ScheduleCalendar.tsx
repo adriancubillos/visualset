@@ -10,7 +10,7 @@ import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale'; // ✅ Named import
 import TaskModal from './task/TaskModal';
 import { convertTaskTimeForDisplay, getCurrentDisplayTimezoneDate, convertDragPositionToUTC } from '@/utils/timezone';
-import { getProjectColor } from '@/utils/colors';
+import { getProjectColor, getOperatorColor, getMachineColor, getPatternStyles, type PatternType } from '@/utils/colors';
 import { handleTaskAssignmentUpdate, TaskAssignmentUpdate } from '@/utils/taskAssignment';
 
 interface Task {
@@ -35,6 +35,10 @@ interface CalendarEvent {
     machine?: string;
     project?: string;
     duration: number;
+    operatorColor?: string;
+    operatorPattern?: string;
+    machineColor?: string;
+    machinePattern?: string;
   };
 }
 
@@ -125,6 +129,11 @@ export default function ScheduleCalendar() {
   const events: CalendarEvent[] = useMemo(() => {
     return filteredTasks.map((task) => {
       const { start, end } = convertTaskTimeForDisplay(task.scheduledAt, task.durationMin);
+
+      // Get operator colors/patterns
+      const operatorColor = task.operator ? getOperatorColor(task.operator) : null;
+      const machineColor = task.machine ? getMachineColor(task.machine) : null;
+
       return {
         id: task.id,
         title: `${task.title} - ${task.project?.name ?? 'No project'}`,
@@ -136,6 +145,10 @@ export default function ScheduleCalendar() {
           machine: task.machine?.name,
           project: task.project?.name,
           duration: task.durationMin,
+          operatorColor: operatorColor?.hex || '#6b7280',
+          operatorPattern: operatorColor?.pattern || 'solid',
+          machineColor: machineColor?.hex || '#6b7280',
+          machinePattern: machineColor?.pattern || 'solid',
         },
       };
     });
@@ -357,30 +370,60 @@ export default function ScheduleCalendar() {
           resizable={true}
           draggableAccessor={() => true}
           onSelectEvent={handleSelectEvent}
-          eventPropGetter={(event) => ({
+          eventPropGetter={() => ({
             style: {
-              backgroundColor: event.resource?.color || '#6b7280',
-              borderColor: event.resource?.color || '#6b7280',
+              backgroundColor: 'transparent', // We'll handle colors in the custom component
+              borderColor: 'transparent',
               color: 'white',
               border: 'none',
               borderRadius: '8px',
               fontSize: '12px',
               fontWeight: '500',
-              padding: '2px 8px',
+              padding: '0', // Remove padding since we'll handle it in the custom component
               boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+              overflow: 'hidden',
             },
           })}
           components={{
-            event: ({ event }) => (
-              <div className="p-1">
-                <div className="font-medium truncate">{event.title}</div>
-                {event.resource?.machine && (
-                  <div className="text-xs opacity-75 truncate">
-                    {event.resource.machine} • {event.resource.duration}m
+            event: ({ event }) => {
+              const operatorStyle = getPatternStyles(
+                event.resource?.operatorColor || '#6b7280',
+                (event.resource?.operatorPattern as PatternType) || 'solid',
+              );
+              const machineStyle = getPatternStyles(
+                event.resource?.machineColor || '#6b7280',
+                (event.resource?.machinePattern as PatternType) || 'solid',
+              );
+
+              return (
+                <div className="relative w-full h-full rounded-lg overflow-hidden">
+                  {/* Split background: left half operator, right half machine */}
+                  <div className="absolute inset-0 flex">
+                    <div
+                      className="flex-1"
+                      style={operatorStyle}
+                    />
+                    <div
+                      className="flex-1"
+                      style={machineStyle}
+                    />
                   </div>
-                )}
-              </div>
-            ),
+
+                  {/* Content overlay */}
+                  <div className="relative z-10 p-1 h-full flex flex-col justify-center text-white">
+                    <div className="font-medium truncate text-xs leading-tight">{event.title}</div>
+                    {event.resource?.machine && (
+                      <div className="text-xs opacity-90 truncate leading-tight">
+                        {event.resource.machine} • {event.resource.duration}m
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Text shadow overlay for better readability */}
+                  <div className="absolute inset-0 bg-black opacity-20 rounded-lg"></div>
+                </div>
+              );
+            },
           }}
         />
       </div>

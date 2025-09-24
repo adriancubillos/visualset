@@ -136,9 +136,9 @@ export function getEntityColor(
 }
 
 /**
- * Generate CSS styles for different patterns
+ * Generate CSS styles for different patterns - exported for reuse
  */
-function getPatternStyles(color: string, pattern: PatternType): React.CSSProperties {
+export function getPatternStyles(color: string, pattern: PatternType): React.CSSProperties {
   const baseStyle: React.CSSProperties = {
     backgroundColor: color,
   };
