@@ -98,6 +98,7 @@ export default function ScheduleCalendar() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentView, setCurrentView] = useState<'week' | 'day' | 'agenda'>('week');
   const [currentDate, setCurrentDate] = useState(() => getCurrentDisplayTimezoneDate());
+  const [hoveredEventId, setHoveredEventId] = useState<string | null>(null);
 
   // New filter state
   const [selectedMachine, setSelectedMachine] = useState<string>('all');
@@ -123,7 +124,6 @@ export default function ScheduleCalendar() {
     fetch('/api/projects')
       .then((res) => res.json())
       .then((data) => {
-        console.log('Projects loaded:', data);
         setProjects(data);
         // Extract items from projects for TaskModal
         const allItems = data.flatMap((p: { id: string; name: string; items?: { id: string; name: string }[] }) =>
@@ -137,7 +137,9 @@ export default function ScheduleCalendar() {
   useEffect(() => {
     fetch('/api/schedule')
       .then((res) => res.json())
-      .then(setTasks)
+      .then((data) => {
+        setTasks(data);
+      })
       .catch(console.error);
   }, []);
 
@@ -174,7 +176,7 @@ export default function ScheduleCalendar() {
 
       return {
         id: task.id,
-        title: `${task.title} - ${task.project?.name ?? 'No project'}`,
+        title: task.title, // Just the task title, project info goes in tooltip
         start,
         end,
         allDay: false,
@@ -447,7 +449,7 @@ export default function ScheduleCalendar() {
               fontWeight: '500',
               padding: '0', // Remove padding since we'll handle it in the custom component
               boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-              overflow: 'hidden',
+              overflow: 'visible',
             },
           })}
           components={{
@@ -462,7 +464,14 @@ export default function ScheduleCalendar() {
               );
 
               return (
-                <div className="relative w-full h-full rounded-lg overflow-hidden group cursor-pointer">
+                <div
+                  className="relative w-full h-full rounded-lg cursor-pointer"
+                  onMouseEnter={() => {
+                    setHoveredEventId(event.id);
+                  }}
+                  onMouseLeave={() => {
+                    setHoveredEventId(null);
+                  }}>
                   {/* Split background: left half operator, right half machine */}
                   <div className="absolute inset-0 flex">
                     <div
@@ -488,32 +497,30 @@ export default function ScheduleCalendar() {
                   {/* Text shadow overlay for better readability */}
                   <div className="absolute inset-0 bg-black opacity-20 rounded-lg"></div>
 
-                  {/* Tooltip on hover - similar to Gantt chart */}
-                  <div
-                    className="
-                    absolute bottom-full left-0 z-50 mb-2
-                    bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg
-                    opacity-0 group-hover:opacity-100 transition-opacity duration-200
-                    pointer-events-none whitespace-nowrap
-                  ">
-                    <div className="font-semibold mb-1">{event.title}</div>
-                    <div>Status: {event.resource?.status.toUpperCase()}</div>
-                    <div>Duration: {getDurationText(event.resource?.duration || 0)}</div>
-                    {event.resource?.startDate && <div>Start: {event.resource.startDate}</div>}
-                    {event.resource?.endDate && <div>End: {event.resource.endDate}</div>}
-                    {tasks.find((t) => t.id === event.id)?.operator && (
-                      <div>Operator: {tasks.find((t) => t.id === event.id)?.operator?.name}</div>
-                    )}
-                    {event.resource?.machine && (
-                      <div>
-                        Machine: {event.resource.machine}
-                        {event.resource?.machineType && ` (${event.resource.machineType})`}
-                      </div>
-                    )}
-
-                    {/* Tooltip arrow */}
-                    <div className="absolute top-full left-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
-                  </div>
+                  {/* Tooltip on hover - using state-based visibility */}
+                  {hoveredEventId === event.id && (
+                    <div
+                      className="
+                      absolute -top-20 left-0 z-[9999]
+                      bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg
+                      pointer-events-none whitespace-nowrap
+                    ">
+                      <div className="font-semibold mb-1">{event.title}</div>
+                      <div>Status: {event.resource?.status || 'UNKNOWN'}</div>
+                      <div>Duration: {getDurationText(event.resource?.duration || 0)}</div>
+                      {event.resource?.startDate && <div>Start: {event.resource.startDate}</div>}
+                      {event.resource?.endDate && <div>End: {event.resource.endDate}</div>}
+                      {tasks.find((t) => t.id === event.id)?.operator && (
+                        <div>Operator: {tasks.find((t) => t.id === event.id)?.operator?.name}</div>
+                      )}
+                      {event.resource?.machine && (
+                        <div>
+                          Machine: {event.resource.machine}
+                          {event.resource?.machineType && ` (${event.resource.machineType})`}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             },
