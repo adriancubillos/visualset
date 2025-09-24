@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
@@ -9,7 +9,7 @@ import '../styles/calendar.css';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale'; // ✅ Named import
 import TaskModal from './task/TaskModal';
-import { convertTaskTimeForDisplay } from '@/utils/timezone';
+import { convertTaskTimeForDisplay, getCurrentDisplayTimezoneDate, convertDragPositionToUTC } from '@/utils/timezone';
 import { getProjectColor } from '@/utils/colors';
 import { handleTaskAssignmentUpdate, TaskAssignmentUpdate } from '@/utils/taskAssignment';
 
@@ -38,6 +38,12 @@ interface CalendarEvent {
   };
 }
 
+interface DragDropEvent {
+  event: CalendarEvent;
+  start: string | Date;
+  end?: string | Date;
+}
+
 const locales = { 'en-US': enUS };
 const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales });
 
@@ -49,7 +55,7 @@ export default function ScheduleCalendar() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentView, setCurrentView] = useState<'week' | 'day' | 'agenda'>('week');
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(() => getCurrentDisplayTimezoneDate());
 
   // New filter state
   const [selectedMachine, setSelectedMachine] = useState<string>('all');
@@ -99,132 +105,160 @@ export default function ScheduleCalendar() {
   //   new Map(tasks.filter((t) => t.operator).map((t) => [t.operator!.id, t.operator!])).values(),
   // );
 
-  // ✅ Apply filters
-  const filteredTasks = tasks.filter((task) => {
-    const machineMatch = selectedMachine === 'all' || task.machine?.id === selectedMachine;
-    const operatorMatch = selectedOperator === 'all' || task.operator?.id === selectedOperator;
-    const projectMatch = selectedProject === 'all' || task.project?.id === selectedProject;
-    return machineMatch && operatorMatch && projectMatch;
-  });
+  // ✅ Apply filters - memoized to prevent unnecessary recalculations
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((task) => {
+      const machineMatch = selectedMachine === 'all' || task.machine?.id === selectedMachine;
+      const operatorMatch = selectedOperator === 'all' || task.operator?.id === selectedOperator;
+      const projectMatch = selectedProject === 'all' || task.project?.id === selectedProject;
+      return machineMatch && operatorMatch && projectMatch;
+    });
+  }, [tasks, selectedMachine, selectedOperator, selectedProject]);
 
-  // Color coding function using consistent project color system
-  const getEventColor = (task: Task) => {
+  // Color coding function using consistent project color system - memoized
+  const getEventColor = useCallback((task: Task) => {
     if (!task.project) return '#6b7280'; // gray-500
     return getProjectColor(task.project).hex;
-  };
+  }, []);
 
-  const events: CalendarEvent[] = filteredTasks.map((task) => {
-    const { start, end } = convertTaskTimeForDisplay(task.scheduledAt, task.durationMin);
-    return {
-      id: task.id,
-      title: `${task.title} - ${task.project?.name ?? 'No project'}`,
-      start,
-      end,
-      allDay: false,
-      resource: {
-        color: getEventColor(task),
-        machine: task.machine?.name,
-        project: task.project?.name,
-        duration: task.durationMin,
-      },
-    };
-  });
+  // Memoize events array to prevent recreation on every render
+  const events: CalendarEvent[] = useMemo(() => {
+    return filteredTasks.map((task) => {
+      const { start, end } = convertTaskTimeForDisplay(task.scheduledAt, task.durationMin);
+      return {
+        id: task.id,
+        title: `${task.title} - ${task.project?.name ?? 'No project'}`,
+        start,
+        end,
+        allDay: false,
+        resource: {
+          color: getEventColor(task),
+          machine: task.machine?.name,
+          project: task.project?.name,
+          duration: task.durationMin,
+        },
+      };
+    });
+  }, [filteredTasks, getEventColor]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleEventDrop = async ({ event, start }: any) => {
-    const updatedTask = tasks.find((t) => t.id === event.id);
-    if (!updatedTask) return;
+  const handleEventDrop = useCallback(
+    async ({ event, start }: DragDropEvent) => {
+      const updatedTask = tasks.find((t) => t.id === event.id);
+      if (!updatedTask) return;
 
-    // Ensure durationMin exists
-    const duration = updatedTask.durationMin ?? 60; // fallback 60 minutes
+      // Ensure durationMin exists
+      const duration = updatedTask.durationMin ?? 60; // fallback 60 minutes
 
-    // Calendar shows EDT (GMT-4) but API expects GMT-5 time
-    // Convert EDT to GMT-5: add 1 hour to match expected timezone
-    const adjustedStart = new Date(start.getTime() + 60 * 60 * 1000);
+      // Convert start to Date if it's a string
+      const startDate = typeof start === 'string' ? new Date(start) : start;
 
-    try {
-      const res = await fetch('/api/schedule', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          taskId: updatedTask.id,
-          scheduledAt: adjustedStart.toISOString(),
-          durationMin: duration,
-          machineId: updatedTask.machine?.id ?? null,
-          operatorId: updatedTask.operator?.id ?? null,
-          itemId: updatedTask.item?.id ?? null,
-        }),
-      });
+      // Use proper timezone conversion instead of hardcoded adjustment
+      const utcTimeString = convertDragPositionToUTC(startDate, 0);
 
-      const data = await res.json();
+      try {
+        const res = await fetch('/api/schedule', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            taskId: updatedTask.id,
+            scheduledAt: utcTimeString,
+            durationMin: duration,
+            machineId: updatedTask.machine?.id ?? null,
+            operatorId: updatedTask.operator?.id ?? null,
+            itemId: updatedTask.item?.id ?? null,
+          }),
+        });
 
-      if (res.ok) {
-        setTasks((prev) =>
-          prev.map((t) =>
-            t.id === data.id ? { ...t, scheduledAt: data.scheduledAt, durationMin: data.durationMin } : t,
-          ),
-        );
-      } else {
-        alert(data.error || 'Failed to reschedule task');
+        const data = await res.json();
+
+        if (res.ok) {
+          setTasks((prev) =>
+            prev.map((t) =>
+              t.id === data.id ? { ...t, scheduledAt: data.scheduledAt, durationMin: data.durationMin } : t,
+            ),
+          );
+        } else {
+          alert(data.error || 'Failed to reschedule task');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Error rescheduling task');
       }
-    } catch (err) {
-      console.error(err);
-      alert('Error rescheduling task');
-    }
-  };
+    },
+    [tasks],
+  );
 
-  //BUG fix
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleEventResize = async ({ event, start, end }: any) => {
-    const updatedTask = tasks.find((t) => t.id === event.id);
-    if (!updatedTask) return;
+  const handleEventResize = useCallback(
+    async ({ event, start, end }: DragDropEvent & { end: string | Date }) => {
+      const updatedTask = tasks.find((t) => t.id === event.id);
+      if (!updatedTask) return;
 
-    const newDuration = Math.round((end.getTime() - start.getTime()) / 60000); // in minutes
+      // Convert start and end to Date if they're strings
+      const startDate = typeof start === 'string' ? new Date(start) : start;
+      const endDate = typeof end === 'string' ? new Date(end) : end;
 
-    // Calendar shows EDT (GMT-4) but API expects GMT-5 time
-    // Convert EDT to GMT-5: add 1 hour to match expected timezone
-    const adjustedStart = new Date(start.getTime() + 60 * 60 * 1000);
+      const newDuration = Math.round((endDate.getTime() - startDate.getTime()) / 60000); // in minutes
 
-    try {
-      const res = await fetch('/api/schedule', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          taskId: updatedTask.id,
-          scheduledAt: adjustedStart.toISOString(),
-          durationMin: newDuration,
-          machineId: updatedTask.machine?.id ?? null,
-          operatorId: updatedTask.operator?.id ?? null,
-          itemId: updatedTask.item?.id ?? null,
-        }),
-      });
+      // Use proper timezone conversion instead of hardcoded adjustment
+      const utcTimeString = convertDragPositionToUTC(startDate, 0);
 
-      const data = await res.json();
+      try {
+        const res = await fetch('/api/schedule', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            taskId: updatedTask.id,
+            scheduledAt: utcTimeString,
+            durationMin: newDuration,
+            machineId: updatedTask.machine?.id ?? null,
+            operatorId: updatedTask.operator?.id ?? null,
+            itemId: updatedTask.item?.id ?? null,
+          }),
+        });
 
-      if (res.ok) {
-        setTasks((prev) =>
-          prev.map((t) =>
-            t.id === data.id ? { ...t, scheduledAt: data.scheduledAt, durationMin: data.durationMin } : t,
-          ),
-        );
-      } else {
-        alert(data.error || 'Failed to resize task');
+        const data = await res.json();
+
+        if (res.ok) {
+          setTasks((prev) =>
+            prev.map((t) =>
+              t.id === data.id ? { ...t, scheduledAt: data.scheduledAt, durationMin: data.durationMin } : t,
+            ),
+          );
+        } else {
+          alert(data.error || 'Failed to resize task');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Error resizing task');
       }
-    } catch (err) {
-      console.error(err);
-      alert('Error resizing task');
-    }
-  };
+    },
+    [tasks],
+  );
 
-  // ✅ Save updates from modal
-  const handleSaveAssignment = async (update: TaskAssignmentUpdate) => {
-    await handleTaskAssignmentUpdate(
-      selectedTask,
-      update,
-      (updatedTask) => setTasks((prev) => prev.map((t) => (t.id === updatedTask.id ? updatedTask : t))),
-      () => setIsModalOpen(false),
-    );
-  };
+  // ✅ Save updates from modal - memoized
+  const handleSaveAssignment = useCallback(
+    async (update: TaskAssignmentUpdate) => {
+      await handleTaskAssignmentUpdate(
+        selectedTask,
+        update,
+        (updatedTask) => setTasks((prev) => prev.map((t) => (t.id === updatedTask.id ? updatedTask : t))),
+        () => setIsModalOpen(false),
+      );
+    },
+    [selectedTask],
+  );
+
+  // Memoize event selection handler
+  const handleSelectEvent = useCallback(
+    (event: CalendarEvent) => {
+      const task = tasks.find((t) => t.id === event.id);
+      if (task) {
+        setSelectedTask(task);
+        setIsModalOpen(true);
+      }
+    },
+    [tasks],
+  );
 
   return (
     <div className="p-6 bg-slate-50 min-h-screen">
@@ -322,13 +356,7 @@ export default function ScheduleCalendar() {
           onEventResize={handleEventResize}
           resizable={true}
           draggableAccessor={() => true}
-          onSelectEvent={(event) => {
-            const task = tasks.find((t) => t.id === event.id);
-            if (task) {
-              setSelectedTask(task);
-              setIsModalOpen(true);
-            }
-          }}
+          onSelectEvent={handleSelectEvent}
           eventPropGetter={(event) => ({
             style: {
               backgroundColor: event.resource?.color || '#6b7280',
@@ -369,3 +397,46 @@ export default function ScheduleCalendar() {
     </div>
   );
 }
+
+/**
+ * Problems:
+
+Hardcoded timezone conversion instead of using your centralized timezone utilities
+Comments mention EDT (GMT-4) but your app is configured for GMT-5
+Manual hour adjustment doesn't account for daylight saving time changes
+Inconsistent with the Gantt chart which now uses proper timezone utilities
+2. Performance Issues
+3. State Management Issues
+Multiple useEffect hooks fetching data separately
+No memoization of expensive computations
+Filter state causes full re-render of calendar
+4. Accessibility & UX
+No keyboard navigation support
+Limited screen reader support
+Error handling uses basic alert() notifications
+Recommendations for Improvement 🚀
+Priority 1: Fix Timezone Handling
+Replace hardcoded timezone conversion with your centralized utilities:
+
+Priority 2: Performance Optimization
+Memoize events array with useMemo
+Optimize filtering with useCallback
+Debounce filter changes
+Priority 3: Consistency
+Align calendar timezone behavior with Gantt chart
+Use same color system and formatting
+Consistent date/time handling across components
+Priority 4: Enhanced Features
+Better error handling with toast notifications
+Loading states during API calls
+Keyboard shortcuts for common actions
+Better mobile responsiveness
+Specific Code Issues Found
+Line 52: useState(new Date()) - should use timezone-aware current date
+Lines 141 & 185: Hardcoded "+1 hour" adjustments
+Line 117: convertTaskTimeForDisplay called in render loop
+No error boundaries for calendar failures
+Missing loading states during data fetching
+
+ * 
+ */
