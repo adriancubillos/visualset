@@ -100,6 +100,8 @@ export default function ScheduleCalendar() {
   const [currentDate, setCurrentDate] = useState(() => getCurrentDisplayTimezoneDate());
   const [hoveredEventId, setHoveredEventId] = useState<string | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [touchTimer, setTouchTimer] = useState<NodeJS.Timeout | null>(null);
+  const [isLongPress, setIsLongPress] = useState<boolean>(false);
 
   // New filter state
   const [selectedMachine, setSelectedMachine] = useState<string>('all');
@@ -144,6 +146,15 @@ export default function ScheduleCalendar() {
       })
       .catch(console.error);
   }, []);
+
+  // Cleanup touch timer on unmount
+  useEffect(() => {
+    return () => {
+      if (touchTimer) {
+        clearTimeout(touchTimer);
+      }
+    };
+  }, [touchTimer]);
 
   // // ✅ Unique machines/operators for dropdown
   // const machines = Array.from(new Map(tasks.filter((t) => t.machine).map((t) => [t.machine!.id, t.machine!])).values());
@@ -521,6 +532,41 @@ export default function ScheduleCalendar() {
                   }}
                   onMouseLeave={() => {
                     setHoveredEventId(null);
+                  }}
+                  onTouchStart={(e) => {
+                    // For mobile: only show tooltip on actual long press
+                    const touch = e.touches[0];
+                    setMousePosition({ x: touch.clientX, y: touch.clientY });
+                    setIsLongPress(false); // Reset long press flag
+
+                    const timer = setTimeout(() => {
+                      // This confirms it's a long press
+                      setIsLongPress(true);
+                      setHoveredEventId(event.id);
+                      // Hide tooltip after 4 seconds
+                      setTimeout(() => {
+                        setHoveredEventId(null);
+                        setIsLongPress(false);
+                      }, 4000);
+                    }, 500); // Long press threshold
+
+                    setTouchTimer(timer);
+                  }}
+                  onTouchMove={() => {
+                    // Cancel tooltip if user moves finger (scrolling/swiping)
+                    if (touchTimer) {
+                      clearTimeout(touchTimer);
+                      setTouchTimer(null);
+                      setIsLongPress(false);
+                    }
+                  }}
+                  onTouchEnd={() => {
+                    // Only cancel if it wasn't a long press yet
+                    if (touchTimer && !isLongPress) {
+                      clearTimeout(touchTimer);
+                      setTouchTimer(null);
+                      setIsLongPress(false);
+                    }
                   }}>
                   {/* Split background: left half operator, right half machine */}
                   <div className="absolute inset-0 flex">
@@ -553,12 +599,19 @@ export default function ScheduleCalendar() {
                       className="
                       fixed z-[9999]
                       bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg
-                      pointer-events-none whitespace-nowrap max-w-xs
+                      pointer-events-none max-w-xs
                     "
                       style={{
-                        left: `${mousePosition.x + 10}px`,
-                        top: `${mousePosition.y - 80}px`,
-                        transform: mousePosition.y < 100 ? 'translateY(100px)' : 'none',
+                        left:
+                          Math.min(
+                            Math.max(mousePosition.x + 10, 10),
+                            (typeof window !== 'undefined' ? window.innerWidth : 800) - 300,
+                          ) + 'px',
+                        top:
+                          Math.min(
+                            Math.max(mousePosition.y - 80, 10),
+                            (typeof window !== 'undefined' ? window.innerHeight : 600) - 150,
+                          ) + 'px',
                       }}>
                       <div className="font-semibold mb-1">{event.title}</div>
                       <div>Status: {event.resource?.status || 'UNKNOWN'}</div>
