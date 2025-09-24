@@ -99,6 +99,7 @@ export default function ScheduleCalendar() {
   const [currentView, setCurrentView] = useState<'week' | 'day' | 'agenda'>('week');
   const [currentDate, setCurrentDate] = useState(() => getCurrentDisplayTimezoneDate());
   const [hoveredEventId, setHoveredEventId] = useState<string | null>(null);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   // New filter state
   const [selectedMachine, setSelectedMachine] = useState<string>('all');
@@ -335,6 +336,7 @@ export default function ScheduleCalendar() {
       const task = tasks.find((t) => t.id === event.id);
       if (task) {
         setSelectedTask(task);
+        setHoveredEventId(null); // Clear tooltip when opening modal
         setIsModalOpen(true);
       }
     },
@@ -466,8 +468,14 @@ export default function ScheduleCalendar() {
               return (
                 <div
                   className="relative w-full h-full rounded-lg cursor-pointer"
-                  onMouseEnter={() => {
+                  onMouseEnter={(e) => {
+                    setMousePosition({ x: e.clientX, y: e.clientY });
                     setHoveredEventId(event.id);
+                  }}
+                  onMouseMove={(e) => {
+                    if (hoveredEventId === event.id) {
+                      setMousePosition({ x: e.clientX, y: e.clientY });
+                    }
                   }}
                   onMouseLeave={() => {
                     setHoveredEventId(null);
@@ -501,10 +509,15 @@ export default function ScheduleCalendar() {
                   {hoveredEventId === event.id && (
                     <div
                       className="
-                      absolute -top-20 left-0 z-[9999]
+                      fixed z-[9999]
                       bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg
-                      pointer-events-none whitespace-nowrap
-                    ">
+                      pointer-events-none whitespace-nowrap max-w-xs
+                    "
+                      style={{
+                        left: `${mousePosition.x + 10}px`,
+                        top: `${mousePosition.y - 80}px`,
+                        transform: mousePosition.y < 100 ? 'translateY(100px)' : 'none',
+                      }}>
                       <div className="font-semibold mb-1">{event.title}</div>
                       <div>Status: {event.resource?.status || 'UNKNOWN'}</div>
                       <div>Duration: {getDurationText(event.resource?.duration || 0)}</div>
