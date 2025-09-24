@@ -127,8 +127,25 @@
 
 .rbc-agenda-view .rbc-agenda-table .rbc-agenda-time-cell {
   background-color: #f8fafc !important;
+  font-weight: 600 !important;
+  color: #1e293b !important;
+  min-width: 120px !important;
+  text-align: left !important;
+  vertical-align: top !important;
+}
+
+.rbc-agenda-view .rbc-agenda-table .rbc-agenda-date-cell {
+  background-color: #f1f5f9 !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  min-width: 100px !important;
+  text-align: center !important;
+  font-size: 0.875rem !important;
+}
+
+.rbc-agenda-view .rbc-agenda-table .rbc-agenda-event-cell {
+  color: #374151 !important;
   font-weight: 500 !important;
-  color: #475569 !important;
 }
 
 /* Show More Button */
