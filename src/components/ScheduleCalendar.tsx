@@ -16,12 +16,16 @@ import { handleTaskAssignmentUpdate, TaskAssignmentUpdate } from '@/utils/taskAs
 interface Task {
   id: string;
   title: string;
+  description?: string | null;
   scheduledAt: string;
   durationMin: number;
+  status: string;
   project: { id: string; name: string; color?: string | null } | null;
   item: { id: string; name: string } | null;
-  machine: { id: string; name: string } | null;
-  operator: { id: string; name: string } | null;
+  machine: { id: string; name: string; type?: string; location?: string } | null;
+  operator: { id: string; name: string; email?: string | null; shift?: string | null } | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface CalendarEvent {
@@ -39,6 +43,16 @@ interface CalendarEvent {
     operatorPattern?: string;
     machineColor?: string;
     machinePattern?: string;
+    // Additional tooltip data
+    status: string;
+    description?: string | null;
+    item?: string;
+    machineType?: string;
+    machineLocation?: string;
+    operatorEmail?: string | null;
+    operatorShift?: string | null;
+    startDate?: string;
+    endDate?: string;
   };
 }
 
@@ -53,6 +67,30 @@ const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales
 
 // Wrap the base Calendar with drag-and-drop HOC
 const DnDCalendar = withDragAndDrop<CalendarEvent, object>(Calendar);
+
+// Helper function to get duration text
+const getDurationText = (minutes: number) => {
+  if (minutes < 60) {
+    return `${minutes}m`;
+  }
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+};
+
+// Helper function to format dates for display
+const formatDisplayDate = (dateStr: string): string => {
+  const { start } = convertTaskTimeForDisplay(dateStr, 0);
+  const monthName = start.toLocaleDateString('en-US', { month: 'short' });
+  const day = start.getDate();
+  const time = start.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+
+  return `${monthName} ${day}, ${time}`;
+};
 
 export default function ScheduleCalendar() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -149,11 +187,22 @@ export default function ScheduleCalendar() {
           operatorPattern: operatorColor?.pattern || 'solid',
           machineColor: machineColor?.hex || '#6b7280',
           machinePattern: machineColor?.pattern || 'solid',
+          // Additional tooltip data
+          status: task.status,
+          description: task.description,
+          item: task.item?.name,
+          machineType: task.machine?.type,
+          machineLocation: task.machine?.location,
+          operatorEmail: task.operator?.email,
+          operatorShift: task.operator?.shift,
+          startDate: formatDisplayDate(task.scheduledAt),
+          endDate: formatDisplayDate(
+            new Date(new Date(task.scheduledAt).getTime() + task.durationMin * 60 * 1000).toISOString(),
+          ),
         },
       };
     });
   }, [filteredTasks, getEventColor]);
-
   const handleEventDrop = useCallback(
     async ({ event, start }: DragDropEvent) => {
       const updatedTask = tasks.find((t) => t.id === event.id);
@@ -254,7 +303,24 @@ export default function ScheduleCalendar() {
       await handleTaskAssignmentUpdate(
         selectedTask,
         update,
-        (updatedTask) => setTasks((prev) => prev.map((t) => (t.id === updatedTask.id ? updatedTask : t))),
+        (updatedTask) => {
+          // Convert the response to match our extended Task interface
+          setTasks((prev) =>
+            prev.map((t) => {
+              if (t.id === updatedTask.id) {
+                return {
+                  ...t, // Keep existing fields
+                  ...updatedTask, // Apply updates
+                  // Ensure required fields are present
+                  status: t.status,
+                  createdAt: t.createdAt,
+                  updatedAt: t.updatedAt,
+                };
+              }
+              return t;
+            }),
+          );
+        },
         () => setIsModalOpen(false),
       );
     },
@@ -396,7 +462,7 @@ export default function ScheduleCalendar() {
               );
 
               return (
-                <div className="relative w-full h-full rounded-lg overflow-hidden">
+                <div className="relative w-full h-full rounded-lg overflow-hidden group cursor-pointer">
                   {/* Split background: left half operator, right half machine */}
                   <div className="absolute inset-0 flex">
                     <div
@@ -414,13 +480,40 @@ export default function ScheduleCalendar() {
                     <div className="font-medium truncate text-xs leading-tight">{event.title}</div>
                     {event.resource?.machine && (
                       <div className="text-xs opacity-90 truncate leading-tight">
-                        {event.resource.machine} • {event.resource.duration}m
+                        {event.resource.machine} • {getDurationText(event.resource.duration)}
                       </div>
                     )}
                   </div>
 
                   {/* Text shadow overlay for better readability */}
                   <div className="absolute inset-0 bg-black opacity-20 rounded-lg"></div>
+
+                  {/* Tooltip on hover - similar to Gantt chart */}
+                  <div
+                    className="
+                    absolute bottom-full left-0 z-50 mb-2
+                    bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg
+                    opacity-0 group-hover:opacity-100 transition-opacity duration-200
+                    pointer-events-none whitespace-nowrap
+                  ">
+                    <div className="font-semibold mb-1">{event.title}</div>
+                    <div>Status: {event.resource?.status.toUpperCase()}</div>
+                    <div>Duration: {getDurationText(event.resource?.duration || 0)}</div>
+                    {event.resource?.startDate && <div>Start: {event.resource.startDate}</div>}
+                    {event.resource?.endDate && <div>End: {event.resource.endDate}</div>}
+                    {tasks.find((t) => t.id === event.id)?.operator && (
+                      <div>Operator: {tasks.find((t) => t.id === event.id)?.operator?.name}</div>
+                    )}
+                    {event.resource?.machine && (
+                      <div>
+                        Machine: {event.resource.machine}
+                        {event.resource?.machineType && ` (${event.resource.machineType})`}
+                      </div>
+                    )}
+
+                    {/* Tooltip arrow */}
+                    <div className="absolute top-full left-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                  </div>
                 </div>
               );
             },
