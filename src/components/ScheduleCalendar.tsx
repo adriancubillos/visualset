@@ -105,6 +105,7 @@ export default function ScheduleCalendar() {
   const [selectedMachine, setSelectedMachine] = useState<string>('all');
   const [selectedOperator, setSelectedOperator] = useState<string>('all');
   const [selectedProject, setSelectedProject] = useState<string>('all');
+  const [selectedItem, setSelectedItem] = useState<string>('all');
 
   const [machines, setMachines] = useState<{ id: string; name: string }[]>([]);
   const [operators, setOperators] = useState<{ id: string; name: string }[]>([]);
@@ -152,13 +153,35 @@ export default function ScheduleCalendar() {
 
   // ✅ Apply filters - memoized to prevent unnecessary recalculations
   const filteredTasks = useMemo(() => {
-    return tasks.filter((task) => {
+    const filtered = tasks.filter((task) => {
       const machineMatch = selectedMachine === 'all' || task.machine?.id === selectedMachine;
       const operatorMatch = selectedOperator === 'all' || task.operator?.id === selectedOperator;
       const projectMatch = selectedProject === 'all' || task.project?.id === selectedProject;
-      return machineMatch && operatorMatch && projectMatch;
+      const itemMatch = selectedItem === 'all' || task.item?.id === selectedItem;
+      return machineMatch && operatorMatch && projectMatch && itemMatch;
     });
-  }, [tasks, selectedMachine, selectedOperator, selectedProject]);
+
+    return filtered;
+  }, [tasks, selectedMachine, selectedOperator, selectedProject, selectedItem]);
+
+  // ✅ Get items filtered by selected project - memoized
+  const availableItems = useMemo(() => {
+    if (selectedProject === 'all') {
+      return items;
+    }
+    // Find the selected project and get its items
+    const project = projects.find((p) => p.id === selectedProject);
+    if (!project) return [];
+
+    return items.filter((item) =>
+      tasks.some((task) => task.project?.id === selectedProject && task.item?.id === item.id),
+    );
+  }, [items, selectedProject, projects, tasks]);
+
+  // ✅ Reset item selection when project changes
+  useEffect(() => {
+    setSelectedItem('all');
+  }, [selectedProject]);
 
   // Color coding function using consistent project color system - memoized
   const getEventColor = useCallback((task: Task) => {
@@ -168,7 +191,7 @@ export default function ScheduleCalendar() {
 
   // Memoize events array to prevent recreation on every render
   const events: CalendarEvent[] = useMemo(() => {
-    return filteredTasks.map((task) => {
+    const eventList = filteredTasks.map((task) => {
       const { start, end } = convertTaskTimeForDisplay(task.scheduledAt, task.durationMin);
 
       // Get operator colors/patterns
@@ -205,6 +228,8 @@ export default function ScheduleCalendar() {
         },
       };
     });
+
+    return eventList;
   }, [filteredTasks, getEventColor]);
   const handleEventDrop = useCallback(
     async ({ event, start }: DragDropEvent) => {
@@ -369,7 +394,7 @@ export default function ScheduleCalendar() {
           </svg>
           Filters
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">Project</label>
             <select
@@ -382,6 +407,23 @@ export default function ScheduleCalendar() {
                   key={p.id}
                   value={p.id}>
                   {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Item</label>
+            <select
+              value={selectedItem}
+              onChange={(e) => setSelectedItem(e.target.value)}
+              className="w-full border-2 border-slate-200 rounded-lg p-3 text-slate-700 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition-colors">
+              <option value="all">All Items</option>
+              {availableItems.map((item) => (
+                <option
+                  key={item.id}
+                  value={item.id}>
+                  {item.name}
                 </option>
               ))}
             </select>

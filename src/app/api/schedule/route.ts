@@ -25,7 +25,11 @@ export async function GET(req: Request) {
     const tasks = await prisma.task.findMany({
       where,
       include: {
-        item: true,
+        item: {
+          include: {
+            project: true,
+          },
+        },
         machine: true,
         operator: true,
       },
