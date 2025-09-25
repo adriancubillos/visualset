@@ -9,7 +9,7 @@ import '../styles/calendar.css';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale'; // ✅ Named import
 import TaskModal from './task/TaskModal';
-import { convertTaskTimeForDisplay, getCurrentDisplayTimezoneDate, convertDragPositionToUTC } from '@/utils/timezone';
+import { convertTaskTimeForDisplay, getCurrentDisplayTimezoneDate, getDisplayTimezoneOffset } from '@/utils/timezone';
 import { getProjectColor, getOperatorColor, getMachineColor, getPatternStyles, type PatternType } from '@/utils/colors';
 import { handleTaskAssignmentUpdate, TaskAssignmentUpdate } from '@/utils/taskAssignment';
 
@@ -253,8 +253,11 @@ export default function ScheduleCalendar() {
       // Convert start to Date if it's a string
       const startDate = typeof start === 'string' ? new Date(start) : start;
 
-      // Use proper timezone conversion instead of hardcoded adjustment
-      const utcTimeString = convertDragPositionToUTC(startDate, 0);
+      // For calendar drag operations, we need to convert the local time directly to UTC
+      // The calendar gives us the local display time, so we need to account for timezone offset
+      const offsetHours = getDisplayTimezoneOffset();
+      const utcDate = new Date(startDate.getTime() - offsetHours * 60 * 60 * 1000);
+      const utcTimeString = utcDate.toISOString();
 
       try {
         const res = await fetch('/api/schedule', {
@@ -300,8 +303,10 @@ export default function ScheduleCalendar() {
 
       const newDuration = Math.round((endDate.getTime() - startDate.getTime()) / 60000); // in minutes
 
-      // Use proper timezone conversion instead of hardcoded adjustment
-      const utcTimeString = convertDragPositionToUTC(startDate, 0);
+      // For calendar resize operations, convert the local time directly to UTC
+      const offsetHours = getDisplayTimezoneOffset();
+      const utcDate = new Date(startDate.getTime() - offsetHours * 60 * 60 * 1000);
+      const utcTimeString = utcDate.toISOString();
 
       try {
         const res = await fetch('/api/schedule', {
