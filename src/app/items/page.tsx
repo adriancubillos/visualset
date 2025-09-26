@@ -162,10 +162,13 @@ export default function ItemsPage() {
     {
       key: 'project',
       label: 'Filter by Project',
-      options: projects.map((project) => ({
-        value: project.id,
-        label: project.name,
-      })),
+      options: projects
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((project) => ({
+          value: project.id,
+          label: project.name,
+        })),
     },
     {
       key: 'status',

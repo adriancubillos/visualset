@@ -369,13 +369,16 @@ export default function ScheduleCalendar() {
               onChange={(e) => setSelectedProject(e.target.value)}
               className="w-full border-2 border-slate-200 rounded-lg p-3 text-slate-700 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition-colors">
               <option value="all">All Projects</option>
-              {projects.map((p) => (
-                <option
-                  key={p.id}
-                  value={p.id}>
-                  {p.name}
-                </option>
-              ))}
+              {projects
+                .slice()
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map((p) => (
+                  <option
+                    key={p.id}
+                    value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
             </select>
           </div>
 
@@ -386,13 +389,16 @@ export default function ScheduleCalendar() {
               onChange={(e) => setSelectedItem(e.target.value)}
               className="w-full border-2 border-slate-200 rounded-lg p-3 text-slate-700 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition-colors">
               <option value="all">All Items</option>
-              {availableItems.map((item) => (
-                <option
-                  key={item.id}
-                  value={item.id}>
-                  {item.name}
-                </option>
-              ))}
+              {availableItems
+                .slice()
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map((item) => (
+                  <option
+                    key={item.id}
+                    value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
             </select>
           </div>
 
@@ -403,13 +409,16 @@ export default function ScheduleCalendar() {
               onChange={(e) => setSelectedMachine(e.target.value)}
               className="w-full border-2 border-slate-200 rounded-lg p-3 text-slate-700 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition-colors">
               <option value="all">All Machines</option>
-              {machines.map((m) => (
-                <option
-                  key={m.id}
-                  value={m.id}>
-                  {m.name}
-                </option>
-              ))}
+              {machines
+                .slice()
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map((m) => (
+                  <option
+                    key={m.id}
+                    value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
             </select>
           </div>
 
@@ -420,13 +429,16 @@ export default function ScheduleCalendar() {
               onChange={(e) => setSelectedOperator(e.target.value)}
               className="w-full border-2 border-slate-200 rounded-lg p-3 text-slate-700 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition-colors">
               <option value="all">All Operators</option>
-              {operators.map((o) => (
-                <option
-                  key={o.id}
-                  value={o.id}>
-                  {o.name}
-                </option>
-              ))}
+              {operators
+                .slice()
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map((o) => (
+                  <option
+                    key={o.id}
+                    value={o.id}>
+                    {o.name}
+                  </option>
+                ))}
             </select>
           </div>
         </div>

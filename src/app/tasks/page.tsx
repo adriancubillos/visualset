@@ -184,24 +184,30 @@ export default function TasksPage() {
     {
       key: 'status',
       label: 'Filter by Status',
-      options: TASK_STATUS.map((status) => ({
-        value: status.value,
-        label: status.label,
-      })),
+      options: TASK_STATUS.slice()
+        .sort((a, b) => a.label.localeCompare(b.label))
+        .map((status) => ({
+          value: status.value,
+          label: status.label,
+        })),
     },
     {
       key: 'project',
       label: 'Filter by Project',
-      options: projects.map((project) => ({
-        value: project.id,
-        label: project.name,
-      })),
+      options: projects
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((project) => ({
+          value: project.id,
+          label: project.name,
+        })),
     },
     {
       key: 'item',
       label: 'Filter by Item',
       options: items
         .filter((item) => !selectedProject || item.projectId === selectedProject)
+        .sort((a, b) => a.name.localeCompare(b.name))
         .map((item) => ({
           value: item.id,
           label: item.name,

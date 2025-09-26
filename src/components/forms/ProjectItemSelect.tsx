@@ -60,13 +60,16 @@ export default function ProjectItemSelect({
           disabled={disabled}
           className={selectClassName}>
           <option value="">{required ? 'Select a Project' : 'No Project'}</option>
-          {projects.map((project) => (
-            <option
-              key={project.id}
-              value={project.id}>
-              {project.name}
-            </option>
-          ))}
+          {projects
+            .slice()
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map((project) => (
+              <option
+                key={project.id}
+                value={project.id}>
+                {project.name}
+              </option>
+            ))}
         </select>
       </div>
 
@@ -86,13 +89,15 @@ export default function ProjectItemSelect({
           disabled={disabled || !projectId}
           className={selectClassName}>
           <option value="">{required ? 'Select an Item' : 'No Item'}</option>
-          {getFilteredItems().map((item) => (
-            <option
-              key={item.id}
-              value={item.id}>
-              {item.name}
-            </option>
-          ))}
+          {getFilteredItems()
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map((item) => (
+              <option
+                key={item.id}
+                value={item.id}>
+                {item.name}
+              </option>
+            ))}
         </select>
       </div>
     </div>

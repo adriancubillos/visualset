@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { formatDateTimeForDisplay, parseGMTMinus5DateTime, getCurrentDisplayTimezoneDate } from '@/utils/timezone';
 import { TASK_PRIORITY, TASK_STATUS } from '@/config/workshop-properties';
@@ -13,6 +13,8 @@ function NewTaskPageContent() {
   const searchParams = useSearchParams();
   const { projects, items, machines, operators, loading: dataLoading } = useTaskFormData();
 
+  const sortedOperators = useMemo(() => [...operators].sort((a, b) => a.name.localeCompare(b.name)), [operators]);
+
   // Initialize with current date and time in display timezone
   const currentUTCDate = new Date();
   const { date: currentDateStr, time: currentTimeStr } = formatDateTimeForDisplay(currentUTCDate);
@@ -21,7 +23,7 @@ function NewTaskPageContent() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    status: 'PENDING',
+    status: 'IN_PROGRESS',
     priority: 'MEDIUM',
     scheduledAt: defaultScheduledAt,
     durationMin: 60,
@@ -179,7 +181,7 @@ function NewTaskPageContent() {
             name="operatorId"
             label="Operator"
             value={formData.operatorId}
-            options={operators}
+            options={sortedOperators}
             onChange={(value) => setFormData((prev) => ({ ...prev, operatorId: value }))}
           />
 
@@ -219,13 +221,15 @@ function NewTaskPageContent() {
                 value={formData.status}
                 onChange={handleChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                {TASK_STATUS.filter((status) => ['PENDING', 'IN_PROGRESS'].includes(status.value)).map((status) => (
-                  <option
-                    key={status.value}
-                    value={status.value}>
-                    {status.label}
-                  </option>
-                ))}
+                {TASK_STATUS.filter((status) => ['PENDING', 'IN_PROGRESS'].includes(status.value))
+                  .sort((a, b) => a.label.localeCompare(b.label))
+                  .map((status) => (
+                    <option
+                      key={status.value}
+                      value={status.value}>
+                      {status.label}
+                    </option>
+                  ))}
               </select>
             </div>
           </div>
