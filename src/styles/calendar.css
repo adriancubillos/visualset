@@ -157,3 +157,8 @@
   font-size: 0.75rem !important;
   font-weight: 500 !important;
 }
+
+/* Hide default event labels since we have custom content */
+.rbc-event-label {
+  display: none !important;
+}

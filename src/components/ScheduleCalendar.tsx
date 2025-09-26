@@ -292,55 +292,6 @@ export default function ScheduleCalendar() {
     [tasks],
   );
 
-  const handleEventResize = useCallback(
-    async ({ event, start, end }: DragDropEvent & { end: string | Date }) => {
-      const updatedTask = tasks.find((t) => t.id === event.id);
-      if (!updatedTask) return;
-
-      // Convert start and end to Date if they're strings
-      const startDate = typeof start === 'string' ? new Date(start) : start;
-      const endDate = typeof end === 'string' ? new Date(end) : end;
-
-      const newDuration = Math.round((endDate.getTime() - startDate.getTime()) / 60000); // in minutes
-
-      // For calendar resize operations, convert the local time directly to UTC
-      const offsetHours = getDisplayTimezoneOffset();
-      const utcDate = new Date(startDate.getTime() - offsetHours * 60 * 60 * 1000);
-      const utcTimeString = utcDate.toISOString();
-
-      try {
-        const res = await fetch('/api/schedule', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            taskId: updatedTask.id,
-            scheduledAt: utcTimeString,
-            durationMin: newDuration,
-            machineId: updatedTask.machine?.id ?? null,
-            operatorId: updatedTask.operator?.id ?? null,
-            itemId: updatedTask.item?.id ?? null,
-          }),
-        });
-
-        const data = await res.json();
-
-        if (res.ok) {
-          setTasks((prev) =>
-            prev.map((t) =>
-              t.id === data.id ? { ...t, scheduledAt: data.scheduledAt, durationMin: data.durationMin } : t,
-            ),
-          );
-        } else {
-          alert(data.error || 'Failed to resize task');
-        }
-      } catch (err) {
-        console.error(err);
-        alert('Error resizing task');
-      }
-    },
-    [tasks],
-  );
-
   // ✅ Save updates from modal - memoized
   const handleSaveAssignment = useCallback(
     async (update: TaskAssignmentUpdate) => {
@@ -494,8 +445,7 @@ export default function ScheduleCalendar() {
           onNavigate={(date) => setCurrentDate(date)}
           views={['week', 'day', 'agenda']}
           onEventDrop={handleEventDrop}
-          onEventResize={handleEventResize}
-          resizable={true}
+          resizable={false}
           draggableAccessor={() => true}
           onSelectEvent={handleSelectEvent}
           eventPropGetter={() => ({
@@ -588,11 +538,19 @@ export default function ScheduleCalendar() {
                   {/* Content overlay */}
                   <div className="relative z-10 p-1 h-full flex flex-col justify-center text-white">
                     <div className="font-medium truncate text-xs leading-tight">{event.title}</div>
-                    {event.resource?.machine && (
-                      <div className="text-xs opacity-90 truncate leading-tight">
-                        {event.resource.machine} • {getDurationText(event.resource.duration)}
-                      </div>
-                    )}
+                    <div className="text-xs opacity-90 truncate leading-tight">
+                      {event.start.toLocaleTimeString('en-US', {
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        hour12: true,
+                      })}{' '}
+                      -{' '}
+                      {event.end.toLocaleTimeString('en-US', {
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        hour12: true,
+                      })}
+                    </div>
                   </div>
 
                   {/* Text shadow overlay for better readability */}
