@@ -7,6 +7,7 @@ import { TASK_PRIORITY, TASK_STATUS } from '@/config/workshop-properties';
 import { useTaskFormData } from '@/hooks/useTaskFormData';
 import ProjectItemSelect from '@/components/forms/ProjectItemSelect';
 import AssignmentSelect from '@/components/forms/AssignmentSelect';
+import { handleTaskResponse } from '@/utils/taskErrorHandling';
 
 function NewTaskPageContent() {
   const router = useRouter();
@@ -89,13 +90,7 @@ function NewTaskPageContent() {
         }),
       });
 
-      if (response.ok) {
-        router.push('/tasks');
-      } else {
-        const errorData = await response.json();
-        console.error('Failed to create task:', errorData.error);
-        alert('Failed to create task: ' + (errorData.error || 'Unknown error'));
-      }
+      await handleTaskResponse(response, () => router.push('/tasks'), 'create task');
     } catch (error) {
       console.error('Error creating task:', error);
       alert('Error creating task. Please try again.');

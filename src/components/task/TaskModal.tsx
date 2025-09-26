@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { formatDateTimeGMTMinus5, parseGMTMinus5DateTime } from '@/utils/timezone';
+import { displayConflictError } from '@/utils/taskErrorHandling';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -195,24 +196,8 @@ export default function TaskModal({ isOpen, onClose, task, onSave, items, machin
                     });
                   } else {
                     // Handle conflict or other errors
-                    if (data.conflict) {
-                      const conflictType = data.conflict.machine ? 'Machine' : 'Operator';
-                      const conflictName = data.conflict.machine?.name || data.conflict.operator?.name || 'Unknown';
-                      const conflictStartDate = new Date(data.conflict.scheduledAt);
-                      const conflictEndDate = new Date(
-                        new Date(data.conflict.scheduledAt).getTime() + (data.conflict.durationMin || 60) * 60 * 1000,
-                      );
-                      const { date: startDate, time: startTime } = formatDateTimeGMTMinus5(conflictStartDate);
-                      const { date: endDate, time: endTime } = formatDateTimeGMTMinus5(conflictEndDate);
-                      const conflictStart = `${startDate} ${startTime}`;
-                      const conflictEnd = `${endDate} ${endTime}`;
-
-                      alert(
-                        `Scheduling conflict detected:\n\n${conflictType} "${conflictName}" is already booked for task "${data.conflict.title}" from ${conflictStart} to ${conflictEnd}`,
-                      );
-                    } else {
-                      alert(data.error || 'Failed to update task');
-                    }
+                    console.error('Failed to update task:', data.error);
+                    displayConflictError(data);
                   }
                 } catch (error) {
                   console.error('Error updating task:', error);

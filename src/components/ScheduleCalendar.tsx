@@ -9,9 +9,14 @@ import '../styles/calendar.css';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale'; // ✅ Named import
 import TaskModal from './task/TaskModal';
-import { convertTaskTimeForDisplay, getCurrentDisplayTimezoneDate, getDisplayTimezoneOffset } from '@/utils/timezone';
+import {
+  convertTaskTimeForDisplay,
+  getCurrentDisplayTimezoneDate,
+  parseDisplayTimezoneDateTime,
+} from '@/utils/timezone';
 import { getProjectColor, getOperatorColor, getMachineColor, getPatternStyles, type PatternType } from '@/utils/colors';
 import { handleTaskAssignmentUpdate, TaskAssignmentUpdate } from '@/utils/taskAssignment';
+import { displayConflictError } from '@/utils/taskErrorHandling';
 
 interface Task {
   id: string;
@@ -250,13 +255,23 @@ export default function ScheduleCalendar() {
       // Ensure durationMin exists
       const duration = updatedTask.durationMin ?? 60; // fallback 60 minutes
 
-      // Convert start to Date if it's a string
+      // Convert the drag position to a proper UTC time string using timezone utilities
+      // The calendar gives us a local Date object from the drag operation
       const startDate = typeof start === 'string' ? new Date(start) : start;
 
-      // For calendar drag operations, we need to convert the local time directly to UTC
-      // The calendar gives us the local display time, so we need to account for timezone offset
-      const offsetHours = getDisplayTimezoneOffset();
-      const utcDate = new Date(startDate.getTime() - offsetHours * 60 * 60 * 1000);
+      // Extract date and time components from the local drag position
+      const year = startDate.getFullYear();
+      const month = startDate.getMonth() + 1;
+      const day = startDate.getDate();
+      const hours = startDate.getHours();
+      const minutes = startDate.getMinutes();
+
+      // Format as strings for the timezone utility
+      const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const timeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+
+      // Use timezone utility to convert to UTC
+      const utcDate = parseDisplayTimezoneDateTime(dateStr, timeStr);
       const utcTimeString = utcDate.toISOString();
 
       try {
@@ -282,7 +297,9 @@ export default function ScheduleCalendar() {
             ),
           );
         } else {
-          alert(data.error || 'Failed to reschedule task');
+          const errorData = await res.json();
+          console.error('Failed to reschedule task:', errorData.error);
+          displayConflictError(errorData);
         }
       } catch (err) {
         console.error(err);

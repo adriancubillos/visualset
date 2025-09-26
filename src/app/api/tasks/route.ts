@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { mapTaskToResponse, TaskResponseDTO, TaskWithRelationsDTO } from '@/types/api';
 import { parseGMTMinus5DateTime } from '@/utils/timezone';
+import { checkSchedulingConflicts, createConflictErrorResponse } from '@/utils/conflictDetection';
 
 const prisma = new PrismaClient();
 
@@ -44,6 +45,21 @@ export async function POST(req: Request) {
         item = await prisma.item.create({ data: { projectId: body.projectId, name: 'Default Item' } });
       }
       itemId = item.id;
+    }
+
+    // ✅ Add conflict detection for scheduled tasks
+    if (scheduledAt && body.durationMin && (body.machineId || body.operatorId)) {
+      const conflictResult = await checkSchedulingConflicts({
+        scheduledAt,
+        durationMin: body.durationMin,
+        machineId: body.machineId,
+        operatorId: body.operatorId,
+      });
+
+      if (conflictResult.hasConflict) {
+        const errorResponse = createConflictErrorResponse(conflictResult);
+        return NextResponse.json(errorResponse, { status: 409 });
+      }
     }
 
     const task = await prisma.task.create({

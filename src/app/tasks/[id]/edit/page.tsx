@@ -8,6 +8,7 @@ import { TASK_PRIORITY, TASK_STATUS } from '@/config/workshop-properties';
 import { useTaskFormData } from '@/hooks/useTaskFormData';
 import ProjectItemSelect from '@/components/forms/ProjectItemSelect';
 import AssignmentSelect from '@/components/forms/AssignmentSelect';
+import { handleTaskResponse } from '@/utils/taskErrorHandling';
 
 interface Task {
   id: string;
@@ -152,13 +153,7 @@ export default function EditTaskPage() {
         }),
       });
 
-      if (response.ok) {
-        router.push(`/tasks/${params.id}`);
-      } else {
-        const errorData = await response.json();
-        console.error('Failed to update task:', errorData.error);
-        alert('Failed to update task: ' + (errorData.error || 'Unknown error'));
-      }
+      await handleTaskResponse(response, () => router.push(`/tasks/${params.id}`), 'update task');
     } catch (error) {
       console.error('Error updating task:', error);
       alert('Error updating task. Please try again.');

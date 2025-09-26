@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { mapTaskToResponse, TaskWithRelationsDTO } from '@/types/api';
 import { parseGMTMinus5DateTime } from '@/utils/timezone';
+import { checkSchedulingConflicts, createConflictErrorResponse } from '@/utils/conflictDetection';
 
 const prisma = new PrismaClient();
 
@@ -49,6 +50,22 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       } else {
         // Fallback to direct parsing
         scheduledAt = new Date(body.scheduledAt).toISOString();
+      }
+    }
+
+    // Check for scheduling conflicts if task is being scheduled or rescheduled
+    if (scheduledAt && body.durationMin && (body.machineId || body.operatorId)) {
+      const conflictResult = await checkSchedulingConflicts({
+        scheduledAt,
+        durationMin: body.durationMin,
+        machineId: body.machineId,
+        operatorId: body.operatorId,
+        excludeTaskId: id, // Exclude current task being edited
+      });
+
+      if (conflictResult.hasConflict) {
+        const errorResponse = createConflictErrorResponse(conflictResult);
+        return NextResponse.json(errorResponse, { status: 409 });
       }
     }
 

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { mapTaskToResponse } from '@/types/api';
+import { checkSchedulingConflicts, createConflictErrorResponse } from '@/utils/conflictDetection';
 
 const prisma = new PrismaClient();
 
@@ -66,90 +67,20 @@ export async function POST(req: Request) {
     }
 
     const startTime = new Date(scheduledAt);
-    const endTime = new Date(startTime.getTime() + durationMin * 60 * 1000);
 
-    // Overlap check
-    const overlaps = (startA: Date, endA: Date, startB: Date, endB: Date) => startA < endB && endA > startB;
-
-    // Machine conflict
-    if (machineId) {
-      const machineConflicts = await prisma.task.findMany({
-        where: {
-          machineId,
-          id: { not: taskId },
-          scheduledAt: { not: null },
-          AND: [
-            {
-              scheduledAt: {
-                lt: endTime, // Task starts before our end time
-              },
-            },
-            {
-              // Task ends after our start time (calculated field)
-              scheduledAt: {
-                gte: new Date(startTime.getTime() - 24 * 60 * 60 * 1000), // Look back max 24 hours
-              },
-            },
-          ],
-        },
-        include: { machine: true },
+    // ✅ Use centralized conflict detection
+    if (machineId || operatorId) {
+      const conflictResult = await checkSchedulingConflicts({
+        scheduledAt,
+        durationMin,
+        machineId,
+        operatorId,
+        excludeTaskId: taskId, // Exclude current task being rescheduled
       });
 
-      const conflict = machineConflicts.find((t) => {
-        if (!t.scheduledAt) return false;
-        const otherEnd = new Date(t.scheduledAt.getTime() + (t.durationMin || 60) * 60 * 1000);
-        return overlaps(startTime, endTime, t.scheduledAt!, otherEnd);
-      });
-
-      if (conflict) {
-        return NextResponse.json(
-          {
-            error: 'Machine is already booked at this time',
-            conflict: {
-              taskId: conflict.id,
-              title: conflict.title,
-              scheduledAt: conflict.scheduledAt,
-              durationMin: conflict.durationMin,
-              machine: conflict.machine,
-            },
-          },
-          { status: 400 },
-        );
-      }
-    }
-
-    // Operator conflict
-    if (operatorId) {
-      const operatorConflicts = await prisma.task.findMany({
-        where: {
-          operatorId,
-          id: { not: taskId },
-          scheduledAt: { not: null },
-          AND: [
-            {
-              scheduledAt: {
-                lt: endTime, // Task starts before our end time
-              },
-            },
-            {
-              // Task ends after our start time (calculated field)
-              scheduledAt: {
-                gte: new Date(startTime.getTime() - 24 * 60 * 60 * 1000), // Look back max 24 hours
-              },
-            },
-          ],
-        },
-        include: { operator: true },
-      });
-
-      const conflict = operatorConflicts.find((t) => {
-        if (!t.scheduledAt) return false;
-        const otherEnd = new Date(t.scheduledAt.getTime() + (t.durationMin || 60) * 60 * 1000);
-        return overlaps(startTime, endTime, t.scheduledAt!, otherEnd);
-      });
-
-      if (conflict) {
-        return NextResponse.json({ error: 'Operator is already booked at this time', conflict }, { status: 400 });
+      if (conflictResult.hasConflict) {
+        const errorResponse = createConflictErrorResponse(conflictResult);
+        return NextResponse.json(errorResponse, { status: 409 });
       }
     }
 
