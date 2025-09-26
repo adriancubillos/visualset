@@ -297,9 +297,8 @@ export default function ScheduleCalendar() {
             ),
           );
         } else {
-          const errorData = await res.json();
-          console.error('Failed to reschedule task:', errorData.error);
-          displayConflictError(errorData);
+          console.warn('Scheduling conflict detected during drag operation:', data.error);
+          displayConflictError(data);
         }
       } catch (err) {
         console.error(err);

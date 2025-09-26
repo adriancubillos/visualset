@@ -53,7 +53,14 @@ export async function handleTaskResponse(
     onSuccess();
   } else {
     const errorData = await response.json();
-    console.error(`Failed to ${operationName}:`, errorData.error);
+
+    // Use appropriate log level based on error type
+    if (errorData.conflict) {
+      console.warn(`Scheduling conflict during ${operationName}:`, errorData.error);
+    } else {
+      console.error(`Failed to ${operationName}:`, errorData.error);
+    }
+
     displayConflictError(errorData);
   }
 }
