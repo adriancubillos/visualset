@@ -134,6 +134,14 @@ const defaultColumns: Column<Task>[] = [
     render: (operator: Task['operator']) => <span className="text-sm">{operator?.name || 'Unassigned'}</span>,
   },
   {
+    key: 'machine',
+    header: 'Machine',
+    sortable: false,
+    width: '15%',
+    minWidth: '120px',
+    render: (machine: Task['machine']) => <span className="text-sm">{machine?.name || 'Unassigned'}</span>,
+  },
+  {
     key: 'timeSlots',
     header: 'Scheduled',
     sortable: true,
