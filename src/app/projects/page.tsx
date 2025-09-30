@@ -227,6 +227,7 @@ export default function ProjectsPage() {
         loading={loading}
         onRowClick={handleRowClick}
         actions={renderActions}
+        maxHeight="70vh"
       />
     </PageContainer>
   );

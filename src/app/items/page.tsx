@@ -218,6 +218,7 @@ export default function ItemsPage() {
           data={filteredItems}
           columns={columns}
           loading={loading}
+          maxHeight="70vh"
           actions={(item: Item) => (
             <TableActions
               itemId={item.id}
