@@ -1,10 +1,17 @@
 // Shared utility for handling task assignment updates
+export interface TimeSlot {
+  id?: string;
+  startDateTime: string;
+  endDateTime?: string;
+  durationMin: number;
+  isPrimary: boolean;
+}
+
 export interface TaskAssignmentUpdate {
   itemId: string | null;
   machineId: string | null;
   operatorId: string | null;
-  scheduledAt?: string;
-  durationMin?: number;
+  timeSlots: TimeSlot[];
 }
 
 export interface Task {
@@ -31,26 +38,28 @@ export const handleTaskAssignmentUpdate = async (
 ): Promise<void> => {
   if (!selectedTask) return;
 
-  // Get primary time slot or first time slot for current scheduling info
-  const primarySlot = selectedTask.timeSlots?.find((slot) => slot.isPrimary) || selectedTask.timeSlots?.[0];
-
   try {
-    const res = await fetch('/api/schedule', {
-      method: 'POST',
+    // Use the tasks API endpoint which properly handles timeSlots
+    const response = await fetch(`/api/tasks/${selectedTask.id}`, {
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        taskId: selectedTask.id,
+        title: selectedTask.title, // Required field
         itemId: update.itemId,
         machineId: update.machineId,
         operatorId: update.operatorId,
-        scheduledAt: update.scheduledAt || primarySlot?.startDateTime,
-        durationMin: update.durationMin || primarySlot?.durationMin || 60,
+        timeSlots: update.timeSlots.map((slot) => ({
+          startDateTime: slot.startDateTime,
+          endDateTime: slot.endDateTime,
+          durationMin: slot.durationMin,
+          isPrimary: slot.isPrimary,
+        })),
       }),
     });
 
-    const data = await res.json();
+    const data = await response.json();
 
-    if (res.ok) {
+    if (response.ok) {
       onSuccess(data);
       onClose();
     } else {
@@ -58,6 +67,6 @@ export const handleTaskAssignmentUpdate = async (
     }
   } catch (error) {
     console.error('Error updating task assignment:', error);
-    alert('Error updating task assignment. Please try again.');
+    alert('Error updating task. Please try again.');
   }
 };

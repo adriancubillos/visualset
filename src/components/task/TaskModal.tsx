@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { displayConflictError } from '@/utils/taskErrorHandling';
+import TimeSlotsManager, { TimeSlot } from '@/components/forms/TimeSlotsManager';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -10,8 +10,7 @@ interface TaskModalProps {
     itemId: string | null;
     machineId: string | null;
     operatorId: string | null;
-    scheduledAt?: string;
-    durationMin?: number;
+    timeSlots: TimeSlot[];
   }) => void;
   items: { id: string; name: string; project?: { name: string } }[];
   machines: { id: string; name: string }[];
@@ -22,9 +21,7 @@ export default function TaskModal({ isOpen, onClose, task, onSave, items, machin
   const [itemId, setItemId] = useState<string | null>(null);
   const [machineId, setMachineId] = useState<string | null>(null);
   const [operatorId, setOperatorId] = useState<string | null>(null);
-  const [scheduledDate, setScheduledDate] = useState<string>('');
-  const [startTime, setStartTime] = useState<string>('');
-  const [duration, setDuration] = useState<number>(0);
+  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
 
   useEffect(() => {
     if (task) {
@@ -32,20 +29,37 @@ export default function TaskModal({ isOpen, onClose, task, onSave, items, machin
       setMachineId(task.machine?.id ?? null);
       setOperatorId(task.operator?.id ?? null);
 
-      // Set date and time from task.scheduledAt using browser timezone
-      if (task.scheduledAt) {
-        const date = new Date(task.scheduledAt);
-        const dateStr = date.toISOString().slice(0, 10); // YYYY-MM-DD
-        const timeStr = date.toTimeString().slice(0, 5); // HH:MM
-        setScheduledDate(dateStr);
-        setStartTime(timeStr);
+      // Convert task timeSlots to TimeSlot format, or create a default one if none exist
+      if (task.timeSlots && task.timeSlots.length > 0) {
+        setTimeSlots(
+          task.timeSlots.map(
+            (slot: {
+              id: string;
+              startDateTime: string;
+              endDateTime?: string | null;
+              durationMin: number;
+              isPrimary: boolean;
+            }) => ({
+              id: slot.id,
+              startDateTime: new Date(slot.startDateTime).toISOString().slice(0, 16), // Format: YYYY-MM-DDTHH:MM
+              endDateTime: slot.endDateTime ? new Date(slot.endDateTime).toISOString().slice(0, 16) : undefined,
+              durationMin: slot.durationMin,
+              isPrimary: slot.isPrimary,
+            }),
+          ),
+        );
       } else {
-        setScheduledDate('');
-        setStartTime('');
+        // Create a default time slot if none exist
+        const now = new Date();
+        const defaultDateTime = now.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:MM
+        setTimeSlots([
+          {
+            startDateTime: defaultDateTime,
+            durationMin: 60,
+            isPrimary: true,
+          },
+        ]);
       }
-
-      // Convert durationMin to hours
-      setDuration(task.durationMin ? task.durationMin / 60 : 0);
     }
   }, [task]);
 
@@ -53,7 +67,7 @@ export default function TaskModal({ isOpen, onClose, task, onSave, items, machin
 
   return (
     <div className="fixed inset-0 bg-gray-500/50 flex items-center justify-center z-50">
-      <div className="bg-white p-8 rounded-lg shadow-xl w-96 max-w-md mx-4 border">
+      <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-2xl mx-4 border max-h-[90vh] overflow-y-auto">
         <h3 className="text-xl font-bold mb-6 text-gray-900">Update Assignment</h3>
 
         {/* Item Dropdown */}
@@ -119,34 +133,13 @@ export default function TaskModal({ isOpen, onClose, task, onSave, items, machin
           ))}
         </select>
 
-        {/* Date Input */}
-        <label className="block mb-2 text-sm font-semibold text-gray-700">Scheduled Date</label>
-        <input
-          type="date"
-          className="w-full border-2 border-gray-300 rounded-md p-3 mb-4 text-gray-900 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-          value={scheduledDate}
-          onChange={(e) => setScheduledDate(e.target.value)}
-        />
-
-        {/* Start Time Input */}
-        <label className="block mb-2 text-sm font-semibold text-gray-700">Start Time</label>
-        <input
-          type="time"
-          className="w-full border-2 border-gray-300 rounded-md p-3 mb-4 text-gray-900 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-          value={startTime}
-          onChange={(e) => setStartTime(e.target.value)}
-        />
-
-        {/* Duration Input */}
-        <label className="block mb-2 text-sm font-semibold text-gray-700">Duration (hours)</label>
-        <input
-          type="number"
-          min="0"
-          step="0.5"
-          className="w-full border-2 border-gray-300 rounded-md p-3 mb-6 text-gray-900 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-          value={duration}
-          onChange={(e) => setDuration(parseFloat(e.target.value) || 0)}
-        />
+        {/* Time Slots */}
+        <div className="mb-6">
+          <TimeSlotsManager
+            timeSlots={timeSlots}
+            onChange={setTimeSlots}
+          />
+        </div>
 
         <div className="flex justify-end gap-3">
           <button
@@ -155,64 +148,13 @@ export default function TaskModal({ isOpen, onClose, task, onSave, items, machin
             Cancel
           </button>
           <button
-            onClick={async () => {
-              // Combine date and time into ISO datetime if both are provided
-              let scheduledDateTime = undefined;
-              if (scheduledDate && startTime) {
-                // Parse as local time and convert to UTC for storage
-                const localDateTime = new Date(`${scheduledDate}T${startTime}`);
-                scheduledDateTime = localDateTime.toISOString();
-              }
-
-              // Convert duration from hours to minutes
-              const durationInMinutes = duration * 60;
-
-              // Use existing /api/schedule endpoint for conflict checking and saving
-              if (scheduledDateTime) {
-                try {
-                  const response = await fetch('/api/schedule', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      taskId: task.id,
-                      itemId,
-                      machineId,
-                      operatorId,
-                      scheduledAt: scheduledDateTime,
-                      durationMin: durationInMinutes,
-                    }),
-                  });
-
-                  const data = await response.json();
-
-                  if (response.ok) {
-                    // Success - call onSave to update parent component
-                    onSave({
-                      itemId,
-                      machineId,
-                      operatorId,
-                      scheduledAt: scheduledDateTime,
-                      durationMin: durationInMinutes,
-                    });
-                  } else {
-                    // Handle conflict or other errors
-                    console.error('Failed to update task:', data.error);
-                    displayConflictError(data);
-                  }
-                } catch (error) {
-                  console.error('Error updating task:', error);
-                  alert('Error updating task. Please try again.');
-                }
-              } else {
-                // No scheduling, just update assignments
-                onSave({
-                  itemId,
-                  machineId,
-                  operatorId,
-                  scheduledAt: scheduledDateTime,
-                  durationMin: durationInMinutes,
-                });
-              }
+            onClick={() => {
+              onSave({
+                itemId,
+                machineId,
+                operatorId,
+                timeSlots,
+              });
             }}
             className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium shadow-sm">
             Save

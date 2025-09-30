@@ -60,7 +60,6 @@ export interface TaskWithRelationsDTO {
   id: string;
   title: string;
   description?: string | null;
-  durationMin: number;
   status: string;
   quantity: number;
   completed_quantity: number;
@@ -90,7 +89,6 @@ export function mapTaskToResponse(task: TaskWithRelationsDTO): TaskResponseDTO {
     id: task.id,
     title: task.title,
     description: task.description ?? null,
-    durationMin: task.durationMin,
     status: task.status,
     quantity: task.quantity,
     completed_quantity: task.completed_quantity,

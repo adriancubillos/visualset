@@ -303,11 +303,7 @@ export default function ScheduleCalendar() {
         const data = await res.json();
 
         if (res.ok) {
-          setTasks((prev) =>
-            prev.map((t) =>
-              t.id === data.id ? { ...t, scheduledAt: data.scheduledAt, durationMin: data.durationMin } : t,
-            ),
-          );
+          setTasks((prev) => prev.map((task) => (task.id === data.id ? { ...task, ...data } : task)));
         } else {
           console.warn('Scheduling conflict detected during drag operation:', data.error);
           displayConflictError(data);
