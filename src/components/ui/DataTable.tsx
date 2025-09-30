@@ -185,11 +185,11 @@ export default function DataTable<T extends { id: string }>({
 
       <div
         ref={tableContainerRef}
-        className="overflow-auto scrollbar-visible"
+        className="overflow-auto scrollbar-visible relative"
         style={containerStyle}>
         {/* Reset Columns Button */}
         {showResetColumns && onResetColumns && (
-          <div className="sticky top-0 z-20 bg-gray-50 border-b border-gray-200 px-4 py-2">
+          <div className="sticky top-0 z-30 bg-gray-50 px-4 py-2 border-b-0 left-0 right-0 block">
             <div className="flex justify-end">
               <button
                 onClick={onResetColumns}
@@ -213,8 +213,10 @@ export default function DataTable<T extends { id: string }>({
           </div>
         )}
 
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className={`bg-gray-50 ${stickyHeader ? 'sticky top-0 z-10' : ''}`}>
+        <table className="min-w-full">
+          <thead
+            className={`bg-gray-50 border-t border-b border-gray-300 ${stickyHeader ? 'sticky z-20' : ''}`}
+            style={{ top: showResetColumns && onResetColumns ? '40px' : '0px' }}>
             <tr>
               {columns.map((column, columnIndex) => (
                 <th
@@ -225,7 +227,7 @@ export default function DataTable<T extends { id: string }>({
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDrop(e, columnIndex)}
                   onDragEnd={handleDragEnd}
-                  className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200 transition-all duration-200 ${
+                  className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider transition-all duration-200 ${
                     column.sortable ? 'cursor-pointer hover:bg-gray-100' : ''
                   } ${draggedColumnIndex === columnIndex ? 'opacity-50 bg-blue-100' : ''} ${
                     dragOverColumnIndex === columnIndex && draggedColumnIndex !== columnIndex
@@ -253,7 +255,7 @@ export default function DataTable<T extends { id: string }>({
                 </th>
               ))}
               {actions && (
-                <th className="sticky right-0 bg-gray-50 px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider border-l border-gray-200 border-b">
+                <th className="sticky right-0 bg-gray-50 px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider border-l border-gray-200">
                   Actions
                 </th>
               )}
