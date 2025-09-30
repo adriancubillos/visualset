@@ -282,9 +282,9 @@ export default function ScheduleCalendar() {
       const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const timeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 
-      // Convert to ISO string for UTC date
-      const utcDate = new Date(`${dateStr}T${timeStr}:00.000Z`);
-      const utcTimeString = utcDate.toISOString();
+      // Convert local datetime to UTC for API storage
+      const localDateTime = new Date(`${dateStr}T${timeStr}:00`); // No Z suffix = local time
+      const utcTimeString = localDateTime.toISOString(); // Convert to UTC
 
       try {
         const res = await fetch('/api/schedule', {
