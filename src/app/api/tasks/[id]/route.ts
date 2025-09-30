@@ -6,8 +6,10 @@ import { checkSchedulingConflicts, createConflictErrorResponse } from '@/utils/c
 const prisma = new PrismaClient();
 
 interface TimeSlotInput {
+  id?: string;
   startDateTime: string;
   endDateTime?: string;
+  durationMin?: number;
   isPrimary?: boolean;
 }
 
@@ -67,7 +69,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       if (slot.startDateTime && body.machineId && body.operatorId) {
         const conflictResult = await checkSchedulingConflicts({
           scheduledAt: slot.startDateTime,
-          durationMin: body.durationMin,
+          durationMin: slot.durationMin || 60, // Use slot duration or default to 60
           machineId: body.machineId,
           operatorId: body.operatorId,
           excludeTaskId: id,
@@ -93,7 +95,6 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         data: {
           title: body.title,
           description: body.description,
-          durationMin: body.durationMin,
           status: body.status,
           quantity: quantity,
           completed_quantity: completedQuantity,
@@ -119,14 +120,18 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
       // Create new time slots
       if (timeSlots.length > 0) {
-        const slotsToCreate = timeSlots.map((slot: TimeSlotInput, index: number) => ({
-          taskId: id,
-          startDateTime: new Date(slot.startDateTime),
-          endDateTime: slot.endDateTime
-            ? new Date(slot.endDateTime)
-            : new Date(new Date(slot.startDateTime).getTime() + body.durationMin * 60000),
-          isPrimary: index === 0 || slot.isPrimary === true, // First slot is primary by default
-        }));
+        const slotsToCreate = timeSlots.map((slot: TimeSlotInput, index: number) => {
+          const slotDuration = slot.durationMin || 60; // Default to 60 minutes if not specified
+          return {
+            taskId: id,
+            startDateTime: new Date(slot.startDateTime),
+            endDateTime: slot.endDateTime
+              ? new Date(slot.endDateTime)
+              : new Date(new Date(slot.startDateTime).getTime() + slotDuration * 60000),
+            durationMin: slotDuration,
+            isPrimary: index === 0 || slot.isPrimary === true, // First slot is primary by default
+          };
+        });
 
         await tx.taskTimeSlot.createMany({
           data: slotsToCreate,

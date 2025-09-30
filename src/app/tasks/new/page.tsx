@@ -21,8 +21,14 @@ function NewTaskPageContent() {
   // Initialize with current date and time in display timezone
   const currentUTCDate = new Date();
   const { date: currentDateStr, time: currentTimeStr } = formatDateTimeGMTMinus5(currentUTCDate);
+  const defaultDateTime = `${currentDateStr}T${currentTimeStr}`;
+  const defaultDuration = 60;
+  const defaultEndDateTime = new Date(new Date(defaultDateTime).getTime() + defaultDuration * 60000).toISOString();
+
   const defaultTimeSlot: TimeSlot = {
-    startDateTime: `${currentDateStr}T${currentTimeStr}`,
+    startDateTime: defaultDateTime,
+    endDateTime: defaultEndDateTime,
+    durationMin: defaultDuration,
     isPrimary: true,
   };
 
@@ -31,7 +37,6 @@ function NewTaskPageContent() {
     description: '',
     status: 'IN_PROGRESS',
     priority: 'MEDIUM',
-    durationMin: 60,
     quantity: 1,
     completed_quantity: 0,
     projectId: searchParams.get('project') || '',
@@ -60,8 +65,7 @@ function NewTaskPageContent() {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]:
-        name === 'durationMin' || name === 'quantity' || name === 'completed_quantity' ? parseInt(value) || 0 : value,
+      [name]: name === 'quantity' || name === 'completed_quantity' ? parseInt(value) || 0 : value,
     }));
   };
 
@@ -82,6 +86,7 @@ function NewTaskPageContent() {
       const timeSlotDTOs = timeSlots.map((slot) => ({
         startDateTime: new Date(slot.startDateTime).toISOString(),
         endDateTime: slot.endDateTime ? new Date(slot.endDateTime).toISOString() : null,
+        durationMin: slot.durationMin,
         isPrimary: slot.isPrimary,
       }));
 
@@ -238,34 +243,13 @@ function NewTaskPageContent() {
             </div>
           </div>
 
-          {/* Time Slots and Duration */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <TimeSlotsManager
-                timeSlots={timeSlots}
-                durationMin={formData.durationMin}
-                onChange={setTimeSlots}
-                disabled={loading}
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="durationMin"
-                className="block text-sm font-medium text-gray-700">
-                Duration (minutes)
-              </label>
-              <input
-                type="number"
-                id="durationMin"
-                name="durationMin"
-                min="1"
-                value={formData.durationMin}
-                onChange={handleChange}
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                placeholder="60"
-              />
-            </div>
+          {/* Time Slots */}
+          <div>
+            <TimeSlotsManager
+              timeSlots={timeSlots}
+              onChange={setTimeSlots}
+              disabled={loading}
+            />
           </div>
 
           {/* Quantity Tracking */}

@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,18 +7,92 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// A project containing multiple tasks
 model Project {
   id          String        @id @default(cuid())
   name        String
   description String?
   status      ProjectStatus @default(ACTIVE)
-  color       String? // Hex color code for project identification
   startDate   DateTime?
   endDate     DateTime?
-  items       Item[]
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
+  color       String?
+  items       Item[]
+}
+
+model Machine {
+  id        String        @id @default(cuid())
+  name      String
+  type      String
+  status    MachineStatus @default(AVAILABLE)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  location  String
+  color     String?
+  pattern   String?
+  tasks     Task[]
+}
+
+model Operator {
+  id           String         @id @default(cuid())
+  name         String         @unique
+  skills       String[]
+  availability Json
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  email        String?
+  shift        String?
+  status       OperatorStatus @default(ACTIVE)
+  color        String?
+  pattern      String?
+  tasks        Task[]
+}
+
+model Item {
+  id          String     @id @default(cuid())
+  projectId   String
+  name        String
+  description String?
+  status      ItemStatus @default(ACTIVE)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  quantity    Int        @default(1)
+  project     Project    @relation(fields: [projectId], references: [id])
+  tasks       Task[]
+}
+
+model Task {
+  id                 String         @id @default(cuid())
+  title              String
+  description        String?
+  status             TaskStatus     @default(IN_PROGRESS)
+  machineId          String?
+  operatorId         String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  itemId             String?
+  completed_quantity Int            @default(0)
+  quantity           Int            @default(1)
+  item               Item?          @relation(fields: [itemId], references: [id])
+  machine            Machine?       @relation(fields: [machineId], references: [id])
+  operator           Operator?      @relation(fields: [operatorId], references: [id])
+  timeSlots          TaskTimeSlot[]
+}
+
+model TaskTimeSlot {
+  id            String    @id @default(cuid())
+  taskId        String
+  startDateTime DateTime
+  endDateTime   DateTime?
+  isPrimary     Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  durationMin   Int       @default(60)
+  task          Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([startDateTime])
+  @@map("task_time_slots")
 }
 
 enum ProjectStatus {
@@ -34,41 +102,11 @@ enum ProjectStatus {
   CANCELLED
 }
 
-// A machine in the workshop
-model Machine {
-  id        String        @id @default(cuid())
-  name      String
-  type      String
-  status    MachineStatus @default(AVAILABLE)
-  location  String // Physical location in workshop
-  color     String? // Hex color code for visual identification
-  pattern   String? // Pattern type: solid, striped, dotted, dashed
-  tasks     Task[]
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-}
-
 enum MachineStatus {
   AVAILABLE
   IN_USE
   MAINTENANCE
   BROKEN
-}
-
-// Operator (person who works on machines/tasks)
-model Operator {
-  id           String         @id @default(cuid())
-  name         String         @unique
-  email        String? // Optional email field
-  skills       String[] // e.g. ["CNC", "Welding"]
-  status       OperatorStatus @default(ACTIVE)
-  shift        String? // e.g. "DAY", "NIGHT", "SWING"
-  availability Json // e.g. shift times { mon: "08-16", tue: "08-16" }
-  color        String? // Hex color code for visual identification
-  pattern      String? // Pattern type: solid, striped, dotted, dashed
-  tasks        Task[]
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
 }
 
 enum OperatorStatus {
@@ -77,60 +115,10 @@ enum OperatorStatus {
   INACTIVE
 }
 
-// An item within a project; each item can contain multiple tasks
-model Item {
-  id          String     @id @default(cuid())
-  project     Project    @relation(fields: [projectId], references: [id])
-  projectId   String
-  name        String
-  description String?
-  status      ItemStatus @default(ACTIVE)
-  quantity    Int        @default(1) // Total quantity of this item to produce
-  tasks       Task[]
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-}
-
 enum ItemStatus {
   ACTIVE
   COMPLETED
   ON_HOLD
-}
-
-// A task/job that must be assigned
-model Task {
-  id                 String         @id @default(cuid())
-  title              String
-  description        String?
-  durationMin        Int
-  status             TaskStatus     @default(IN_PROGRESS)
-  quantity           Int            @default(1) // Total quantity required for this task
-  completed_quantity Int            @default(0) // Quantity completed so far
-  item               Item?          @relation(fields: [itemId], references: [id])
-  itemId             String?
-  machine            Machine?       @relation(fields: [machineId], references: [id])
-  machineId          String?
-  operator           Operator?      @relation(fields: [operatorId], references: [id])
-  operatorId         String?
-  timeSlots          TaskTimeSlot[] // Multiple time slots for this task
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
-}
-
-// Time slots for tasks - allows multiple scheduling windows per task
-model TaskTimeSlot {
-  id            String    @id @default(cuid())
-  task          Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  taskId        String
-  startDateTime DateTime
-  endDateTime   DateTime?
-  isPrimary     Boolean   @default(false) // Mark one slot as primary for display
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  @@index([taskId])
-  @@index([startDateTime])
-  @@map("task_time_slots")
 }
 
 enum TaskStatus {

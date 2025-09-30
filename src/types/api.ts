@@ -50,6 +50,7 @@ export interface TaskTimeSlotDTO {
   taskId: string;
   startDateTime: string;
   endDateTime?: string | null;
+  durationMin: number;
   isPrimary: boolean;
   createdAt: string;
   updatedAt: string;

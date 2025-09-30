@@ -16,8 +16,12 @@ export interface ConflictResult {
   conflictData?: {
     id: string;
     title: string;
-    scheduledAt: Date;
-    durationMin: number;
+    timeSlot: {
+      id: string;
+      startDateTime: Date;
+      endDateTime: Date | null;
+      durationMin: number;
+    };
     machine?: { id: string; name: string } | null;
     operator?: { id: string; name: string } | null;
   };
@@ -44,100 +48,120 @@ export async function checkSchedulingConflicts({
   const taskStartTime = new Date(scheduledAt);
   const taskEndTime = new Date(taskStartTime.getTime() + durationMin * 60 * 1000);
 
-  // Check for machine conflicts
+  // Check for machine conflicts by querying time slots
   if (machineId) {
-    const machineConflicts = await prisma.task.findMany({
+    const machineConflicts = await prisma.taskTimeSlot.findMany({
       where: {
-        ...(excludeTaskId && { id: { not: excludeTaskId } }),
-        machineId,
-        scheduledAt: { not: null },
-        durationMin: { gt: 0 },
+        task: {
+          ...(excludeTaskId && { id: { not: excludeTaskId } }),
+          machineId,
+        },
         OR: [
           {
+            // Time slot starts before our task ends and ends after our task starts
             AND: [
-              { scheduledAt: { lt: taskEndTime.toISOString() } },
+              { startDateTime: { lt: taskEndTime } },
               {
-                scheduledAt: {
-                  gte: new Date(taskStartTime.getTime() - 24 * 60 * 60 * 1000).toISOString(),
-                },
+                OR: [
+                  { endDateTime: { gt: taskStartTime } },
+                  { endDateTime: null }, // Handle null endDateTime by using duration
+                ],
               },
             ],
           },
         ],
       },
       include: {
-        machine: true,
+        task: {
+          include: {
+            machine: true,
+          },
+        },
       },
     });
 
     // Check each machine conflict for actual time overlap
-    for (const conflict of machineConflicts) {
-      if (conflict.scheduledAt && conflict.durationMin) {
-        const conflictStart = new Date(conflict.scheduledAt);
-        const conflictEnd = new Date(conflictStart.getTime() + conflict.durationMin * 60 * 1000);
+    for (const timeSlot of machineConflicts) {
+      const conflictStart = new Date(timeSlot.startDateTime);
+      const conflictEnd = timeSlot.endDateTime
+        ? new Date(timeSlot.endDateTime)
+        : new Date(conflictStart.getTime() + timeSlot.durationMin * 60 * 1000);
 
-        if (timeRangesOverlap(taskStartTime, taskEndTime, conflictStart, conflictEnd)) {
-          return {
-            hasConflict: true,
-            conflictType: 'machine',
-            conflictData: {
-              id: conflict.id,
-              title: conflict.title,
-              scheduledAt: conflict.scheduledAt,
-              durationMin: conflict.durationMin,
-              machine: conflict.machine,
+      if (timeRangesOverlap(taskStartTime, taskEndTime, conflictStart, conflictEnd)) {
+        return {
+          hasConflict: true,
+          conflictType: 'machine',
+          conflictData: {
+            id: timeSlot.task.id,
+            title: timeSlot.task.title,
+            timeSlot: {
+              id: timeSlot.id,
+              startDateTime: timeSlot.startDateTime,
+              endDateTime: timeSlot.endDateTime,
+              durationMin: timeSlot.durationMin,
             },
-          };
-        }
+            machine: timeSlot.task.machine,
+          },
+        };
       }
     }
   }
 
-  // Check for operator conflicts
+  // Check for operator conflicts by querying time slots
   if (operatorId) {
-    const operatorConflicts = await prisma.task.findMany({
+    const operatorConflicts = await prisma.taskTimeSlot.findMany({
       where: {
-        ...(excludeTaskId && { id: { not: excludeTaskId } }),
-        operatorId,
-        scheduledAt: { not: null },
-        durationMin: { gt: 0 },
+        task: {
+          ...(excludeTaskId && { id: { not: excludeTaskId } }),
+          operatorId,
+        },
         OR: [
           {
+            // Time slot starts before our task ends and ends after our task starts
             AND: [
-              { scheduledAt: { lt: taskEndTime.toISOString() } },
+              { startDateTime: { lt: taskEndTime } },
               {
-                scheduledAt: {
-                  gte: new Date(taskStartTime.getTime() - 24 * 60 * 60 * 1000).toISOString(),
-                },
+                OR: [
+                  { endDateTime: { gt: taskStartTime } },
+                  { endDateTime: null }, // Handle null endDateTime by using duration
+                ],
               },
             ],
           },
         ],
       },
       include: {
-        operator: true,
+        task: {
+          include: {
+            operator: true,
+          },
+        },
       },
     });
 
     // Check each operator conflict for actual time overlap
-    for (const conflict of operatorConflicts) {
-      if (conflict.scheduledAt && conflict.durationMin) {
-        const conflictStart = new Date(conflict.scheduledAt);
-        const conflictEnd = new Date(conflictStart.getTime() + conflict.durationMin * 60 * 1000);
+    for (const timeSlot of operatorConflicts) {
+      const conflictStart = new Date(timeSlot.startDateTime);
+      const conflictEnd = timeSlot.endDateTime
+        ? new Date(timeSlot.endDateTime)
+        : new Date(conflictStart.getTime() + timeSlot.durationMin * 60 * 1000);
 
-        if (timeRangesOverlap(taskStartTime, taskEndTime, conflictStart, conflictEnd)) {
-          return {
-            hasConflict: true,
-            conflictType: 'operator',
-            conflictData: {
-              id: conflict.id,
-              title: conflict.title,
-              scheduledAt: conflict.scheduledAt,
-              durationMin: conflict.durationMin,
-              operator: conflict.operator,
+      if (timeRangesOverlap(taskStartTime, taskEndTime, conflictStart, conflictEnd)) {
+        return {
+          hasConflict: true,
+          conflictType: 'operator',
+          conflictData: {
+            id: timeSlot.task.id,
+            title: timeSlot.task.title,
+            timeSlot: {
+              id: timeSlot.id,
+              startDateTime: timeSlot.startDateTime,
+              endDateTime: timeSlot.endDateTime,
+              durationMin: timeSlot.durationMin,
             },
-          };
-        }
+            operator: timeSlot.task.operator,
+          },
+        };
       }
     }
   }

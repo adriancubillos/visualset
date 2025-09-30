@@ -7,32 +7,32 @@ export interface TimeSlot {
   id?: string;
   startDateTime: string;
   endDateTime?: string;
+  durationMin: number;
   isPrimary: boolean;
 }
 
 interface TimeSlotsManagerProps {
   timeSlots: TimeSlot[];
-  durationMin: number;
   onChange: (timeSlots: TimeSlot[]) => void;
   disabled?: boolean;
 }
 
-export default function TimeSlotsManager({
-  timeSlots,
-  durationMin,
-  onChange,
-  disabled = false,
-}: TimeSlotsManagerProps) {
+export default function TimeSlotsManager({ timeSlots, onChange, disabled = false }: TimeSlotsManagerProps) {
   const [dateWarnings, setDateWarnings] = useState<{ [key: number]: string }>({});
 
   const addTimeSlot = () => {
     const currentUTCDate = new Date();
     const { date: currentDateStr, time: currentTimeStr } = formatDateTimeGMTMinus5(currentUTCDate);
     const defaultDateTime = `${currentDateStr}T${currentTimeStr}`;
+    const defaultDuration = 60;
+
+    // Calculate endDateTime
+    const endDateTime = new Date(new Date(defaultDateTime).getTime() + defaultDuration * 60000).toISOString();
 
     const newSlot: TimeSlot = {
       startDateTime: defaultDateTime,
-      endDateTime: undefined,
+      endDateTime: endDateTime,
+      durationMin: defaultDuration,
       isPrimary: timeSlots.length === 0, // First slot is primary
     };
 
@@ -54,6 +54,17 @@ export default function TimeSlotsManager({
     const newSlots = timeSlots.map((slot, i) => {
       if (i === index) {
         const updatedSlot = { ...slot, ...updates };
+
+        // Auto-calculate endDateTime when startDateTime or durationMin changes
+        if (updates.startDateTime || updates.durationMin) {
+          const startDateTime = updates.startDateTime || slot.startDateTime;
+          const durationMin = updates.durationMin !== undefined ? updates.durationMin : slot.durationMin;
+
+          if (startDateTime && durationMin > 0) {
+            const endDateTime = new Date(new Date(startDateTime).getTime() + durationMin * 60000).toISOString();
+            updatedSlot.endDateTime = endDateTime;
+          }
+        }
 
         // If this slot is being marked as primary, unmark others
         if (updates.isPrimary) {
@@ -189,7 +200,7 @@ export default function TimeSlotsManager({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">Start Date</label>
                   <input
@@ -220,19 +231,36 @@ export default function TimeSlotsManager({
                     className="block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
                   />
                 </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Duration (min)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={slot.durationMin}
+                    onChange={(e) => {
+                      const durationMin = parseInt(e.target.value) || 60;
+                      updateTimeSlot(index, { durationMin });
+                    }}
+                    disabled={disabled}
+                    className="block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                  />
+                </div>
               </div>
 
               {/* Duration Info */}
               {slot.startDateTime && (
                 <div className="mt-2 text-xs text-gray-600">
-                  Duration: {durationMin} minutes
-                  {durationMin > 0 && slot.startDateTime && (
+                  Duration: {slot.durationMin} minutes
+                  {slot.durationMin > 0 && slot.startDateTime && (
                     <span className="ml-2">
                       (ends at{' '}
-                      {new Date(new Date(slot.startDateTime).getTime() + durationMin * 60000).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
+                      {new Date(new Date(slot.startDateTime).getTime() + slot.durationMin * 60000).toLocaleTimeString(
+                        [],
+                        {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        },
+                      )}
                       )
                     </span>
                   )}
@@ -261,10 +289,10 @@ export default function TimeSlotsManager({
                 d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            <strong>Primary slot</strong> will be used for main scheduling and conflict detection.
+            <strong>All time slots</strong> will be checked for scheduling conflicts.
           </p>
           <p className="mt-1">
-            You can add multiple time slots for tasks that need to be worked on at different times.
+            The <strong>primary slot</strong> is used for main scheduling display. Each slot has its own duration.
           </p>
         </div>
       )}

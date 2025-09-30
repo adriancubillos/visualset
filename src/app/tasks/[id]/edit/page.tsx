@@ -24,7 +24,6 @@ export default function EditTaskPage() {
     description: '',
     status: 'PENDING',
     priority: 'MEDIUM',
-    durationMin: 60,
     quantity: 1,
     completed_quantity: 0,
     projectId: '',
@@ -52,19 +51,34 @@ export default function EditTaskPage() {
         // Convert time slots to the format expected by TimeSlotsManager
         const convertedTimeSlots: TimeSlot[] =
           taskData.timeSlots?.map(
-            (slot: { id: string; startDateTime: string; endDateTime?: string; isPrimary: boolean }) => {
+            (slot: {
+              id: string;
+              startDateTime: string;
+              endDateTime?: string;
+              durationMin: number;
+              isPrimary: boolean;
+            }) => {
               const { date: dateStr, time: timeStr } = formatDateTimeGMTMinus5(new Date(slot.startDateTime));
+              const localStartDateTime = `${dateStr}T${timeStr}`;
+
+              // Calculate endDateTime if not present, or convert if present
+              let endDateTime: string | undefined;
+              if (slot.endDateTime) {
+                const { date: endDateStr, time: endTimeStr } = formatDateTimeGMTMinus5(new Date(slot.endDateTime));
+                endDateTime = `${endDateStr}T${endTimeStr}`;
+              } else if (slot.durationMin > 0) {
+                // Calculate endDateTime from startDateTime + duration
+                const calculatedEndDateTime = new Date(
+                  new Date(localStartDateTime).getTime() + slot.durationMin * 60000,
+                );
+                endDateTime = calculatedEndDateTime.toISOString();
+              }
+
               return {
                 id: slot.id,
-                startDateTime: `${dateStr}T${timeStr}`,
-                endDateTime: slot.endDateTime
-                  ? (() => {
-                      const { date: endDateStr, time: endTimeStr } = formatDateTimeGMTMinus5(
-                        new Date(slot.endDateTime),
-                      );
-                      return `${endDateStr}T${endTimeStr}`;
-                    })()
-                  : undefined,
+                startDateTime: localStartDateTime,
+                endDateTime: endDateTime,
+                durationMin: slot.durationMin,
                 isPrimary: slot.isPrimary,
               };
             },
@@ -77,7 +91,6 @@ export default function EditTaskPage() {
           description: taskData.description || '',
           status: taskData.status,
           priority: taskData.priority || 'MEDIUM',
-          durationMin: taskData.durationMin,
           quantity: taskData.quantity || 1,
           completed_quantity: taskData.completed_quantity || 0,
           projectId: taskData.project?.id || '',
@@ -143,6 +156,7 @@ export default function EditTaskPage() {
         id: slot.id,
         startDateTime: new Date(slot.startDateTime).toISOString(),
         endDateTime: slot.endDateTime ? new Date(slot.endDateTime).toISOString() : null,
+        durationMin: slot.durationMin,
         isPrimary: slot.isPrimary,
       }));
 
@@ -367,34 +381,13 @@ export default function EditTaskPage() {
             </div>
           </div>
 
-          {/* Time Slots and Duration */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <TimeSlotsManager
-                timeSlots={timeSlots}
-                durationMin={formData.durationMin}
-                onChange={setTimeSlots}
-                disabled={saving}
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="durationMin"
-                className="block text-sm font-medium text-gray-700">
-                Duration (minutes)
-              </label>
-              <input
-                type="number"
-                id="durationMin"
-                name="durationMin"
-                min="1"
-                value={formData.durationMin}
-                onChange={handleChange}
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                placeholder="60"
-              />
-            </div>
+          {/* Time Slots */}
+          <div>
+            <TimeSlotsManager
+              timeSlots={timeSlots}
+              onChange={setTimeSlots}
+              disabled={saving}
+            />
           </div>
 
           {/* Quantity Tracking */}
