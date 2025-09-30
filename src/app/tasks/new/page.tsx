@@ -2,11 +2,12 @@
 
 import { Suspense, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { formatDateTimeForDisplay, parseGMTMinus5DateTime, getCurrentDisplayTimezoneDate } from '@/utils/timezone';
+import { formatDateTimeGMTMinus5 } from '@/utils/timezone';
 import { TASK_PRIORITY, TASK_STATUS } from '@/config/workshop-properties';
 import { useTaskFormData } from '@/hooks/useTaskFormData';
 import ProjectItemSelect from '@/components/forms/ProjectItemSelect';
 import AssignmentSelect from '@/components/forms/AssignmentSelect';
+import TimeSlotsManager, { TimeSlot } from '@/components/forms/TimeSlotsManager';
 import ProgressBar from '@/components/ui/ProgressBar';
 import { handleTaskResponse } from '@/utils/taskErrorHandling';
 
@@ -19,15 +20,17 @@ function NewTaskPageContent() {
 
   // Initialize with current date and time in display timezone
   const currentUTCDate = new Date();
-  const { date: currentDateStr, time: currentTimeStr } = formatDateTimeForDisplay(currentUTCDate);
-  const defaultScheduledAt = `${currentDateStr}T${currentTimeStr}`;
+  const { date: currentDateStr, time: currentTimeStr } = formatDateTimeGMTMinus5(currentUTCDate);
+  const defaultTimeSlot: TimeSlot = {
+    startDateTime: `${currentDateStr}T${currentTimeStr}`,
+    isPrimary: true,
+  };
 
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     status: 'IN_PROGRESS',
     priority: 'MEDIUM',
-    scheduledAt: defaultScheduledAt,
     durationMin: 60,
     quantity: 1,
     completed_quantity: 0,
@@ -36,6 +39,8 @@ function NewTaskPageContent() {
     machineId: searchParams.get('machine') || '',
     operatorId: searchParams.get('operator') || '',
   });
+
+  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([defaultTimeSlot]);
   const [loading, setLoading] = useState(false);
 
   // Show loading state while fetching dropdown data
@@ -73,12 +78,12 @@ function NewTaskPageContent() {
     setLoading(true);
 
     try {
-      // Convert scheduledAt from form format to UTC using GMT-5 utilities
-      let scheduledAtUTC = null;
-      if (formData.scheduledAt) {
-        const [dateStr, timeStr] = formData.scheduledAt.split('T');
-        scheduledAtUTC = parseGMTMinus5DateTime(dateStr, timeStr).toISOString();
-      }
+      // Convert timeSlots to the format expected by the API
+      const timeSlotDTOs = timeSlots.map((slot) => ({
+        startDateTime: new Date(slot.startDateTime).toISOString(),
+        endDateTime: slot.endDateTime ? new Date(slot.endDateTime).toISOString() : null,
+        isPrimary: slot.isPrimary,
+      }));
 
       const response = await fetch('/api/tasks', {
         method: 'POST',
@@ -90,7 +95,7 @@ function NewTaskPageContent() {
           projectId: formData.projectId || null,
           machineId: formData.machineId || null,
           operatorId: formData.operatorId || null,
-          scheduledAt: scheduledAtUTC,
+          timeSlots: timeSlotDTOs,
         }),
       });
 
@@ -233,60 +238,15 @@ function NewTaskPageContent() {
             </div>
           </div>
 
-          {/* Scheduled Date and Duration */}
+          {/* Time Slots and Duration */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Scheduled Date & Time</label>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label
-                    htmlFor="scheduledDate"
-                    className="block text-xs text-gray-500 mb-1">
-                    Date
-                  </label>
-                  <input
-                    type="date"
-                    id="scheduledDate"
-                    name="scheduledDate"
-                    value={formData.scheduledAt ? formData.scheduledAt.split('T')[0] : ''}
-                    onChange={(e) => {
-                      const date = e.target.value;
-                      const time = formData.scheduledAt ? formData.scheduledAt.split('T')[1] : '09:00';
-                      setFormData((prev) => ({
-                        ...prev,
-                        scheduledAt: date ? `${date}T${time}` : '',
-                      }));
-                    }}
-                    className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    min={getCurrentDisplayTimezoneDate().toISOString().split('T')[0]}
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="scheduledTime"
-                    className="block text-xs text-gray-500 mb-1">
-                    Time
-                  </label>
-                  <input
-                    type="time"
-                    id="scheduledTime"
-                    name="scheduledTime"
-                    value={formData.scheduledAt ? formData.scheduledAt.split('T')[1] || '09:00' : '09:00'}
-                    onChange={(e) => {
-                      const time = e.target.value;
-                      const date = formData.scheduledAt
-                        ? formData.scheduledAt.split('T')[0]
-                        : getCurrentDisplayTimezoneDate().toISOString().split('T')[0];
-                      setFormData((prev) => ({
-                        ...prev,
-                        scheduledAt: date ? `${date}T${time}` : '',
-                      }));
-                    }}
-                    className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-              </div>
-              <p className="mt-1 text-xs text-gray-500">Leave empty if no specific schedule is required</p>
+              <TimeSlotsManager
+                timeSlots={timeSlots}
+                durationMin={formData.durationMin}
+                onChange={setTimeSlots}
+                disabled={loading}
+              />
             </div>
 
             <div>
@@ -389,9 +349,11 @@ function NewTaskPageContent() {
             </button>
             <button
               type="submit"
-              disabled={loading || !formData.title.trim() || !formData.projectId || !formData.itemId}
+              disabled={
+                loading || !formData.title.trim() || !formData.projectId || !formData.itemId || timeSlots.length === 0
+              }
               className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                loading || !formData.title.trim() || !formData.projectId || !formData.itemId
+                loading || !formData.title.trim() || !formData.projectId || !formData.itemId || timeSlots.length === 0
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700'
               }`}>

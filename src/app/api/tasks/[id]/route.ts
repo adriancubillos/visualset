@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { mapTaskToResponse, TaskWithRelationsDTO } from '@/types/api';
-import { parseGMTMinus5DateTime } from '@/utils/timezone';
 import { checkSchedulingConflicts, createConflictErrorResponse } from '@/utils/conflictDetection';
 
 const prisma = new PrismaClient();
+
+interface TimeSlotInput {
+  startDateTime: string;
+  endDateTime?: string;
+  isPrimary?: boolean;
+}
 
 // GET /api/tasks/[id]
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -20,6 +25,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         },
         machine: true,
         operator: true,
+        timeSlots: {
+          orderBy: {
+            startDateTime: 'asc',
+          },
+        },
       },
     });
 
@@ -49,59 +59,103 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       return NextResponse.json({ error: 'Completed quantity cannot exceed total quantity' }, { status: 400 });
     }
 
-    // Parse scheduled date if provided
-    let scheduledAt: string | null = null;
-    if (body.scheduledAt) {
-      // If date and time are provided separately, parse as GMT-5
-      if (body.scheduledDate && body.startTime) {
-        scheduledAt = parseGMTMinus5DateTime(body.scheduledDate, body.startTime).toISOString();
-      } else {
-        // Fallback to direct parsing
-        scheduledAt = new Date(body.scheduledAt).toISOString();
+    // Handle time slots
+    const timeSlots = body.timeSlots || [];
+
+    // Validate time slots and check for conflicts
+    for (const slot of timeSlots) {
+      if (slot.startDateTime && body.machineId && body.operatorId) {
+        const conflictResult = await checkSchedulingConflicts({
+          scheduledAt: slot.startDateTime,
+          durationMin: body.durationMin,
+          machineId: body.machineId,
+          operatorId: body.operatorId,
+          excludeTaskId: id,
+        });
+
+        if (conflictResult.hasConflict) {
+          const errorResponse = createConflictErrorResponse(conflictResult);
+          return NextResponse.json(errorResponse, { status: 409 });
+        }
       }
     }
 
-    // Check for scheduling conflicts if task is being scheduled or rescheduled
-    if (scheduledAt && body.durationMin && (body.machineId || body.operatorId)) {
-      const conflictResult = await checkSchedulingConflicts({
-        scheduledAt,
-        durationMin: body.durationMin,
-        machineId: body.machineId,
-        operatorId: body.operatorId,
-        excludeTaskId: id, // Exclude current task being edited
+    // Use transaction to update task and time slots atomically
+    const result = await prisma.$transaction(async (tx) => {
+      // Delete existing time slots
+      await tx.taskTimeSlot.deleteMany({
+        where: { taskId: id },
       });
 
-      if (conflictResult.hasConflict) {
-        const errorResponse = createConflictErrorResponse(conflictResult);
-        return NextResponse.json(errorResponse, { status: 409 });
-      }
-    }
-
-    const task = await prisma.task.update({
-      where: { id },
-      data: {
-        title: body.title,
-        description: body.description,
-        durationMin: body.durationMin,
-        status: body.status,
-        quantity: quantity,
-        completed_quantity: completedQuantity,
-        itemId: body.itemId || null,
-        machineId: body.machineId || null,
-        operatorId: body.operatorId || null,
-        scheduledAt: scheduledAt,
-      },
-      include: {
-        item: {
-          include: {
-            project: true,
+      // Update task
+      const updatedTask = await tx.task.update({
+        where: { id },
+        data: {
+          title: body.title,
+          description: body.description,
+          durationMin: body.durationMin,
+          status: body.status,
+          quantity: quantity,
+          completed_quantity: completedQuantity,
+          itemId: body.itemId || null,
+          machineId: body.machineId || null,
+          operatorId: body.operatorId || null,
+        },
+        include: {
+          item: {
+            include: {
+              project: true,
+            },
+          },
+          machine: true,
+          operator: true,
+          timeSlots: {
+            orderBy: {
+              startDateTime: 'asc',
+            },
           },
         },
-        machine: true,
-        operator: true,
-      },
+      });
+
+      // Create new time slots
+      if (timeSlots.length > 0) {
+        const slotsToCreate = timeSlots.map((slot: TimeSlotInput, index: number) => ({
+          taskId: id,
+          startDateTime: new Date(slot.startDateTime),
+          endDateTime: slot.endDateTime
+            ? new Date(slot.endDateTime)
+            : new Date(new Date(slot.startDateTime).getTime() + body.durationMin * 60000),
+          isPrimary: index === 0 || slot.isPrimary === true, // First slot is primary by default
+        }));
+
+        await tx.taskTimeSlot.createMany({
+          data: slotsToCreate,
+        });
+
+        // Fetch updated task with new time slots
+        return await tx.task.findUnique({
+          where: { id },
+          include: {
+            item: {
+              include: {
+                project: true,
+              },
+            },
+            machine: true,
+            operator: true,
+            timeSlots: {
+              orderBy: {
+                startDateTime: 'asc',
+              },
+            },
+          },
+        });
+      }
+
+      return updatedTask;
     });
-    const mapped = mapTaskToResponse(task as unknown as TaskWithRelationsDTO);
+
+    const mapped = mapTaskToResponse(result as unknown as TaskWithRelationsDTO);
     return NextResponse.json(mapped);
   } catch (error) {
     console.error('Error updating task:', error);
@@ -126,6 +180,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         },
         machine: true,
         operator: true,
+        timeSlots: {
+          orderBy: {
+            startDateTime: 'asc',
+          },
+        },
       },
     });
     const mapped = mapTaskToResponse(task as unknown as TaskWithRelationsDTO);

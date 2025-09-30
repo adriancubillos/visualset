@@ -40,9 +40,15 @@ export function useTaskFormData() {
         ]);
 
         const results = await Promise.all([
-          projectsRes.ok ? projectsRes.json() : Promise.reject('Failed to fetch projects'),
-          machinesRes.ok ? machinesRes.json() : Promise.reject('Failed to fetch machines'),
-          operatorsRes.ok ? operatorsRes.json() : Promise.reject('Failed to fetch operators'),
+          projectsRes.ok
+            ? projectsRes.json()
+            : Promise.reject(`Failed to fetch projects - Status: ${projectsRes.status}`),
+          machinesRes.ok
+            ? machinesRes.json()
+            : Promise.reject(`Failed to fetch machines - Status: ${machinesRes.status}`),
+          operatorsRes.ok
+            ? operatorsRes.json()
+            : Promise.reject(`Failed to fetch operators - Status: ${operatorsRes.status}`),
         ]);
 
         const [projectsData, machinesData, operatorsData] = results;

@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { mapTaskToResponse, TaskResponseDTO, TaskWithRelationsDTO } from '@/types/api';
-import { parseGMTMinus5DateTime } from '@/utils/timezone';
 import { checkSchedulingConflicts, createConflictErrorResponse } from '@/utils/conflictDetection';
 
 const prisma = new PrismaClient();
+
+interface TimeSlotInput {
+  startDateTime: string;
+  endDateTime?: string;
+  isPrimary?: boolean;
+}
 
 // GET /api/tasks
 export async function GET() {
@@ -13,6 +18,11 @@ export async function GET() {
       item: { include: { project: true } },
       machine: true,
       operator: true,
+      timeSlots: {
+        orderBy: {
+          startDateTime: 'asc',
+        },
+      },
     },
   });
 
@@ -25,17 +35,8 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    // Handle scheduledAt with GMT-5 timezone
-    let scheduledAt = null;
-    if (body.scheduledAt && body.scheduledAt.trim() !== '') {
-      // If date and time are provided separately, parse as GMT-5
-      if (body.scheduledDate && body.startTime) {
-        scheduledAt = parseGMTMinus5DateTime(body.scheduledDate, body.startTime).toISOString();
-      } else {
-        // Fallback to direct parsing
-        scheduledAt = new Date(body.scheduledAt).toISOString();
-      }
-    }
+    // Handle time slots
+    const timeSlots = body.timeSlots || [];
 
     // Resolve itemId: prefer explicit itemId, otherwise accept projectId and find/create a default Item
     let itemId: string | null = body.itemId ?? null;
@@ -47,41 +48,85 @@ export async function POST(req: Request) {
       itemId = item.id;
     }
 
-    // ✅ Add conflict detection for scheduled tasks
-    if (scheduledAt && body.durationMin && (body.machineId || body.operatorId)) {
-      const conflictResult = await checkSchedulingConflicts({
-        scheduledAt,
-        durationMin: body.durationMin,
-        machineId: body.machineId,
-        operatorId: body.operatorId,
-      });
+    // Validate time slots and check for conflicts
+    for (const slot of timeSlots) {
+      if (slot.startDateTime && body.machineId && body.operatorId) {
+        const conflictResult = await checkSchedulingConflicts({
+          scheduledAt: slot.startDateTime,
+          durationMin: body.durationMin,
+          machineId: body.machineId,
+          operatorId: body.operatorId,
+        });
 
-      if (conflictResult.hasConflict) {
-        const errorResponse = createConflictErrorResponse(conflictResult);
-        return NextResponse.json(errorResponse, { status: 409 });
+        if (conflictResult.hasConflict) {
+          const errorResponse = createConflictErrorResponse(conflictResult);
+          return NextResponse.json(errorResponse, { status: 409 });
+        }
       }
     }
 
-    const task = await prisma.task.create({
-      data: {
-        title: body.title,
-        description: body.description,
-        durationMin: body.durationMin,
-        status: body.status ?? 'PENDING',
-        quantity: body.quantity || 1,
-        completed_quantity: body.completed_quantity || 0,
-        itemId: itemId,
-        machineId: body.machineId ?? null,
-        operatorId: body.operatorId ?? null,
-        scheduledAt: scheduledAt,
-      },
-      include: {
-        item: { include: { project: true } },
-        machine: true,
-        operator: true,
-      },
+    // Use transaction to create task and time slots atomically
+    const result = await prisma.$transaction(async (tx) => {
+      // Create task
+      const newTask = await tx.task.create({
+        data: {
+          title: body.title,
+          description: body.description,
+          durationMin: body.durationMin,
+          status: body.status ?? 'PENDING',
+          quantity: body.quantity || 1,
+          completed_quantity: body.completed_quantity || 0,
+          itemId: itemId,
+          machineId: body.machineId ?? null,
+          operatorId: body.operatorId ?? null,
+        },
+        include: {
+          item: { include: { project: true } },
+          machine: true,
+          operator: true,
+          timeSlots: {
+            orderBy: {
+              startDateTime: 'asc',
+            },
+          },
+        },
+      });
+
+      // Create time slots if provided
+      if (timeSlots.length > 0) {
+        const slotsToCreate = timeSlots.map((slot: TimeSlotInput, index: number) => ({
+          taskId: newTask.id,
+          startDateTime: new Date(slot.startDateTime),
+          endDateTime: slot.endDateTime
+            ? new Date(slot.endDateTime)
+            : new Date(new Date(slot.startDateTime).getTime() + body.durationMin * 60000),
+          isPrimary: index === 0 || slot.isPrimary === true, // First slot is primary by default
+        }));
+
+        await tx.taskTimeSlot.createMany({
+          data: slotsToCreate,
+        });
+
+        // Fetch updated task with new time slots
+        return await tx.task.findUnique({
+          where: { id: newTask.id },
+          include: {
+            item: { include: { project: true } },
+            machine: true,
+            operator: true,
+            timeSlots: {
+              orderBy: {
+                startDateTime: 'asc',
+              },
+            },
+          },
+        });
+      }
+
+      return newTask;
     });
-    const mapped = mapTaskToResponse(task as unknown as TaskWithRelationsDTO);
+
+    const mapped = mapTaskToResponse(result as unknown as TaskWithRelationsDTO);
     return NextResponse.json(mapped);
   } catch (error) {
     console.error('Error creating task:', error);

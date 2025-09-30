@@ -3,43 +3,27 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { formatDateTimeGMTMinus5, parseGMTMinus5DateTime, getCurrentDisplayTimezoneDate } from '@/utils/timezone';
+import { formatDateTimeGMTMinus5 } from '@/utils/timezone';
 import { TASK_PRIORITY, TASK_STATUS } from '@/config/workshop-properties';
 import { useTaskFormData } from '@/hooks/useTaskFormData';
+import { TaskResponseDTO } from '@/types/api';
 import ProjectItemSelect from '@/components/forms/ProjectItemSelect';
 import AssignmentSelect from '@/components/forms/AssignmentSelect';
+import TimeSlotsManager, { TimeSlot } from '@/components/forms/TimeSlotsManager';
 import ProgressBar from '@/components/ui/ProgressBar';
 import { handleTaskResponse } from '@/utils/taskErrorHandling';
-
-interface Task {
-  id: string;
-  title: string;
-  description: string;
-  status: string;
-  priority: string;
-  durationMin: number;
-  quantity: number;
-  completed_quantity: number;
-  scheduledAt: string | null;
-  itemId: string | null;
-  machineId: string | null;
-  operatorId: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
 
 export default function EditTaskPage() {
   const params = useParams();
   const router = useRouter();
   const { projects, items, machines, operators, loading: dataLoading } = useTaskFormData();
 
-  const [task, setTask] = useState<Task | null>(null);
+  const [task, setTask] = useState<TaskResponseDTO | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     status: 'PENDING',
     priority: 'MEDIUM',
-    scheduledAt: '',
     durationMin: 60,
     quantity: 1,
     completed_quantity: 0,
@@ -48,9 +32,10 @@ export default function EditTaskPage() {
     machineId: '',
     operatorId: '',
   });
+
+  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [dateWarning, setDateWarning] = useState('');
 
   useEffect(() => {
     const fetchTaskData = async () => {
@@ -64,20 +49,34 @@ export default function EditTaskPage() {
         const taskData = await taskResponse.json();
         setTask(taskData);
 
-        // Format scheduledAt using GMT-5 timezone utilities
-        let scheduledAt = '';
-        if (taskData.scheduledAt) {
-          const date = new Date(taskData.scheduledAt);
-          const { date: dateStr, time: timeStr } = formatDateTimeGMTMinus5(date);
-          scheduledAt = `${dateStr}T${timeStr}`;
-        }
+        // Convert time slots to the format expected by TimeSlotsManager
+        const convertedTimeSlots: TimeSlot[] =
+          taskData.timeSlots?.map(
+            (slot: { id: string; startDateTime: string; endDateTime?: string; isPrimary: boolean }) => {
+              const { date: dateStr, time: timeStr } = formatDateTimeGMTMinus5(new Date(slot.startDateTime));
+              return {
+                id: slot.id,
+                startDateTime: `${dateStr}T${timeStr}`,
+                endDateTime: slot.endDateTime
+                  ? (() => {
+                      const { date: endDateStr, time: endTimeStr } = formatDateTimeGMTMinus5(
+                        new Date(slot.endDateTime),
+                      );
+                      return `${endDateStr}T${endTimeStr}`;
+                    })()
+                  : undefined,
+                isPrimary: slot.isPrimary,
+              };
+            },
+          ) || [];
+
+        setTimeSlots(convertedTimeSlots);
 
         setFormData({
           title: taskData.title,
           description: taskData.description || '',
           status: taskData.status,
           priority: taskData.priority || 'MEDIUM',
-          scheduledAt: scheduledAt,
           durationMin: taskData.durationMin,
           quantity: taskData.quantity || 1,
           completed_quantity: taskData.completed_quantity || 0,
@@ -139,12 +138,13 @@ export default function EditTaskPage() {
     setSaving(true);
 
     try {
-      // Convert scheduledAt from form format to UTC using GMT-5 utilities
-      let scheduledAtUTC = null;
-      if (formData.scheduledAt) {
-        const [dateStr, timeStr] = formData.scheduledAt.split('T');
-        scheduledAtUTC = parseGMTMinus5DateTime(dateStr, timeStr).toISOString();
-      }
+      // Convert timeSlots to the format expected by the API
+      const timeSlotDTOs = timeSlots.map((slot) => ({
+        id: slot.id,
+        startDateTime: new Date(slot.startDateTime).toISOString(),
+        endDateTime: slot.endDateTime ? new Date(slot.endDateTime).toISOString() : null,
+        isPrimary: slot.isPrimary,
+      }));
 
       const response = await fetch(`/api/tasks/${params.id}`, {
         method: 'PUT',
@@ -153,10 +153,10 @@ export default function EditTaskPage() {
         },
         body: JSON.stringify({
           ...formData,
-          itemId: formData.itemId || null,
+          projectId: formData.projectId || null,
           machineId: formData.machineId || null,
           operatorId: formData.operatorId || null,
-          scheduledAt: scheduledAtUTC,
+          timeSlots: timeSlotDTOs,
         }),
       });
 
@@ -176,17 +176,6 @@ export default function EditTaskPage() {
       [name]:
         name === 'durationMin' || name === 'quantity' || name === 'completed_quantity' ? parseInt(value) || 0 : value,
     }));
-
-    // Check if date is in the past when a date is selected
-    if (name === 'scheduledAt' && value) {
-      const selectedDateTime = new Date(value);
-      const now = new Date();
-      if (selectedDateTime < now) {
-        setDateWarning('Warning: This date and time is in the past.');
-      } else {
-        setDateWarning('');
-      }
-    }
   };
 
   if (loading) {
@@ -378,76 +367,15 @@ export default function EditTaskPage() {
             </div>
           </div>
 
-          {/* Scheduled Date and Duration */}
+          {/* Time Slots and Duration */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Scheduled Date & Time</label>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label
-                    htmlFor="scheduledDate"
-                    className="block text-xs text-gray-500 mb-1">
-                    Date
-                  </label>
-                  <input
-                    type="date"
-                    id="scheduledDate"
-                    name="scheduledDate"
-                    value={formData.scheduledAt ? formData.scheduledAt.split('T')[0] : ''}
-                    onChange={(e) => {
-                      const date = e.target.value;
-                      const time = formData.scheduledAt ? formData.scheduledAt.split('T')[1] : '09:00';
-
-                      // Check if date is in the past and show warning
-                      if (date) {
-                        const selectedDate = new Date(date);
-                        const today = getCurrentDisplayTimezoneDate();
-                        today.setHours(0, 0, 0, 0); // Reset time for comparison
-
-                        if (selectedDate < today) {
-                          setDateWarning('Warning: Scheduled date is in the past');
-                        } else {
-                          setDateWarning('');
-                        }
-                      } else {
-                        setDateWarning('');
-                      }
-
-                      setFormData((prev) => ({
-                        ...prev,
-                        scheduledAt: date ? `${date}T${time}` : '',
-                      }));
-                    }}
-                    className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="scheduledTime"
-                    className="block text-xs text-gray-500 mb-1">
-                    Time
-                  </label>
-                  <input
-                    type="time"
-                    id="scheduledTime"
-                    name="scheduledTime"
-                    value={formData.scheduledAt ? formData.scheduledAt.split('T')[1] || '09:00' : '09:00'}
-                    onChange={(e) => {
-                      const time = e.target.value;
-                      const date = formData.scheduledAt
-                        ? formData.scheduledAt.split('T')[0]
-                        : new Date().toISOString().split('T')[0];
-                      setFormData((prev) => ({
-                        ...prev,
-                        scheduledAt: date ? `${date}T${time}` : '',
-                      }));
-                    }}
-                    className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-              </div>
-              <p className="mt-1 text-xs text-gray-500">Leave empty if no specific schedule is required</p>
-              {dateWarning && <p className="mt-1 text-xs text-yellow-600">{dateWarning}</p>}
+              <TimeSlotsManager
+                timeSlots={timeSlots}
+                durationMin={formData.durationMin}
+                onChange={setTimeSlots}
+                disabled={saving}
+              />
             </div>
 
             <div>
@@ -549,9 +477,11 @@ export default function EditTaskPage() {
             </Link>
             <button
               type="submit"
-              disabled={saving || !formData.title.trim() || !formData.projectId || !formData.itemId}
+              disabled={
+                saving || !formData.title.trim() || !formData.projectId || !formData.itemId || timeSlots.length === 0
+              }
               className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                saving || !formData.title.trim() || !formData.projectId || !formData.itemId
+                saving || !formData.title.trim() || !formData.projectId || !formData.itemId || timeSlots.length === 0
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700'
               }`}>

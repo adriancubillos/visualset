@@ -53,14 +53,14 @@ export default function TasksPage() {
           setTasks(tasksData);
           setFilteredTasks(tasksData);
         } else {
-          console.error('Failed to fetch tasks');
+          console.error('Failed to fetch tasks - Status:', tasksResponse.status, 'URL:', tasksResponse.url);
         }
 
         if (projectsResponse.ok) {
           const projectsData = await projectsResponse.json();
           setProjects(projectsData.map((p: { id: string; name: string }) => ({ id: p.id, name: p.name })));
         } else {
-          console.error('Failed to fetch projects');
+          console.error('Failed to fetch projects - Status:', projectsResponse.status, 'URL:', projectsResponse.url);
         }
 
         if (itemsResponse.ok) {

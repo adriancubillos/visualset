@@ -45,6 +45,16 @@ export interface OperatorDTO {
   updatedAt: string;
 }
 
+export interface TaskTimeSlotDTO {
+  id: string;
+  taskId: string;
+  startDateTime: string;
+  endDateTime?: string | null;
+  isPrimary: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface TaskWithRelationsDTO {
   id: string;
   title: string;
@@ -57,7 +67,7 @@ export interface TaskWithRelationsDTO {
   itemId?: string | null;
   machine?: MachineDTO | null;
   operator?: OperatorDTO | null;
-  scheduledAt?: string | null;
+  timeSlots?: TaskTimeSlotDTO[];
   createdAt: string;
   updatedAt: string;
 }
@@ -87,7 +97,7 @@ export function mapTaskToResponse(task: TaskWithRelationsDTO): TaskResponseDTO {
     itemId: task.itemId ?? null,
     machine: task.machine ?? null,
     operator: task.operator ?? null,
-    scheduledAt: task.scheduledAt ?? null,
+    timeSlots: task.timeSlots ?? [],
     createdAt: task.createdAt,
     updatedAt: task.updatedAt,
     project,

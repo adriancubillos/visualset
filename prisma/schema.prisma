@@ -99,22 +99,38 @@ enum ItemStatus {
 
 // A task/job that must be assigned
 model Task {
-  id                 String     @id @default(cuid())
+  id                 String         @id @default(cuid())
   title              String
   description        String?
   durationMin        Int
-  status             TaskStatus @default(IN_PROGRESS)
-  quantity           Int        @default(1) // Total quantity required for this task
-  completed_quantity Int        @default(0) // Quantity completed so far
-  item               Item?      @relation(fields: [itemId], references: [id])
+  status             TaskStatus     @default(IN_PROGRESS)
+  quantity           Int            @default(1) // Total quantity required for this task
+  completed_quantity Int            @default(0) // Quantity completed so far
+  item               Item?          @relation(fields: [itemId], references: [id])
   itemId             String?
-  machine            Machine?   @relation(fields: [machineId], references: [id])
+  machine            Machine?       @relation(fields: [machineId], references: [id])
   machineId          String?
-  operator           Operator?  @relation(fields: [operatorId], references: [id])
+  operator           Operator?      @relation(fields: [operatorId], references: [id])
   operatorId         String?
-  scheduledAt        DateTime?
-  createdAt          DateTime   @default(now())
-  updatedAt          DateTime   @updatedAt
+  timeSlots          TaskTimeSlot[] // Multiple time slots for this task
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+}
+
+// Time slots for tasks - allows multiple scheduling windows per task
+model TaskTimeSlot {
+  id            String    @id @default(cuid())
+  task          Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId        String
+  startDateTime DateTime
+  endDateTime   DateTime?
+  isPrimary     Boolean   @default(false) // Mark one slot as primary for display
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([taskId])
+  @@index([startDateTime])
+  @@map("task_time_slots")
 }
 
 enum TaskStatus {
