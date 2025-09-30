@@ -31,16 +31,22 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(true);
   const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
   const [items, setItems] = useState<{ id: string; name: string; projectId: string }[]>([]);
+  const [machines, setMachines] = useState<{ id: string; name: string }[]>([]);
+  const [operators, setOperators] = useState<{ id: string; name: string }[]>([]);
   const [selectedProject, setSelectedProject] = useState<string>('');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [tasksResponse, projectsResponse, itemsResponse] = await Promise.all([
-          fetch('/api/tasks'),
-          fetch('/api/projects'),
-          fetch('/api/items'),
-        ]);
+        const [tasksResponse, projectsResponse, itemsResponse, machinesResponse, operatorsResponse] = await Promise.all(
+          [
+            fetch('/api/tasks'),
+            fetch('/api/projects'),
+            fetch('/api/items'),
+            fetch('/api/machines'),
+            fetch('/api/operators'),
+          ],
+        );
 
         if (tasksResponse.ok) {
           const tasksData = await tasksResponse.json();
@@ -68,6 +74,20 @@ export default function TasksPage() {
           );
         } else {
           console.error('Failed to fetch items');
+        }
+
+        if (machinesResponse.ok) {
+          const machinesData = await machinesResponse.json();
+          setMachines(machinesData.map((m: { id: string; name: string }) => ({ id: m.id, name: m.name })));
+        } else {
+          console.error('Failed to fetch machines');
+        }
+
+        if (operatorsResponse.ok) {
+          const operatorsData = await operatorsResponse.json();
+          setOperators(operatorsData.map((o: { id: string; name: string }) => ({ id: o.id, name: o.name })));
+        } else {
+          console.error('Failed to fetch operators');
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -112,6 +132,14 @@ export default function TasksPage() {
 
     if (filters.item) {
       filtered = filtered.filter((task) => task.item?.id === filters.item);
+    }
+
+    if (filters.machine) {
+      filtered = filtered.filter((task) => task.machine?.id === filters.machine);
+    }
+
+    if (filters.operator) {
+      filtered = filtered.filter((task) => task.operator?.id === filters.operator);
     }
 
     setFilteredTasks(filtered);
@@ -211,6 +239,28 @@ export default function TasksPage() {
         .map((item) => ({
           value: item.id,
           label: item.name,
+        })),
+    },
+    {
+      key: 'machine',
+      label: 'Filter by Machine',
+      options: machines
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((machine) => ({
+          value: machine.id,
+          label: machine.name,
+        })),
+    },
+    {
+      key: 'operator',
+      label: 'Filter by Operator',
+      options: operators
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((operator) => ({
+          value: operator.id,
+          label: operator.name,
         })),
     },
   ];

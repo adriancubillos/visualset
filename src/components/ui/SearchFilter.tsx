@@ -63,12 +63,12 @@ export default function SearchFilter({
   };
 
   return (
-    <div className="bg-white p-4 rounded-lg shadow-sm border mb-6">
-      <div className="flex flex-col sm:flex-row gap-4">
-        {/* Search Input */}
-        <div className="flex-1">
+    <div className="bg-white p-6 rounded-lg shadow-sm border mb-6">
+      <div className="flex flex-col lg:flex-row gap-4">
+        {/* Search Input - Give it more space and better styling */}
+        <div className="flex-1 lg:flex-initial lg:min-w-0 lg:w-80">
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <svg
                 className="h-5 w-5 text-gray-400"
                 fill="none"
@@ -84,7 +84,7 @@ export default function SearchFilter({
             </div>
             <input
               type="text"
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              className="block w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-lg text-sm leading-5 bg-gray-50 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-colors duration-200"
               placeholder={placeholder}
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
@@ -92,57 +92,63 @@ export default function SearchFilter({
           </div>
         </div>
 
-        {/* Filters */}
-        {filters.map((filter) => (
-          <div
-            key={filter.key}
-            className="min-w-0 flex-1 sm:flex-none sm:w-48">
-            <select
-              className="block w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-              value={activeFilters[filter.key] || ''}
-              onChange={(e) => handleFilterChange(filter.key, e.target.value)}>
-              <option value="">{filter.label}</option>
-              {filter.options.map((option) => (
-                <option
-                  key={option.value}
-                  value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        ))}
+        {/* Filters - Better organized in a grid on larger screens */}
+        <div className="flex flex-col sm:flex-row lg:flex-wrap gap-3 lg:flex-1">
+          {filters.map((filter) => (
+            <div
+              key={filter.key}
+              className="min-w-0 flex-1 sm:flex-none sm:min-w-48 lg:min-w-52">
+              <select
+                className="block w-full px-3 py-3 border-2 border-gray-200 rounded-lg bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-colors duration-200"
+                value={activeFilters[filter.key] || ''}
+                onChange={(e) => handleFilterChange(filter.key, e.target.value)}>
+                <option value="">{filter.label}</option>
+                {filter.options.map((option) => (
+                  <option
+                    key={option.value}
+                    value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Active Filters Display */}
       {Object.keys(activeFilters).length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {Object.entries(activeFilters).map(([key, value]) => {
-            const filter = filters.find((f) => f.key === key);
-            const option = filter?.options.find((o) => o.value === value);
-            return (
-              <span
-                key={key}
-                className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800">
-                {filter?.label}: {option?.label}
-                <button
-                  type="button"
-                  className="ml-2 inline-flex items-center justify-center w-4 h-4 rounded-full text-blue-400 hover:bg-blue-200 hover:text-blue-600"
-                  onClick={() => handleFilterChange(key, '')}>
-                  ×
-                </button>
-              </span>
-            );
-          })}
-          <button
-            type="button"
-            className="text-sm text-gray-500 hover:text-gray-700 underline"
-            onClick={() => {
-              setActiveFilters({});
-              onFilterChange?.({});
-            }}>
-            Clear all
-          </button>
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(activeFilters).map(([key, value]) => {
+              const filter = filters.find((f) => f.key === key);
+              const option = filter?.options.find((o) => o.value === value);
+              return (
+                <span
+                  key={key}
+                  className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                  <span className="font-medium">{filter?.label}:</span>
+                  <span className="ml-1">{option?.label}</span>
+                  <button
+                    type="button"
+                    className="ml-2 inline-flex items-center justify-center w-5 h-5 rounded-full text-blue-600 hover:bg-blue-200 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-colors duration-150"
+                    onClick={() => handleFilterChange(key, '')}
+                    aria-label={`Remove ${filter?.label} filter`}>
+                    ×
+                  </button>
+                </span>
+              );
+            })}
+            <button
+              type="button"
+              className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-800 underline decoration-2 underline-offset-2 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1 transition-colors duration-150"
+              onClick={() => {
+                setActiveFilters({});
+                onFilterChange?.({});
+              }}>
+              Clear all
+            </button>
+          </div>
         </div>
       )}
     </div>
