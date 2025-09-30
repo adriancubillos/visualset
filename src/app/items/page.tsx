@@ -9,6 +9,18 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import TableActions from '@/components/ui/TableActions';
 import StatisticsCards from '@/components/ui/StatisticsCards';
 
+// Import the Column type from DataTable
+type Column<T> = {
+  key: keyof T;
+  header: string;
+  sortable?: boolean;
+  width?: string;
+  minWidth?: string;
+  id?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  render?: (value: any, item: T) => React.ReactNode;
+};
+
 interface Item {
   id: string;
   name: string;
@@ -30,6 +42,84 @@ export default function ItemsPage() {
   const [filteredItems, setFilteredItems] = useState<Item[]>([]);
   const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Default column configuration
+  const defaultColumns: Column<Item>[] = [
+    {
+      key: 'name' as keyof Item,
+      header: 'Item Name',
+      render: (value: string, item: Item) => (
+        <div>
+          <Link
+            href={`/items/${item.id}`}
+            className="font-medium text-blue-600 hover:text-blue-800">
+            {item.name}
+          </Link>
+          {item.description && <p className="text-sm text-gray-500 mt-1">{item.description}</p>}
+        </div>
+      ),
+    },
+    {
+      key: 'project' as keyof Item,
+      header: 'Project',
+      render: (value: Item['project'], item: Item) => (
+        <Link
+          href={`/projects/${item.project.id}`}
+          className="text-blue-600 hover:text-blue-800">
+          {item.project.name}
+        </Link>
+      ),
+    },
+    {
+      key: 'status' as keyof Item,
+      header: 'Status',
+      render: (value: string, item: Item) => <StatusBadge status={item.status} />,
+    },
+    {
+      key: '_count' as keyof Item,
+      header: 'Tasks',
+      render: (value: Item['_count'], item: Item) => (
+        <span className="text-sm text-gray-600">
+          {item._count.tasks} {item._count.tasks === 1 ? 'task' : 'tasks'}
+        </span>
+      ),
+    },
+    {
+      key: 'updatedAt' as keyof Item,
+      header: 'Last Updated',
+      render: (value: string, item: Item) => (
+        <span className="text-sm text-gray-500">{new Date(item.updatedAt).toLocaleDateString()}</span>
+      ),
+    },
+  ];
+
+  // Function to restore column order from localStorage
+  const getInitialColumns = (): Column<Item>[] => {
+    if (typeof window === 'undefined') return defaultColumns;
+
+    try {
+      const savedOrder = localStorage.getItem('itemsColumnOrder');
+      if (!savedOrder) return defaultColumns;
+
+      const keyOrder = JSON.parse(savedOrder) as (keyof Item)[];
+      const columnMap = new Map(defaultColumns.map((col) => [col.key, col]));
+
+      // Reorder columns based on saved order, keeping any new columns at the end
+      const reorderedColumns = keyOrder
+        .map((key) => columnMap.get(key))
+        .filter((col): col is Column<Item> => col !== undefined);
+
+      // Add any new columns that weren't in the saved order
+      const usedKeys = new Set(keyOrder);
+      const newColumns = defaultColumns.filter((col) => !usedKeys.has(col.key));
+
+      return [...reorderedColumns, ...newColumns];
+    } catch {
+      return defaultColumns;
+    }
+  };
+
+  const [columns, setColumns] = useState<Column<Item>[]>(getInitialColumns());
 
   useEffect(() => {
     const fetchData = async () => {
@@ -104,54 +194,16 @@ export default function ItemsPage() {
     }
   };
 
-  const columns = [
-    {
-      key: 'name' as keyof Item,
-      header: 'Item Name',
-      render: (value: string, item: Item) => (
-        <div>
-          <Link
-            href={`/items/${item.id}`}
-            className="font-medium text-blue-600 hover:text-blue-800">
-            {item.name}
-          </Link>
-          {item.description && <p className="text-sm text-gray-500 mt-1">{item.description}</p>}
-        </div>
-      ),
-    },
-    {
-      key: 'project' as keyof Item,
-      header: 'Project',
-      render: (value: Item['project'], item: Item) => (
-        <Link
-          href={`/projects/${item.project.id}`}
-          className="text-blue-600 hover:text-blue-800">
-          {item.project.name}
-        </Link>
-      ),
-    },
-    {
-      key: 'status' as keyof Item,
-      header: 'Status',
-      render: (value: string, item: Item) => <StatusBadge status={item.status} />,
-    },
-    {
-      key: '_count' as keyof Item,
-      header: 'Tasks',
-      render: (value: Item['_count'], item: Item) => (
-        <span className="text-sm text-gray-600">
-          {item._count.tasks} {item._count.tasks === 1 ? 'task' : 'tasks'}
-        </span>
-      ),
-    },
-    {
-      key: 'updatedAt' as keyof Item,
-      header: 'Last Updated',
-      render: (value: string, item: Item) => (
-        <span className="text-sm text-gray-500">{new Date(item.updatedAt).toLocaleDateString()}</span>
-      ),
-    },
-  ];
+  const handleColumnReorder = (newColumnOrder: Column<Item>[]) => {
+    setColumns(newColumnOrder);
+    // Save column order to localStorage
+    localStorage.setItem('itemsColumnOrder', JSON.stringify(newColumnOrder.map((col: Column<Item>) => col.key)));
+  };
+
+  const resetColumnOrder = () => {
+    setColumns(defaultColumns);
+    localStorage.removeItem('itemsColumnOrder');
+  };
 
   const statusOptions = [
     { value: 'ACTIVE', label: 'Active' },
@@ -219,6 +271,9 @@ export default function ItemsPage() {
           columns={columns}
           loading={loading}
           maxHeight="70vh"
+          onColumnReorder={handleColumnReorder}
+          onResetColumns={resetColumnOrder}
+          showResetColumns={true}
           actions={(item: Item) => (
             <TableActions
               itemId={item.id}

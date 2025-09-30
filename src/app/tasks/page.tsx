@@ -10,6 +10,18 @@ import TableActions from '@/components/ui/TableActions';
 import StatisticsCards from '@/components/ui/StatisticsCards';
 import { TASK_STATUS } from '@/config/workshop-properties';
 
+// Column type for DataTable
+type Column<T> = {
+  key: keyof T;
+  header: string;
+  sortable?: boolean;
+  width?: string;
+  minWidth?: string;
+  id?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  render?: (value: any, item: T) => React.ReactNode;
+};
+
 interface Task {
   id: string;
   title: string;
@@ -35,28 +47,170 @@ interface Task {
   updatedAt: string;
 }
 
+// Default column configuration
+const defaultColumns: Column<Task>[] = [
+  {
+    key: 'title',
+    header: 'Task',
+    sortable: true,
+    width: '30%',
+    minWidth: '200px',
+  },
+  {
+    key: 'status',
+    header: 'Status',
+    sortable: true,
+    width: '120px',
+    minWidth: '120px',
+    render: (status: string) => {
+      const getStatusVariant = (status: string) => {
+        switch (status) {
+          case 'COMPLETED':
+            return 'success';
+          case 'IN_PROGRESS':
+            return 'info';
+          case 'SCHEDULED':
+            return 'info';
+          case 'PENDING':
+            return 'warning';
+          case 'BLOCKED':
+            return 'error';
+          default:
+            return 'default';
+        }
+      };
+
+      return (
+        <StatusBadge
+          status={status ? status.replace(/_/g, ' ') : 'Unknown'}
+          variant={getStatusVariant(status)}
+        />
+      );
+    },
+  },
+  {
+    id: 'project',
+    key: 'item',
+    header: 'Project',
+    sortable: false,
+    width: '15%',
+    minWidth: '150px',
+    render: (item: Task['item']) => <span className="text-sm">{item?.project?.name || 'No Project'}</span>,
+  },
+  {
+    id: 'item',
+    key: 'item',
+    header: 'Item',
+    sortable: false,
+    width: '15%',
+    minWidth: '150px',
+    render: (item: Task['item']) => <span className="text-sm">{item?.name || 'No Item'}</span>,
+  },
+  {
+    key: 'quantity',
+    header: 'Progress',
+    sortable: false,
+    width: '120px',
+    minWidth: '120px',
+    render: (quantity: number, task: Task) => (
+      <div className="text-sm">
+        <div>
+          {task.completed_quantity}/{quantity}
+        </div>
+        <div className="w-16 bg-gray-200 rounded-full h-1 mt-1">
+          <div
+            className="bg-blue-600 h-1 rounded-full"
+            style={{ width: `${Math.min((task.completed_quantity / quantity) * 100, 100)}%` }}></div>
+        </div>
+      </div>
+    ),
+  },
+  {
+    key: 'operator',
+    header: 'Operator',
+    sortable: false,
+    width: '15%',
+    minWidth: '120px',
+    render: (operator: Task['operator']) => <span className="text-sm">{operator?.name || 'Unassigned'}</span>,
+  },
+  {
+    key: 'timeSlots',
+    header: 'Scheduled',
+    sortable: true,
+    width: '15%',
+    minWidth: '150px',
+    render: (timeSlots: Task['timeSlots']) => {
+      if (!timeSlots || timeSlots.length === 0) {
+        return <span className="text-sm text-gray-500">Not scheduled</span>;
+      }
+
+      // Find primary slot or use first slot
+      const primarySlot = timeSlots.find((slot) => slot.isPrimary) || timeSlots[0];
+      const date = new Date(primarySlot.startDateTime);
+
+      return (
+        <div className="text-sm">
+          <div>{date.toLocaleDateString()}</div>
+          {timeSlots.length > 1 && <div className="text-xs text-gray-500">+{timeSlots.length - 1} more</div>}
+        </div>
+      );
+    },
+  },
+];
+
+// Function to get initial column order from localStorage
+const getInitialColumns = (): Column<Task>[] => {
+  if (typeof window === 'undefined') return defaultColumns;
+
+  try {
+    const saved = localStorage.getItem('tasksColumnOrder');
+    if (!saved) return defaultColumns;
+
+    const savedOrder = JSON.parse(saved);
+    if (!Array.isArray(savedOrder)) return defaultColumns;
+
+    // Reorder columns based on saved order
+    const orderedColumns: Column<Task>[] = [];
+
+    // Add columns in saved order
+    for (const savedCol of savedOrder) {
+      const matchingColumn = defaultColumns.find((col) => (col.id || col.key) === (savedCol.id || savedCol.key));
+      if (matchingColumn) {
+        orderedColumns.push(matchingColumn);
+      }
+    }
+
+    // Add any new columns that weren't in saved order
+    for (const defaultCol of defaultColumns) {
+      const exists = orderedColumns.some((col) => (col.id || col.key) === (defaultCol.id || defaultCol.key));
+      if (!exists) {
+        orderedColumns.push(defaultCol);
+      }
+    }
+
+    return orderedColumns;
+  } catch (error) {
+    console.error('Error loading column order:', error);
+    return defaultColumns;
+  }
+};
+
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
   const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
-  const [items, setItems] = useState<{ id: string; name: string; projectId: string }[]>([]);
-  const [machines, setMachines] = useState<{ id: string; name: string }[]>([]);
   const [operators, setOperators] = useState<{ id: string; name: string }[]>([]);
-  const [selectedProject, setSelectedProject] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+  const [columns, setColumns] = useState<Column<Task>[]>(getInitialColumns);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [tasksResponse, projectsResponse, itemsResponse, machinesResponse, operatorsResponse] = await Promise.all(
-          [
-            fetch('/api/tasks'),
-            fetch('/api/projects'),
-            fetch('/api/items'),
-            fetch('/api/machines'),
-            fetch('/api/operators'),
-          ],
-        );
+        const [tasksResponse, projectsResponse, operatorsResponse] = await Promise.all([
+          fetch('/api/tasks'),
+          fetch('/api/projects'),
+          fetch('/api/operators'),
+        ]);
 
         if (tasksResponse.ok) {
           const tasksData = await tasksResponse.json();
@@ -71,26 +225,6 @@ export default function TasksPage() {
           setProjects(projectsData.map((p: { id: string; name: string }) => ({ id: p.id, name: p.name })));
         } else {
           console.error('Failed to fetch projects - Status:', projectsResponse.status, 'URL:', projectsResponse.url);
-        }
-
-        if (itemsResponse.ok) {
-          const itemsData = await itemsResponse.json();
-          setItems(
-            itemsData.map((i: { id: string; name: string; project: { id: string } }) => ({
-              id: i.id,
-              name: i.name,
-              projectId: i.project.id,
-            })),
-          );
-        } else {
-          console.error('Failed to fetch items');
-        }
-
-        if (machinesResponse.ok) {
-          const machinesData = await machinesResponse.json();
-          setMachines(machinesData.map((m: { id: string; name: string }) => ({ id: m.id, name: m.name })));
-        } else {
-          console.error('Failed to fetch machines');
         }
 
         if (operatorsResponse.ok) {
@@ -124,28 +258,12 @@ export default function TasksPage() {
   const handleFilterChange = (filters: Record<string, string>) => {
     let filtered = tasks;
 
-    // Track selected project for dynamic item filtering
-    // When project filter is cleared, it won't be in the filters object at all
-    if ('project' in filters) {
-      setSelectedProject(filters.project);
-    } else {
-      setSelectedProject('');
-    }
-
     if (filters.status) {
       filtered = filtered.filter((task) => task.status === filters.status);
     }
 
     if (filters.project) {
       filtered = filtered.filter((task) => task.item?.project.id === filters.project);
-    }
-
-    if (filters.item) {
-      filtered = filtered.filter((task) => task.item?.id === filters.item);
-    }
-
-    if (filters.machine) {
-      filtered = filtered.filter((task) => task.machine?.id === filters.machine);
     }
 
     if (filters.operator) {
@@ -155,118 +273,27 @@ export default function TasksPage() {
     setFilteredTasks(filtered);
   };
 
-  const getStatusVariant = (status: string) => {
-    const statusConfig = TASK_STATUS.find((s) => s.value === status);
-    if (!statusConfig) return 'default';
-
-    switch (status) {
-      case 'COMPLETED':
-        return 'success';
-      case 'IN_PROGRESS':
-        return 'info';
-      case 'SCHEDULED':
-        return 'info';
-      case 'PENDING':
-        return 'warning';
-      case 'BLOCKED':
-        return 'error';
-      default:
-        return 'default';
-    }
+  // Column management functions
+  const handleColumnReorder = (reorderedColumns: Column<Task>[]) => {
+    setColumns(reorderedColumns);
+    localStorage.setItem(
+      'tasksColumnOrder',
+      JSON.stringify(
+        reorderedColumns.map((col) => ({
+          key: col.key,
+          id: col.id,
+        })),
+      ),
+    );
   };
 
-  const columns = [
-    {
-      key: 'title' as keyof Task,
-      header: 'Task',
-      sortable: true,
-      width: '30%',
-      minWidth: '200px',
-    },
-    {
-      key: 'status' as keyof Task,
-      header: 'Status',
-      sortable: true,
-      width: '120px',
-      minWidth: '120px',
-      render: (status: string) => (
-        <StatusBadge
-          status={status ? status.replace(/_/g, ' ') : 'Unknown'}
-          variant={getStatusVariant(status)}
-        />
-      ),
-    },
-    {
-      id: 'project',
-      key: 'item' as keyof Task,
-      header: 'Project',
-      sortable: false,
-      width: '15%',
-      minWidth: '150px',
-      render: (item: Task['item']) => <span className="text-sm">{item?.project?.name || 'No Project'}</span>,
-    },
-    {
-      id: 'item',
-      key: 'item' as keyof Task,
-      header: 'Item',
-      sortable: false,
-      width: '15%',
-      minWidth: '150px',
-      render: (item: Task['item']) => <span className="text-sm">{item?.name || 'No Item'}</span>,
-    },
-    {
-      key: 'quantity' as keyof Task,
-      header: 'Progress',
-      sortable: false,
-      width: '120px',
-      minWidth: '120px',
-      render: (quantity: number, task: Task) => (
-        <div className="text-sm">
-          <div>
-            {task.completed_quantity}/{quantity}
-          </div>
-          <div className="w-16 bg-gray-200 rounded-full h-1 mt-1">
-            <div
-              className="bg-blue-600 h-1 rounded-full"
-              style={{ width: `${Math.min((task.completed_quantity / quantity) * 100, 100)}%` }}></div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: 'operator' as keyof Task,
-      header: 'Operator',
-      sortable: false,
-      width: '15%',
-      minWidth: '120px',
-      render: (operator: Task['operator']) => <span className="text-sm">{operator?.name || 'Unassigned'}</span>,
-    },
-    {
-      key: 'timeSlots' as keyof Task,
-      header: 'Scheduled',
-      sortable: true,
-      width: '15%',
-      minWidth: '150px',
-      render: (timeSlots: Task['timeSlots']) => {
-        if (!timeSlots || timeSlots.length === 0) {
-          return <span className="text-sm text-gray-500">Not scheduled</span>;
-        }
+  const handleResetColumns = () => {
+    setColumns(defaultColumns);
+    localStorage.removeItem('tasksColumnOrder');
+  };
 
-        // Find primary slot or use first slot
-        const primarySlot = timeSlots.find((slot) => slot.isPrimary) || timeSlots[0];
-        const date = new Date(primarySlot.startDateTime);
-
-        return (
-          <div className="text-sm">
-            <div>{date.toLocaleDateString()}</div>
-            {timeSlots.length > 1 && <div className="text-xs text-gray-500">+{timeSlots.length - 1} more</div>}
-          </div>
-        );
-      },
-    },
-  ];
-
-  const filters = [
+  // Dynamic filters based on current data
+  const filterOptions = [
     {
       key: 'status',
       label: 'Filter by Status',
@@ -286,28 +313,6 @@ export default function TasksPage() {
         .map((project) => ({
           value: project.id,
           label: project.name,
-        })),
-    },
-    {
-      key: 'item',
-      label: 'Filter by Item',
-      options: items
-        .filter((item) => !selectedProject || item.projectId === selectedProject)
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .map((item) => ({
-          value: item.id,
-          label: item.name,
-        })),
-    },
-    {
-      key: 'machine',
-      label: 'Filter by Machine',
-      options: machines
-        .slice()
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .map((machine) => ({
-          value: machine.id,
-          label: machine.name,
         })),
     },
     {
@@ -413,7 +418,7 @@ export default function TasksPage() {
       <SearchFilter
         placeholder="Search tasks..."
         onSearch={handleSearch}
-        filters={filters}
+        filters={filterOptions}
         onFilterChange={handleFilterChange}
       />
 
@@ -425,6 +430,9 @@ export default function TasksPage() {
         onRowClick={handleRowClick}
         actions={renderActions}
         maxHeight="70vh"
+        onColumnReorder={handleColumnReorder}
+        onResetColumns={handleResetColumns}
+        showResetColumns={true}
       />
     </PageContainer>
   );

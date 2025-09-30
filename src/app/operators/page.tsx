@@ -11,6 +11,18 @@ import { OperatorColorIndicator } from '@/components/ui/ColorIndicator';
 import StatisticsCards from '@/components/ui/StatisticsCards';
 import { AVAILABLE_SKILLS, OPERATOR_STATUS, OPERATOR_SHIFTS } from '@/config/workshop-properties';
 
+// Column type for DataTable
+type Column<T> = {
+  key: keyof T;
+  header: string;
+  sortable?: boolean;
+  width?: string;
+  minWidth?: string;
+  id?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  render?: (value: any, item: T) => React.ReactNode;
+};
+
 interface Operator {
   id: string;
   name: string;
@@ -24,10 +36,127 @@ interface Operator {
   updatedAt: string;
 }
 
+// Default column configuration
+const defaultColumns: Column<Operator>[] = [
+  {
+    key: 'color',
+    header: '',
+    render: (_: unknown, operator: Operator) => (
+      <OperatorColorIndicator
+        operator={operator}
+        size="md"
+        showTooltip={true}
+        tooltipText={`${operator.name} color`}
+      />
+    ),
+  },
+  {
+    key: 'name',
+    header: 'Name',
+    sortable: true,
+  },
+  {
+    key: 'email',
+    header: 'Email',
+    sortable: true,
+  },
+  {
+    key: 'skills',
+    header: 'Skills',
+    sortable: false,
+    render: (skills: string[]) => (
+      <div className="flex flex-wrap gap-1">
+        {skills.slice(0, 3).map((skill, index) => (
+          <span
+            key={index}
+            className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+            {skill}
+          </span>
+        ))}
+        {skills.length > 3 && (
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+            +{skills.length - 3}
+          </span>
+        )}
+      </div>
+    ),
+  },
+  {
+    key: 'status',
+    header: 'Status',
+    sortable: true,
+    render: (status: string) => {
+      const getStatusVariant = (status: string) => {
+        switch (status) {
+          case 'ACTIVE':
+            return 'success';
+          case 'INACTIVE':
+            return 'error';
+          case 'ON_LEAVE':
+            return 'warning';
+          default:
+            return 'default';
+        }
+      };
+
+      return (
+        <StatusBadge
+          status={status ? status.replace(/_/g, ' ') : 'Unknown'}
+          variant={getStatusVariant(status)}
+        />
+      );
+    },
+  },
+  {
+    key: 'shift',
+    header: 'Shift',
+    sortable: true,
+    render: (shift: string) => shift.replace(/_/g, ' '),
+  },
+];
+
+// Function to get initial column order from localStorage
+const getInitialColumns = (): Column<Operator>[] => {
+  if (typeof window === 'undefined') return defaultColumns;
+
+  try {
+    const saved = localStorage.getItem('operatorsColumnOrder');
+    if (!saved) return defaultColumns;
+
+    const savedOrder = JSON.parse(saved);
+    if (!Array.isArray(savedOrder)) return defaultColumns;
+
+    // Reorder columns based on saved order
+    const orderedColumns: Column<Operator>[] = [];
+
+    // Add columns in saved order
+    for (const savedCol of savedOrder) {
+      const matchingColumn = defaultColumns.find((col) => (col.id || col.key) === (savedCol.id || savedCol.key));
+      if (matchingColumn) {
+        orderedColumns.push(matchingColumn);
+      }
+    }
+
+    // Add any new columns that weren't in saved order
+    for (const defaultCol of defaultColumns) {
+      const exists = orderedColumns.some((col) => (col.id || col.key) === (defaultCol.id || defaultCol.key));
+      if (!exists) {
+        orderedColumns.push(defaultCol);
+      }
+    }
+
+    return orderedColumns;
+  } catch (error) {
+    console.error('Error loading column order:', error);
+    return defaultColumns;
+  }
+};
+
 export default function OperatorsPage() {
   const [operators, setOperators] = useState<Operator[]>([]);
   const [filteredOperators, setFilteredOperators] = useState<Operator[]>([]);
   const [loading, setLoading] = useState(true);
+  const [columns, setColumns] = useState<Column<Operator>[]>(getInitialColumns);
 
   useEffect(() => {
     const fetchOperators = async () => {
@@ -78,72 +207,27 @@ export default function OperatorsPage() {
     setFilteredOperators(filtered);
   };
 
-  const getStatusVariant = (status: string) => {
-    switch (status) {
-      case 'ACTIVE':
-        return 'success';
-      case 'ON_LEAVE':
-        return 'warning';
-      case 'INACTIVE':
-        return 'error';
-      default:
-        return 'default';
-    }
+  // Column management functions
+  const handleColumnReorder = (reorderedColumns: Column<Operator>[]) => {
+    setColumns(reorderedColumns);
+    localStorage.setItem(
+      'operatorsColumnOrder',
+      JSON.stringify(
+        reorderedColumns.map((col) => ({
+          key: col.key,
+          id: col.id,
+        })),
+      ),
+    );
   };
 
-  const formatSkills = (skills: string[]) => {
-    return skills.map((skill) => skill.replace(/_/g, ' ')).join(', ');
+  const handleResetColumns = () => {
+    setColumns(defaultColumns);
+    localStorage.removeItem('operatorsColumnOrder');
   };
 
-  const columns = [
-    {
-      key: 'color' as keyof Operator,
-      header: '',
-      render: (_: unknown, operator: Operator) => (
-        <OperatorColorIndicator
-          operator={operator}
-          size="md"
-          showTooltip={true}
-          tooltipText={`${operator.name} color`}
-        />
-      ),
-    },
-    {
-      key: 'name' as keyof Operator,
-      header: 'Name',
-      sortable: true,
-    },
-    {
-      key: 'email' as keyof Operator,
-      header: 'Email',
-      sortable: true,
-    },
-    {
-      key: 'skills' as keyof Operator,
-      header: 'Skills',
-      sortable: false,
-      render: (skills: string[]) => <span className="text-sm text-gray-600">{formatSkills(skills)}</span>,
-    },
-    {
-      key: 'status' as keyof Operator,
-      header: 'Status',
-      sortable: true,
-      render: (status: string) => (
-        <StatusBadge
-          status={status ? status.replace(/_/g, ' ') : 'Unknown'}
-          variant={getStatusVariant(status)}
-        />
-      ),
-    },
-    {
-      key: 'shift' as keyof Operator,
-      header: 'Shift',
-      sortable: true,
-      render: (shift: string) => <span className="capitalize">{shift ? shift.toLowerCase() : 'Unknown'}</span>,
-    },
-  ];
-
-  const filters = [
+  // Dynamic filters based on current data
+  const filterOptions = [
     {
       key: 'status',
       label: 'Filter by Status',
@@ -289,7 +373,7 @@ export default function OperatorsPage() {
       <SearchFilter
         placeholder="Search operators..."
         onSearch={handleSearch}
-        filters={filters}
+        filters={filterOptions}
         onFilterChange={handleFilterChange}
       />
 
@@ -301,6 +385,9 @@ export default function OperatorsPage() {
         onRowClick={handleRowClick}
         actions={renderActions}
         maxHeight="70vh"
+        onColumnReorder={handleColumnReorder}
+        onResetColumns={handleResetColumns}
+        showResetColumns={true}
       />
     </PageContainer>
   );

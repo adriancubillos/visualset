@@ -11,6 +11,18 @@ import StatisticsCards from '@/components/ui/StatisticsCards';
 import { MachineColorIndicator } from '@/components/ui/ColorIndicator';
 import { MACHINE_TYPES, MACHINE_STATUS } from '@/config/workshop-properties';
 
+// Column type for DataTable
+type Column<T> = {
+  key: keyof T;
+  header: string;
+  sortable?: boolean;
+  width?: string;
+  minWidth?: string;
+  id?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  render?: (value: any, item: T) => React.ReactNode;
+};
+
 interface Machine {
   id: string;
   name: string;
@@ -23,10 +35,114 @@ interface Machine {
   updatedAt: string;
 }
 
+// Default column configuration
+const defaultColumns: Column<Machine>[] = [
+  {
+    key: 'color',
+    header: '',
+    render: (_: unknown, machine: Machine) => (
+      <MachineColorIndicator
+        machine={machine}
+        size="md"
+        showTooltip={true}
+        tooltipText={`${machine.name} color`}
+      />
+    ),
+  },
+  {
+    key: 'name',
+    header: 'Machine Name',
+    sortable: true,
+  },
+  {
+    key: 'type',
+    header: 'Type',
+    sortable: true,
+    render: (type: string) => type.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
+  },
+  {
+    key: 'status',
+    header: 'Status',
+    sortable: true,
+    render: (status: string) => {
+      const getStatusVariant = (status: string) => {
+        switch (status) {
+          case 'AVAILABLE':
+            return 'success';
+          case 'IN_USE':
+            return 'info';
+          case 'MAINTENANCE':
+            return 'warning';
+          case 'OFFLINE':
+            return 'error';
+          default:
+            return 'default';
+        }
+      };
+
+      return (
+        <StatusBadge
+          status={status ? status.replace(/_/g, ' ') : 'Unknown'}
+          variant={getStatusVariant(status)}
+        />
+      );
+    },
+  },
+  {
+    key: 'location',
+    header: 'Location',
+    sortable: true,
+  },
+  {
+    key: 'updatedAt',
+    header: 'Last Updated',
+    sortable: true,
+    render: (date: string) => new Date(date).toLocaleDateString(),
+  },
+];
+
+// Function to get initial column order from localStorage
+const getInitialColumns = (): Column<Machine>[] => {
+  if (typeof window === 'undefined') return defaultColumns;
+
+  try {
+    const saved = localStorage.getItem('machinesColumnOrder');
+    if (!saved) return defaultColumns;
+
+    const savedOrder = JSON.parse(saved);
+    if (!Array.isArray(savedOrder)) return defaultColumns;
+
+    // Reorder columns based on saved order
+    const orderedColumns: Column<Machine>[] = [];
+
+    // Add columns in saved order
+    for (const savedCol of savedOrder) {
+      const matchingColumn = defaultColumns.find((col) => (col.id || col.key) === (savedCol.id || savedCol.key));
+      if (matchingColumn) {
+        orderedColumns.push(matchingColumn);
+      }
+    }
+
+    // Add any new columns that weren't in saved order
+    for (const defaultCol of defaultColumns) {
+      const exists = orderedColumns.some((col) => (col.id || col.key) === (defaultCol.id || defaultCol.key));
+      if (!exists) {
+        orderedColumns.push(defaultCol);
+      }
+    }
+
+    return orderedColumns;
+  } catch (error) {
+    console.error('Error loading column order:', error);
+    return defaultColumns;
+  }
+};
+
 export default function MachinesPage() {
   const [machines, setMachines] = useState<Machine[]>([]);
   const [filteredMachines, setFilteredMachines] = useState<Machine[]>([]);
   const [loading, setLoading] = useState(true);
+  const [columns, setColumns] = useState<Column<Machine>[]>(getInitialColumns);
 
   useEffect(() => {
     const fetchMachines = async () => {
@@ -77,74 +193,27 @@ export default function MachinesPage() {
     setFilteredMachines(filtered);
   };
 
-  const getStatusVariant = (status: string) => {
-    switch (status) {
-      case 'AVAILABLE':
-        return 'success';
-      case 'IN_USE':
-        return 'info';
-      case 'MAINTENANCE':
-        return 'warning';
-      case 'OFFLINE':
-        return 'error';
-      default:
-        return 'default';
-    }
+  // Column management functions
+  const handleColumnReorder = (reorderedColumns: Column<Machine>[]) => {
+    setColumns(reorderedColumns);
+    localStorage.setItem(
+      'machinesColumnOrder',
+      JSON.stringify(
+        reorderedColumns.map((col) => ({
+          key: col.key,
+          id: col.id,
+        })),
+      ),
+    );
   };
 
-  const formatMachineType = (type: string) => {
-    return type.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+  const handleResetColumns = () => {
+    setColumns(defaultColumns);
+    localStorage.removeItem('machinesColumnOrder');
   };
 
-  const columns = [
-    {
-      key: 'color' as keyof Machine,
-      header: '',
-      render: (_: unknown, machine: Machine) => (
-        <MachineColorIndicator
-          machine={machine}
-          size="md"
-          showTooltip={true}
-          tooltipText={`${machine.name} color`}
-        />
-      ),
-    },
-    {
-      key: 'name' as keyof Machine,
-      header: 'Machine Name',
-      sortable: true,
-    },
-    {
-      key: 'type' as keyof Machine,
-      header: 'Type',
-      sortable: true,
-      render: (type: string) => formatMachineType(type),
-    },
-    {
-      key: 'status' as keyof Machine,
-      header: 'Status',
-      sortable: true,
-      render: (status: string) => (
-        <StatusBadge
-          status={status ? status.replace(/_/g, ' ') : 'Unknown'}
-          variant={getStatusVariant(status)}
-        />
-      ),
-    },
-    {
-      key: 'location' as keyof Machine,
-      header: 'Location',
-      sortable: true,
-    },
-    {
-      key: 'updatedAt' as keyof Machine,
-      header: 'Last Updated',
-      sortable: true,
-      render: (date: string) => new Date(date).toLocaleDateString(),
-    },
-  ];
-
-  const filters = [
+  // Dynamic filters based on current data
+  const filterOptions = [
     {
       key: 'status',
       label: 'Filter by Status',
@@ -252,7 +321,7 @@ export default function MachinesPage() {
       <SearchFilter
         placeholder="Search machines..."
         onSearch={handleSearch}
-        filters={filters}
+        filters={filterOptions}
         onFilterChange={handleFilterChange}
       />
 
@@ -264,6 +333,9 @@ export default function MachinesPage() {
         onRowClick={handleRowClick}
         actions={renderActions}
         maxHeight="70vh"
+        onColumnReorder={handleColumnReorder}
+        onResetColumns={handleResetColumns}
+        showResetColumns={true}
       />
     </PageContainer>
   );

@@ -11,6 +11,18 @@ import { ProjectColorIndicator } from '@/components/ui/ColorIndicator';
 import StatisticsCards from '@/components/ui/StatisticsCards';
 import { PROJECT_STATUS } from '@/config/workshop-properties';
 
+// Column type for DataTable
+type Column<T> = {
+  key: keyof T;
+  header: string;
+  sortable?: boolean;
+  width?: string;
+  minWidth?: string;
+  id?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  render?: (value: any, item: T) => React.ReactNode;
+};
+
 interface Project {
   id: string;
   name: string;
@@ -22,10 +34,110 @@ interface Project {
   updatedAt: string;
 }
 
+// Default column configuration
+const defaultColumns: Column<Project>[] = [
+  {
+    key: 'color',
+    header: '',
+    render: (_: unknown, project: Project) => (
+      <ProjectColorIndicator
+        project={project}
+        size="md"
+        showTooltip={true}
+        tooltipText={`${project.name} color`}
+      />
+    ),
+  },
+  {
+    key: 'name',
+    header: 'Project Name',
+    sortable: true,
+  },
+  {
+    key: 'description',
+    header: 'Description',
+    sortable: false,
+  },
+  {
+    key: 'status',
+    header: 'Status',
+    sortable: true,
+    render: (status: string) => {
+      const getStatusVariant = (status: string) => {
+        switch (status) {
+          case 'ACTIVE':
+            return 'success';
+          case 'PLANNING':
+            return 'info';
+          case 'ON_HOLD':
+            return 'warning';
+          case 'COMPLETED':
+            return 'success';
+          case 'CANCELLED':
+            return 'error';
+          default:
+            return 'default';
+        }
+      };
+
+      return (
+        <StatusBadge
+          status={status ? status.replace(/_/g, ' ') : 'Unknown'}
+          variant={getStatusVariant(status)}
+        />
+      );
+    },
+  },
+  {
+    key: 'updatedAt',
+    header: 'Last Updated',
+    sortable: true,
+    render: (date: string) => new Date(date).toLocaleDateString(),
+  },
+];
+
+// Function to get initial column order from localStorage
+const getInitialColumns = (): Column<Project>[] => {
+  if (typeof window === 'undefined') return defaultColumns;
+
+  try {
+    const saved = localStorage.getItem('projectsColumnOrder');
+    if (!saved) return defaultColumns;
+
+    const savedOrder = JSON.parse(saved);
+    if (!Array.isArray(savedOrder)) return defaultColumns;
+
+    // Reorder columns based on saved order
+    const orderedColumns: Column<Project>[] = [];
+
+    // Add columns in saved order
+    for (const savedCol of savedOrder) {
+      const matchingColumn = defaultColumns.find((col) => (col.id || col.key) === (savedCol.id || savedCol.key));
+      if (matchingColumn) {
+        orderedColumns.push(matchingColumn);
+      }
+    }
+
+    // Add any new columns that weren't in saved order
+    for (const defaultCol of defaultColumns) {
+      const exists = orderedColumns.some((col) => (col.id || col.key) === (defaultCol.id || defaultCol.key));
+      if (!exists) {
+        orderedColumns.push(defaultCol);
+      }
+    }
+
+    return orderedColumns;
+  } catch (error) {
+    console.error('Error loading column order:', error);
+    return defaultColumns;
+  }
+};
+
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [columns, setColumns] = useState<Column<Project>[]>(getInitialColumns);
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -67,64 +179,27 @@ export default function ProjectsPage() {
     setFilteredProjects(filtered);
   };
 
-  const getStatusVariant = (status: string) => {
-    switch (status) {
-      case 'ACTIVE':
-        return 'success';
-      case 'PLANNING':
-        return 'warning';
-      case 'COMPLETED':
-        return 'info';
-      case 'ON_HOLD':
-        return 'error';
-      default:
-        return 'default';
-    }
+  // Column management functions
+  const handleColumnReorder = (reorderedColumns: Column<Project>[]) => {
+    setColumns(reorderedColumns);
+    localStorage.setItem(
+      'projectsColumnOrder',
+      JSON.stringify(
+        reorderedColumns.map((col) => ({
+          key: col.key,
+          id: col.id,
+        })),
+      ),
+    );
   };
 
-  const columns = [
-    {
-      key: 'color' as keyof Project,
-      header: '',
-      render: (_: unknown, project: Project) => (
-        <ProjectColorIndicator
-          project={project}
-          size="md"
-          showTooltip={true}
-          tooltipText={`${project.name} color`}
-        />
-      ),
-    },
-    {
-      key: 'name' as keyof Project,
-      header: 'Project Name',
-      sortable: true,
-    },
-    {
-      key: 'description' as keyof Project,
-      header: 'Description',
-      sortable: false,
-    },
-    {
-      key: 'status' as keyof Project,
-      header: 'Status',
-      sortable: true,
-      render: (status: string) => (
-        <StatusBadge
-          status={status}
-          variant={getStatusVariant(status)}
-        />
-      ),
-    },
-    {
-      key: 'createdAt' as keyof Project,
-      header: 'Created',
-      sortable: true,
-      render: (value: unknown) => new Date(value as string).toLocaleDateString(),
-    },
-  ];
+  const handleResetColumns = () => {
+    setColumns(defaultColumns);
+    localStorage.removeItem('projectsColumnOrder');
+  };
 
-  const filters = [
+  // Dynamic filters based on current data
+  const filterOptions = [
     {
       key: 'status',
       label: 'Filter by Status',
@@ -216,7 +291,7 @@ export default function ProjectsPage() {
       <SearchFilter
         placeholder="Search projects..."
         onSearch={handleSearch}
-        filters={filters}
+        filters={filterOptions}
         onFilterChange={handleFilterChange}
       />
 
@@ -228,6 +303,9 @@ export default function ProjectsPage() {
         onRowClick={handleRowClick}
         actions={renderActions}
         maxHeight="70vh"
+        onColumnReorder={handleColumnReorder}
+        onResetColumns={handleResetColumns}
+        showResetColumns={true}
       />
     </PageContainer>
   );
