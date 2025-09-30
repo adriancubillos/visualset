@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import PageContainer from '@/components/layout/PageContainer';
 import DataTable from '@/components/ui/DataTable';
 import SearchFilter from '@/components/ui/SearchFilter';
 import StatusBadge from '@/components/ui/StatusBadge';
@@ -179,11 +180,15 @@ export default function TasksPage() {
       key: 'title' as keyof Task,
       header: 'Task',
       sortable: true,
+      width: '30%',
+      minWidth: '200px',
     },
     {
       key: 'status' as keyof Task,
       header: 'Status',
       sortable: true,
+      width: '120px',
+      minWidth: '120px',
       render: (status: string) => (
         <StatusBadge
           status={status ? status.replace(/_/g, ' ') : 'Unknown'}
@@ -195,18 +200,24 @@ export default function TasksPage() {
       key: 'item' as keyof Task,
       header: 'Project',
       sortable: false,
+      width: '15%',
+      minWidth: '150px',
       render: (item: Task['item']) => <span className="text-sm">{item?.project?.name || 'No Project'}</span>,
     },
     {
       key: 'item' as keyof Task,
       header: 'Item',
       sortable: false,
+      width: '15%',
+      minWidth: '150px',
       render: (item: Task['item']) => <span className="text-sm">{item?.name || 'No Item'}</span>,
     },
     {
       key: 'quantity' as keyof Task,
       header: 'Progress',
       sortable: false,
+      width: '120px',
+      minWidth: '120px',
       render: (quantity: number, task: Task) => (
         <div className="text-sm">
           <div>
@@ -224,12 +235,16 @@ export default function TasksPage() {
       key: 'operator' as keyof Task,
       header: 'Operator',
       sortable: false,
+      width: '15%',
+      minWidth: '120px',
       render: (operator: Task['operator']) => <span className="text-sm">{operator?.name || 'Unassigned'}</span>,
     },
     {
       key: 'timeSlots' as keyof Task,
       header: 'Scheduled',
       sortable: true,
+      width: '15%',
+      minWidth: '150px',
       render: (timeSlots: Task['timeSlots']) => {
         if (!timeSlots || timeSlots.length === 0) {
           return <span className="text-sm text-gray-500">Not scheduled</span>;
@@ -354,21 +369,20 @@ export default function TasksPage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Tasks</h1>
-          <p className="mt-2 text-gray-600">Manage and track workshop tasks</p>
-        </div>
-        <Link
-          href="/tasks/new"
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-          <span className="mr-2">+</span>
-          Create Task
-        </Link>
-      </div>
-
+    <PageContainer
+      header={{
+        title: 'Tasks',
+        description: 'Manage and track workshop tasks',
+        actions: (
+          <Link
+            href="/tasks/new"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            <span className="mr-2">+</span>
+            Create Task
+          </Link>
+        ),
+      }}
+      variant="list">
       {/* Statistics Cards */}
       <StatisticsCards
         stats={[
@@ -408,7 +422,8 @@ export default function TasksPage() {
         loading={loading}
         onRowClick={handleRowClick}
         actions={renderActions}
+        maxHeight="70vh"
       />
-    </div>
+    </PageContainer>
   );
 }
