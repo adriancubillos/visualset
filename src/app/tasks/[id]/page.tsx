@@ -11,18 +11,17 @@ interface Task {
   title: string;
   description: string;
   status: string;
-  priority: string;
-  durationMin: number;
-  scheduledAt: string | null;
+  quantity: number;
+  completed_quantity: number;
   createdAt: string;
   updatedAt: string;
-  project?: {
-    id: string;
-    name: string;
-  };
   item?: {
     id: string;
     name: string;
+    project?: {
+      id: string;
+      name: string;
+    };
   };
   machine?: {
     id: string;
@@ -32,6 +31,13 @@ interface Task {
     id: string;
     name: string;
   };
+  timeSlots: {
+    id: string;
+    startDateTime: string;
+    endDateTime: string | null;
+    durationMin: number;
+    isPrimary: boolean;
+  }[];
 }
 
 export default function TaskDetailPage() {
@@ -73,19 +79,6 @@ export default function TaskDetailPage() {
         return 'error';
       default:
         return 'default';
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'HIGH':
-        return 'text-red-600 bg-red-100';
-      case 'MEDIUM':
-        return 'text-yellow-600 bg-yellow-100';
-      case 'LOW':
-        return 'text-green-600 bg-green-100';
-      default:
-        return 'text-gray-600 bg-gray-100';
     }
   };
 
@@ -188,13 +181,12 @@ export default function TaskDetailPage() {
               status={task.status}
               variant={getStatusVariant(task.status)}
             />
-            <span
-              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(
-                task.priority,
-              )}`}>
-              {task.priority} Priority
+            <span className="text-gray-500">
+              {task.completed_quantity}/{task.quantity} completed
             </span>
-            <span className="text-gray-500">{task.durationMin} minutes</span>
+            <span className="text-gray-500">
+              {task.timeSlots.reduce((total, slot) => total + slot.durationMin, 0)} minutes total
+            </span>
           </div>
         </div>
         <div className="flex space-x-3">
@@ -252,31 +244,22 @@ export default function TaskDetailPage() {
               </dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-gray-500">Priority</dt>
-              <dd className="mt-1">
-                <span
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(
-                    task.priority,
-                  )}`}>
-                  {task.priority}
-                </span>
+              <dt className="text-sm font-medium text-gray-500">Quantity Progress</dt>
+              <dd className="mt-1 text-sm text-gray-900">
+                {task.completed_quantity} of {task.quantity} completed
+                <div className="mt-1 w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-blue-600 h-2 rounded-full"
+                    style={{ width: `${Math.min((task.completed_quantity / task.quantity) * 100, 100)}%` }}></div>
+                </div>
               </dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-gray-500">Duration</dt>
-              <dd className="mt-1 text-sm text-gray-900">{task.durationMin} minutes</dd>
+              <dt className="text-sm font-medium text-gray-500">Total Duration</dt>
+              <dd className="mt-1 text-sm text-gray-900">
+                {task.timeSlots.reduce((total, slot) => total + slot.durationMin, 0)} minutes
+              </dd>
             </div>
-            {task.scheduledAt && (
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Scheduled At</dt>
-                <dd className="mt-1 text-sm text-gray-900">
-                  {(() => {
-                    const { date, time } = formatDateTimeGMTMinus5(new Date(task.scheduledAt));
-                    return `${date} ${time}`;
-                  })()}
-                </dd>
-              </div>
-            )}
             <div>
               <dt className="text-sm font-medium text-gray-500">Created</dt>
               <dd className="mt-1 text-sm text-gray-900">{new Date(task.createdAt).toLocaleDateString()}</dd>
@@ -301,11 +284,11 @@ export default function TaskDetailPage() {
             <div>
               <dt className="text-sm font-medium text-gray-500">Project</dt>
               <dd className="mt-1 text-sm text-gray-900">
-                {task.project ? (
+                {task.item?.project ? (
                   <Link
-                    href={`/projects/${task.project.id}`}
+                    href={`/projects/${task.item.project.id}`}
                     className="text-blue-600 hover:text-blue-800">
-                    {task.project.name}
+                    {task.item.project.name}
                   </Link>
                 ) : (
                   'No project assigned'
@@ -355,6 +338,59 @@ export default function TaskDetailPage() {
               </dd>
             </div>
           </dl>
+        </div>
+      </div>
+
+      {/* Time Slots */}
+      <div className="bg-white shadow rounded-lg">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900">Time Slots</h2>
+        </div>
+        <div className="px-6 py-4">
+          {task.timeSlots && task.timeSlots.length > 0 ? (
+            <div className="space-y-4">
+              {task.timeSlots
+                .sort((a, b) => new Date(a.startDateTime).getTime() - new Date(b.startDateTime).getTime())
+                .map((slot, index) => {
+                  const startDate = new Date(slot.startDateTime);
+                  const endDate = slot.endDateTime
+                    ? new Date(slot.endDateTime)
+                    : new Date(startDate.getTime() + slot.durationMin * 60 * 1000);
+                  const { date: startDateStr, time: startTime } = formatDateTimeGMTMinus5(startDate);
+                  const { time: endTime } = formatDateTimeGMTMinus5(endDate);
+
+                  return (
+                    <div
+                      key={slot.id}
+                      className={`p-4 border rounded-lg ${
+                        slot.isPrimary ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                      }`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm font-medium text-gray-900">Slot {index + 1}</span>
+                          {slot.isPrimary && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              Primary
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-sm text-gray-500">{slot.durationMin} minutes</div>
+                      </div>
+                      <div className="mt-2 text-sm text-gray-600">
+                        <div className="flex items-center space-x-4">
+                          <span>📅 {startDateStr}</span>
+                          <span>
+                            🕐 {startTime} - {endTime}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          ) : (
+            <p className="text-gray-500 text-sm">No time slots scheduled</p>
+          )}
         </div>
       </div>
     </div>
