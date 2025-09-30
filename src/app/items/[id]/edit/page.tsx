@@ -23,6 +23,7 @@ interface Item {
   name: string;
   description: string;
   status: string;
+  quantity: number;
   projectId: string;
   tasks?: Task[];
 }
@@ -36,6 +37,7 @@ export default function EditItemPage() {
     name: '',
     description: '',
     status: 'ACTIVE',
+    quantity: 1,
     projectId: '',
     tasks: [],
   });
@@ -62,6 +64,7 @@ export default function EditItemPage() {
             name: itemData.name,
             description: itemData.description || '',
             status: itemData.status,
+            quantity: itemData.quantity || 1,
             projectId: itemData.project.id,
             tasks: itemData.tasks || [],
           });
@@ -116,6 +119,7 @@ export default function EditItemPage() {
           name: formData.name,
           description: formData.description,
           status: formData.status,
+          quantity: formData.quantity,
           projectId: formData.projectId,
         }),
       });
@@ -148,7 +152,10 @@ export default function EditItemPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === 'quantity' ? parseInt(value) || 1 : value,
+    }));
 
     // Clear validation error when status changes
     if (name === 'status' && statusValidationError) {
@@ -285,6 +292,26 @@ export default function EditItemPage() {
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               placeholder="Enter item description (optional)"
             />
+          </div>
+
+          {/* Quantity */}
+          <div>
+            <label
+              htmlFor="quantity"
+              className="block text-sm font-medium text-gray-700">
+              Item Quantity
+            </label>
+            <input
+              type="number"
+              id="quantity"
+              name="quantity"
+              min="1"
+              value={formData.quantity}
+              onChange={handleChange}
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              placeholder="1"
+            />
+            <p className="mt-1 text-sm text-gray-500">Total number of this item to be produced</p>
           </div>
 
           {/* Status */}

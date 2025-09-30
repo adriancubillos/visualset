@@ -41,9 +41,17 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const { id } = await params;
     const body = await req.json();
 
-    // Handle scheduledAt with GMT-5 timezone
-    let scheduledAt = null;
-    if (body.scheduledAt && body.scheduledAt.trim() !== '') {
+    // Validate quantity fields
+    const quantity = body.quantity || 1;
+    const completedQuantity = body.completed_quantity || 0;
+
+    if (completedQuantity > quantity) {
+      return NextResponse.json({ error: 'Completed quantity cannot exceed total quantity' }, { status: 400 });
+    }
+
+    // Parse scheduled date if provided
+    let scheduledAt: string | null = null;
+    if (body.scheduledAt) {
       // If date and time are provided separately, parse as GMT-5
       if (body.scheduledDate && body.startTime) {
         scheduledAt = parseGMTMinus5DateTime(body.scheduledDate, body.startTime).toISOString();
@@ -76,6 +84,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         description: body.description,
         durationMin: body.durationMin,
         status: body.status,
+        quantity: quantity,
+        completed_quantity: completedQuantity,
         itemId: body.itemId || null,
         machineId: body.machineId || null,
         operatorId: body.operatorId || null,

@@ -101,6 +101,7 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
         name: body.name,
         description: body.description || null,
         status: body.status,
+        quantity: body.quantity || 1,
         projectId: body.projectId,
       },
       include: {

@@ -1,3 +1,20 @@
+# CHANGES September 30 2025
+
+Migration Strategy
+Database Migration: Create the new table and migrate existing task dates
+Backward Compatibility: Keep existing date fields temporarily during transition
+API Versioning: Consider versioning your API to support both old and new formats
+Frontend Updates: Update all components that display/edit task dates
+UI/UX Considerations
+Add "+" button to add more time slots
+Show primary time slot prominently
+Allow reordering of time slots
+Validate that dates don't conflict
+Consider calendar view updates to show multiple slots per task
+The main impact is increased complexity in data management and UI, but it provides much more flexibility for scheduling tasks.
+
+add quantity tracking and progress management to both tasks and items. This will require schema changes and UI updates to track progress like "carved 15/30 pins" or "painted 20/30 pins".
+
 # TMP
 
 Start fixing the ESLint issues across the UI.

@@ -17,6 +17,7 @@ export default function NewItemPage() {
     name: '',
     description: '',
     status: 'ACTIVE',
+    quantity: 1,
     projectId: '',
   });
   const [loading, setLoading] = useState(false);
@@ -72,7 +73,10 @@ export default function NewItemPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === 'quantity' ? parseInt(value) || 1 : value,
+    }));
   };
 
   return (
@@ -152,6 +156,26 @@ export default function NewItemPage() {
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               placeholder="Enter item description (optional)"
             />
+          </div>
+
+          {/* Quantity */}
+          <div>
+            <label
+              htmlFor="quantity"
+              className="block text-sm font-medium text-gray-700">
+              Item Quantity
+            </label>
+            <input
+              type="number"
+              id="quantity"
+              name="quantity"
+              min="1"
+              value={formData.quantity}
+              onChange={handleChange}
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              placeholder="1"
+            />
+            <p className="mt-1 text-sm text-gray-500">Total number of this item to be produced</p>
           </div>
 
           {/* Status */}

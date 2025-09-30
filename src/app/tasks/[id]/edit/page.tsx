@@ -8,6 +8,7 @@ import { TASK_PRIORITY, TASK_STATUS } from '@/config/workshop-properties';
 import { useTaskFormData } from '@/hooks/useTaskFormData';
 import ProjectItemSelect from '@/components/forms/ProjectItemSelect';
 import AssignmentSelect from '@/components/forms/AssignmentSelect';
+import ProgressBar from '@/components/ui/ProgressBar';
 import { handleTaskResponse } from '@/utils/taskErrorHandling';
 
 interface Task {
@@ -17,6 +18,8 @@ interface Task {
   status: string;
   priority: string;
   durationMin: number;
+  quantity: number;
+  completed_quantity: number;
   scheduledAt: string | null;
   itemId: string | null;
   machineId: string | null;
@@ -38,6 +41,8 @@ export default function EditTaskPage() {
     priority: 'MEDIUM',
     scheduledAt: '',
     durationMin: 60,
+    quantity: 1,
+    completed_quantity: 0,
     projectId: '',
     itemId: '',
     machineId: '',
@@ -74,6 +79,8 @@ export default function EditTaskPage() {
           priority: taskData.priority || 'MEDIUM',
           scheduledAt: scheduledAt,
           durationMin: taskData.durationMin,
+          quantity: taskData.quantity || 1,
+          completed_quantity: taskData.completed_quantity || 0,
           projectId: taskData.project?.id || '',
           itemId: taskData.item?.id || '',
           machineId: taskData.machine?.id || '',
@@ -166,7 +173,8 @@ export default function EditTaskPage() {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: name === 'durationMin' ? parseInt(value) || 0 : value,
+      [name]:
+        name === 'durationMin' || name === 'quantity' || name === 'completed_quantity' ? parseInt(value) || 0 : value,
     }));
 
     // Check if date is in the past when a date is selected
@@ -458,6 +466,77 @@ export default function EditTaskPage() {
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 placeholder="60"
               />
+            </div>
+          </div>
+
+          {/* Quantity Tracking */}
+          <div>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Quantity & Progress</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <label
+                  htmlFor="quantity"
+                  className="block text-sm font-medium text-gray-700">
+                  Total Quantity Required
+                </label>
+                <input
+                  type="number"
+                  id="quantity"
+                  name="quantity"
+                  min="1"
+                  value={formData.quantity}
+                  onChange={(e) => {
+                    const newQuantity = parseInt(e.target.value) || 1;
+                    setFormData((prev) => ({
+                      ...prev,
+                      quantity: newQuantity,
+                      completed_quantity: Math.min(prev.completed_quantity, newQuantity),
+                    }));
+                  }}
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="1"
+                />
+                <p className="mt-1 text-xs text-gray-500">How many units need to be produced for this task</p>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="completed_quantity"
+                  className="block text-sm font-medium text-gray-700">
+                  Completed Quantity
+                </label>
+                <input
+                  type="number"
+                  id="completed_quantity"
+                  name="completed_quantity"
+                  min="0"
+                  max={formData.quantity}
+                  value={formData.completed_quantity}
+                  onChange={(e) => {
+                    const newCompleted = Math.min(parseInt(e.target.value) || 0, formData.quantity);
+                    setFormData((prev) => ({
+                      ...prev,
+                      completed_quantity: newCompleted,
+                    }));
+                  }}
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="0"
+                />
+                <p className="mt-1 text-xs text-gray-500">How many units have been completed</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Progress</label>
+                <ProgressBar
+                  current={formData.completed_quantity}
+                  total={formData.quantity}
+                  showNumbers={true}
+                  showPercentage={true}
+                  variant={formData.completed_quantity >= formData.quantity ? 'success' : 'default'}
+                  size="md"
+                />
+                <p className="mt-1 text-xs text-gray-500">Task completion progress</p>
+              </div>
             </div>
           </div>
 

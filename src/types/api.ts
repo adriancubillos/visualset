@@ -18,6 +18,7 @@ export interface ItemDTO {
   name: string;
   description?: string | null;
   status: string;
+  quantity: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -50,6 +51,8 @@ export interface TaskWithRelationsDTO {
   description?: string | null;
   durationMin: number;
   status: string;
+  quantity: number;
+  completed_quantity: number;
   item?: ItemDTO | (null & { project?: ProjectDTO | null });
   itemId?: string | null;
   machine?: MachineDTO | null;
@@ -78,6 +81,8 @@ export function mapTaskToResponse(task: TaskWithRelationsDTO): TaskResponseDTO {
     description: task.description ?? null,
     durationMin: task.durationMin,
     status: task.status,
+    quantity: task.quantity,
+    completed_quantity: task.completed_quantity,
     item: task.item ?? null,
     itemId: task.itemId ?? null,
     machine: task.machine ?? null,

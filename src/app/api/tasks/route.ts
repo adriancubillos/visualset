@@ -68,6 +68,8 @@ export async function POST(req: Request) {
         description: body.description,
         durationMin: body.durationMin,
         status: body.status ?? 'PENDING',
+        quantity: body.quantity || 1,
+        completed_quantity: body.completed_quantity || 0,
         itemId: itemId,
         machineId: body.machineId ?? null,
         operatorId: body.operatorId ?? null,

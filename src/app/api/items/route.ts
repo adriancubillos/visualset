@@ -41,6 +41,7 @@ export async function POST(req: Request) {
         name: body.name,
         description: body.description || null,
         status: body.status || 'ACTIVE',
+        quantity: body.quantity || 1,
         projectId: body.projectId,
       },
       include: {
