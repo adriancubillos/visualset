@@ -58,6 +58,10 @@ interface CalendarEvent {
     operatorShift?: string | null;
     startDate?: string;
     endDate?: string;
+    // Multi-slot support
+    originalTaskId?: string;
+    slotIndex?: number;
+    isPrimarySlot?: boolean;
   };
 }
 
@@ -208,51 +212,54 @@ export default function ScheduleCalendar() {
   // Memoize events array to prevent recreation on every render
   const events: CalendarEvent[] = useMemo(() => {
     const eventList = filteredTasks
-      .map((task) => {
-        // Get primary time slot or first time slot for scheduling
-        const primarySlot = task.timeSlots?.find((slot) => slot.isPrimary) || task.timeSlots?.[0];
-
-        if (!primarySlot) {
-          // Skip tasks without time slots
+      .flatMap((task) => {
+        // Create a separate calendar event for each time slot
+        if (!task.timeSlots || task.timeSlots.length === 0) {
           return null;
         }
 
-        const start = new Date(primarySlot.startDateTime);
-        const end = primarySlot.endDateTime
-          ? new Date(primarySlot.endDateTime)
-          : new Date(start.getTime() + primarySlot.durationMin * 60000);
+        return task.timeSlots.map((slot, slotIndex) => {
+          const start = new Date(slot.startDateTime);
+          const end = slot.endDateTime
+            ? new Date(slot.endDateTime)
+            : new Date(start.getTime() + slot.durationMin * 60000);
 
-        // Get operator colors/patterns
-        const operatorColor = task.operator ? getOperatorColor(task.operator) : null;
-        const machineColor = task.machine ? getMachineColor(task.machine) : null;
+          // Get operator colors/patterns
+          const operatorColor = task.operator ? getOperatorColor(task.operator) : null;
+          const machineColor = task.machine ? getMachineColor(task.machine) : null;
 
-        return {
-          id: task.id,
-          title: task.title, // Just the task title, project info goes in tooltip
-          start,
-          end,
-          allDay: false,
-          resource: {
-            color: getEventColor(task),
-            machine: task.machine?.name,
-            project: task.project?.name,
-            duration: primarySlot.durationMin,
-            operatorColor: operatorColor?.hex || '#6b7280',
-            operatorPattern: operatorColor?.pattern || 'solid',
-            machineColor: machineColor?.hex || '#6b7280',
-            machinePattern: machineColor?.pattern || 'solid',
-            // Additional tooltip data
-            status: task.status,
-            description: task.description,
-            item: task.item?.name,
-            machineType: task.machine?.type,
-            machineLocation: task.machine?.location,
-            operatorEmail: task.operator?.email,
-            operatorShift: task.operator?.shift,
-            startDate: formatDisplayDate(primarySlot.startDateTime),
-            endDate: formatDisplayDate(end.toISOString()),
-          },
-        };
+          return {
+            id: `${task.id}-${slotIndex}`, // Unique ID for each time slot
+            title: task.title + (task.timeSlots && task.timeSlots.length > 1 ? ` (Slot ${slotIndex + 1})` : ''), // Add slot number if multiple slots
+            start,
+            end,
+            allDay: false,
+            resource: {
+              color: getEventColor(task),
+              machine: task.machine?.name,
+              project: task.project?.name,
+              duration: slot.durationMin,
+              operatorColor: operatorColor?.hex || '#6b7280',
+              operatorPattern: operatorColor?.pattern || 'solid',
+              machineColor: machineColor?.hex || '#6b7280',
+              machinePattern: machineColor?.pattern || 'solid',
+              // Additional tooltip data
+              status: task.status,
+              description: task.description,
+              item: task.item?.name,
+              machineType: task.machine?.type,
+              machineLocation: task.machine?.location,
+              operatorEmail: task.operator?.email,
+              operatorShift: task.operator?.shift,
+              startDate: formatDisplayDate(slot.startDateTime),
+              endDate: formatDisplayDate(end.toISOString()),
+              // Store original task ID and slot info for event handling
+              originalTaskId: task.id,
+              slotIndex: slotIndex,
+              isPrimarySlot: slot.isPrimary,
+            },
+          };
+        });
       })
       .filter((event): event is NonNullable<typeof event> => event !== null); // Type-safe filter
 
@@ -260,7 +267,9 @@ export default function ScheduleCalendar() {
   }, [filteredTasks, getEventColor]);
   const handleEventDrop = useCallback(
     async ({ event, start }: DragDropEvent) => {
-      const updatedTask = tasks.find((t) => t.id === event.id);
+      // Extract original task ID from event resource
+      const originalTaskId = event.resource?.originalTaskId || event.id.split('-')[0];
+      const updatedTask = tasks.find((t) => t.id === originalTaskId);
       if (!updatedTask) return;
 
       // Get primary time slot or first time slot for duration
@@ -349,7 +358,9 @@ export default function ScheduleCalendar() {
   // Memoize event selection handler
   const handleSelectEvent = useCallback(
     (event: CalendarEvent) => {
-      const task = tasks.find((t) => t.id === event.id);
+      // Extract original task ID from event resource
+      const originalTaskId = event.resource?.originalTaskId || event.id.split('-')[0];
+      const task = tasks.find((t) => t.id === originalTaskId);
       if (task) {
         setSelectedTask(task);
         setHoveredEventId(null); // Clear tooltip when opening modal
@@ -617,9 +628,11 @@ export default function ScheduleCalendar() {
                       <div>Duration: {getDurationText(event.resource?.duration || 0)}</div>
                       {event.resource?.startDate && <div>Start: {event.resource.startDate}</div>}
                       {event.resource?.endDate && <div>End: {event.resource.endDate}</div>}
-                      {tasks.find((t) => t.id === event.id)?.operator && (
-                        <div>Operator: {tasks.find((t) => t.id === event.id)?.operator?.name}</div>
-                      )}
+                      {(() => {
+                        const originalTaskId = event.resource?.originalTaskId || event.id.split('-')[0];
+                        const taskForTooltip = tasks.find((t) => t.id === originalTaskId);
+                        return taskForTooltip?.operator && <div>Operator: {taskForTooltip.operator.name}</div>;
+                      })()}
                       {event.resource?.machine && (
                         <div>
                           Machine: {event.resource.machine}
