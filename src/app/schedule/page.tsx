@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import ScheduleCalendar from '@/components/ScheduleCalendar';
 import GanttChart from '@/components/gantt/GanttChart';
-import { getCurrentDisplayTimezoneDate } from '@/utils/timezone';
 
 interface GanttTask {
   id: string;
@@ -44,10 +43,10 @@ interface GanttData {
 }
 
 export default function SchedulePage() {
-  // Helper function to get current date in display timezone
+  // Helper function to get current date in browser timezone
   const getTodayInDisplayTimezone = () => {
-    // Use the proper timezone utility that respects the user's timezone setting
-    const displayNow = getCurrentDisplayTimezoneDate();
+    // Use native browser Date to get current date and time
+    const displayNow = new Date();
     // Return just the date part to avoid time-related issues
     return new Date(displayNow.getFullYear(), displayNow.getMonth(), displayNow.getDate());
   };

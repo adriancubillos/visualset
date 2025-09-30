@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { formatDateTimeGMTMinus5, getCurrentDisplayTimezoneDate } from '@/utils/timezone';
 
 export interface TimeSlot {
   id?: string;
@@ -22,7 +21,8 @@ export default function TimeSlotsManager({ timeSlots, onChange, disabled = false
 
   const addTimeSlot = () => {
     const currentUTCDate = new Date();
-    const { date: currentDateStr, time: currentTimeStr } = formatDateTimeGMTMinus5(currentUTCDate);
+    const currentDateStr = currentUTCDate.toISOString().slice(0, 10); // YYYY-MM-DD
+    const currentTimeStr = currentUTCDate.toTimeString().slice(0, 5); // HH:MM
     const defaultDateTime = `${currentDateStr}T${currentTimeStr}`;
     const defaultDuration = 60;
 
@@ -89,7 +89,7 @@ export default function TimeSlotsManager({ timeSlots, onChange, disabled = false
     // Check if date is in the past and show warning
     if (dateTime) {
       const selectedDateTime = new Date(dateTime);
-      const now = getCurrentDisplayTimezoneDate();
+      const now = new Date();
 
       if (selectedDateTime < now) {
         setDateWarnings((prev) => ({

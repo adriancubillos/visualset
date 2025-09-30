@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import PageContainer from '@/components/layout/PageContainer';
 import StatusBadge from '@/components/ui/StatusBadge';
-import { formatDateTimeGMTMinus5 } from '@/utils/timezone';
 
 interface Task {
   id: string;
@@ -360,8 +359,13 @@ export default function TaskDetailPage() {
                   const endDate = slot.endDateTime
                     ? new Date(slot.endDateTime)
                     : new Date(startDate.getTime() + slot.durationMin * 60 * 1000);
-                  const { date: startDateStr, time: startTime } = formatDateTimeGMTMinus5(startDate);
-                  const { time: endTime } = formatDateTimeGMTMinus5(endDate);
+                  const { date: startDateStr, time: startTime } = {
+                    date: startDate.toLocaleDateString(),
+                    time: startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                  };
+                  const { time: endTime } = {
+                    time: endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                  };
 
                   return (
                     <div

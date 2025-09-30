@@ -3,7 +3,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import GanttTaskBar from './GanttTaskBar';
-import { convertTaskTimeForDisplay, getCurrentDisplayTimezoneDate } from '@/utils/timezone';
 
 export interface GanttTask {
   id: string;
@@ -154,11 +153,13 @@ export default function GanttChart({ projects, currentMonth, currentDate, viewMo
             const filteredTasks = item.tasks.filter((task) => {
               if (!task.startDate || !task.endDate) return false;
 
-              // Convert UTC task times to display timezone
-              const { start: localStartDate, end: localEndDate } = convertTaskTimeForDisplay(
+              // Convert UTC task times to local browser timezone
+              const taskStartDate = new Date(
                 typeof task.startDate === 'string' ? task.startDate : task.startDate.toISOString(),
-                task.durationMin,
               );
+              const taskEndDate = new Date(taskStartDate.getTime() + task.durationMin * 60000);
+              const localStartDate = taskStartDate;
+              const localEndDate = taskEndDate;
 
               // Check if task overlaps with the current view date range
               return localStartDate < viewEndDate && localEndDate >= viewStartDate;
@@ -316,8 +317,8 @@ export default function GanttChart({ projects, currentMonth, currentDate, viewMo
     return dayOfWeek === 0 || dayOfWeek === 6;
   }, []);
 
-  // Memoize today's date to avoid calling getCurrentDisplayTimezoneDate repeatedly
-  const todayInDisplayTz = useMemo(() => getCurrentDisplayTimezoneDate(), []);
+  // Memoize today's date using native browser timezone
+  const todayInDisplayTz = useMemo(() => new Date(), []);
 
   const isToday = useCallback(
     (date: Date) => {
@@ -330,11 +331,13 @@ export default function GanttChart({ projects, currentMonth, currentDate, viewMo
     (task: GanttTask) => {
       if (!task.startDate || !task.endDate) return null;
 
-      // Convert UTC task times to GMT-5 for display using utility function
-      const { start: localStartDate, end: localEndDate } = convertTaskTimeForDisplay(
+      // Convert UTC task times to local browser timezone
+      const taskStartDate = new Date(
         typeof task.startDate === 'string' ? task.startDate : task.startDate.toISOString(),
-        task.durationMin,
       );
+      const taskEndDate = new Date(taskStartDate.getTime() + task.durationMin * 60000);
+      const localStartDate = taskStartDate;
+      const localEndDate = taskEndDate;
 
       // Check if task is within the current view range
       const viewStartDate = days[0];

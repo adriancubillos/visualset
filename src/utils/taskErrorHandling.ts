@@ -1,5 +1,3 @@
-import { formatDateTimeForDisplay } from '@/utils/timezone';
-
 /**
  * Reusable utility for handling task conflict errors on the frontend
  */
@@ -27,11 +25,9 @@ export function displayConflictError(errorData: ConflictError): void {
       new Date(errorData.conflict.scheduledAt).getTime() + (errorData.conflict.durationMin || 60) * 60 * 1000,
     );
 
-    // Format dates using timezone utilities for consistent display
-    const { date: startDate, time: startTime } = formatDateTimeForDisplay(conflictStartDate);
-    const { date: endDate, time: endTime } = formatDateTimeForDisplay(conflictEndDate);
-    const conflictStart = `${startDate} ${startTime}`;
-    const conflictEnd = `${endDate} ${endTime}`;
+    // Format dates using native browser date formatting
+    const conflictStart = conflictStartDate.toLocaleString();
+    const conflictEnd = conflictEndDate.toLocaleString();
 
     alert(
       `Scheduling conflict detected:\n\n${conflictType} "${conflictName}" is already booked for task "${errorData.conflict.title}" from ${conflictStart} to ${conflictEnd}`,

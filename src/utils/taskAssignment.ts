@@ -10,8 +10,13 @@ export interface TaskAssignmentUpdate {
 export interface Task {
   id: string;
   title: string;
-  scheduledAt: string;
-  durationMin: number;
+  timeSlots?: { 
+    id: string; 
+    startDateTime: string; 
+    endDateTime?: string | null; 
+    durationMin: number; 
+    isPrimary: boolean; 
+  }[];
   project: { id: string; name: string; color?: string | null } | null;
   item: { id: string; name: string } | null;
   machine: { id: string; name: string } | null;
@@ -26,6 +31,9 @@ export const handleTaskAssignmentUpdate = async (
 ): Promise<void> => {
   if (!selectedTask) return;
 
+  // Get primary time slot or first time slot for current scheduling info
+  const primarySlot = selectedTask.timeSlots?.find(slot => slot.isPrimary) || selectedTask.timeSlots?.[0];
+  
   try {
     const res = await fetch('/api/schedule', {
       method: 'POST',
@@ -35,8 +43,8 @@ export const handleTaskAssignmentUpdate = async (
         itemId: update.itemId,
         machineId: update.machineId,
         operatorId: update.operatorId,
-        scheduledAt: update.scheduledAt,
-        durationMin: update.durationMin,
+        scheduledAt: update.scheduledAt || primarySlot?.startDateTime,
+        durationMin: update.durationMin || primarySlot?.durationMin || 60,
       }),
     });
 

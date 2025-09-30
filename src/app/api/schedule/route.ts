@@ -17,9 +17,13 @@ export async function GET(req: Request) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {};
     if (start && end) {
-      where.scheduledAt = {
-        gte: new Date(start),
-        lte: new Date(end),
+      where.timeSlots = {
+        some: {
+          startDateTime: {
+            gte: new Date(start),
+            lte: new Date(end),
+          },
+        },
       };
     }
 
@@ -33,9 +37,14 @@ export async function GET(req: Request) {
         },
         machine: true,
         operator: true,
+        timeSlots: {
+          orderBy: {
+            startDateTime: 'asc',
+          },
+        },
       },
       orderBy: {
-        scheduledAt: 'asc',
+        createdAt: 'asc',
       },
     });
 
@@ -84,21 +93,31 @@ export async function POST(req: Request) {
       }
     }
 
-    // ✅ Update task including durationMin
+    // ✅ Update task and create/update time slot
+    const endTime = new Date(startTime.getTime() + durationMin * 60 * 1000);
+
     const task = await prisma.task.update({
       where: { id: taskId },
       data: {
         itemId: itemId ?? null,
         machineId: machineId ?? null,
         operatorId: operatorId ?? null,
-        scheduledAt: startTime,
-        durationMin,
         status: 'SCHEDULED',
+        timeSlots: {
+          deleteMany: {}, // Remove existing time slots
+          create: {
+            startDateTime: startTime,
+            endDateTime: endTime,
+            durationMin,
+            isPrimary: true,
+          },
+        },
       },
       include: {
         item: true,
         machine: true,
         operator: true,
+        timeSlots: true,
       },
     });
 

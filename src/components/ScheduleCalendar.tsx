@@ -9,11 +9,6 @@ import '../styles/calendar.css';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale'; // ✅ Named import
 import TaskModal from './task/TaskModal';
-import {
-  convertTaskTimeForDisplay,
-  getCurrentDisplayTimezoneDate,
-  parseDisplayTimezoneDateTime,
-} from '@/utils/timezone';
 import { getProjectColor, getOperatorColor, getMachineColor, getPatternStyles, type PatternType } from '@/utils/colors';
 import { handleTaskAssignmentUpdate, TaskAssignmentUpdate } from '@/utils/taskAssignment';
 import { displayConflictError } from '@/utils/taskErrorHandling';
@@ -22,13 +17,18 @@ interface Task {
   id: string;
   title: string;
   description?: string | null;
-  scheduledAt: string;
-  durationMin: number;
   status: string;
   project: { id: string; name: string; color?: string | null } | null;
   item: { id: string; name: string } | null;
   machine: { id: string; name: string; type?: string; location?: string } | null;
   operator: { id: string; name: string; email?: string | null; shift?: string | null } | null;
+  timeSlots?: { 
+    id: string; 
+    startDateTime: string; 
+    endDateTime?: string | null; 
+    durationMin: number; 
+    isPrimary: boolean; 
+  }[];
   createdAt: string;
   updatedAt: string;
 }
@@ -85,7 +85,7 @@ const getDurationText = (minutes: number) => {
 
 // Helper function to format dates for display
 const formatDisplayDate = (dateStr: string): string => {
-  const { start } = convertTaskTimeForDisplay(dateStr, 0);
+  const start = new Date(dateStr);
   const monthName = start.toLocaleDateString('en-US', { month: 'short' });
   const day = start.getDate();
   const time = start.toLocaleTimeString('en-US', {
@@ -102,7 +102,7 @@ export default function ScheduleCalendar() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentView, setCurrentView] = useState<'week' | 'day' | 'agenda'>('week');
-  const [currentDate, setCurrentDate] = useState(() => getCurrentDisplayTimezoneDate());
+  const [currentDate, setCurrentDate] = useState(() => new Date());
   const [hoveredEventId, setHoveredEventId] = useState<string | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [touchTimer, setTouchTimer] = useState<NodeJS.Timeout | null>(null);
@@ -208,7 +208,18 @@ export default function ScheduleCalendar() {
   // Memoize events array to prevent recreation on every render
   const events: CalendarEvent[] = useMemo(() => {
     const eventList = filteredTasks.map((task) => {
-      const { start, end } = convertTaskTimeForDisplay(task.scheduledAt, task.durationMin);
+      // Get primary time slot or first time slot for scheduling
+      const primarySlot = task.timeSlots?.find(slot => slot.isPrimary) || task.timeSlots?.[0];
+      
+      if (!primarySlot) {
+        // Skip tasks without time slots
+        return null;
+      }
+
+      const start = new Date(primarySlot.startDateTime);
+      const end = primarySlot.endDateTime 
+        ? new Date(primarySlot.endDateTime)
+        : new Date(start.getTime() + primarySlot.durationMin * 60000);
 
       // Get operator colors/patterns
       const operatorColor = task.operator ? getOperatorColor(task.operator) : null;
@@ -224,7 +235,7 @@ export default function ScheduleCalendar() {
           color: getEventColor(task),
           machine: task.machine?.name,
           project: task.project?.name,
-          duration: task.durationMin,
+          duration: primarySlot.durationMin,
           operatorColor: operatorColor?.hex || '#6b7280',
           operatorPattern: operatorColor?.pattern || 'solid',
           machineColor: machineColor?.hex || '#6b7280',
@@ -237,13 +248,11 @@ export default function ScheduleCalendar() {
           machineLocation: task.machine?.location,
           operatorEmail: task.operator?.email,
           operatorShift: task.operator?.shift,
-          startDate: formatDisplayDate(task.scheduledAt),
-          endDate: formatDisplayDate(
-            new Date(new Date(task.scheduledAt).getTime() + task.durationMin * 60 * 1000).toISOString(),
-          ),
+          startDate: formatDisplayDate(primarySlot.startDateTime),
+          endDate: formatDisplayDate(end.toISOString()),
         },
       };
-    });
+    }).filter((event): event is NonNullable<typeof event> => event !== null); // Type-safe filter
 
     return eventList;
   }, [filteredTasks, getEventColor]);
@@ -252,8 +261,9 @@ export default function ScheduleCalendar() {
       const updatedTask = tasks.find((t) => t.id === event.id);
       if (!updatedTask) return;
 
-      // Ensure durationMin exists
-      const duration = updatedTask.durationMin ?? 60; // fallback 60 minutes
+      // Get primary time slot or first time slot for duration
+      const primarySlot = updatedTask.timeSlots?.find(slot => slot.isPrimary) || updatedTask.timeSlots?.[0];
+      const duration = primarySlot?.durationMin ?? 60; // fallback 60 minutes
 
       // Convert the drag position to a proper UTC time string using timezone utilities
       // The calendar gives us a local Date object from the drag operation
@@ -270,8 +280,8 @@ export default function ScheduleCalendar() {
       const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const timeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 
-      // Use timezone utility to convert to UTC
-      const utcDate = parseDisplayTimezoneDateTime(dateStr, timeStr);
+      // Convert to ISO string for UTC date
+      const utcDate = new Date(`${dateStr}T${timeStr}:00.000Z`);
       const utcTimeString = utcDate.toISOString();
 
       try {

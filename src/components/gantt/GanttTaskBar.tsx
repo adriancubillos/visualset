@@ -1,7 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
 import { GanttTask } from './GanttChart';
-import { formatDateTimeGMTMinus5 } from '@/utils/timezone';
 
 interface GanttTaskBarProps {
   task: GanttTask;
@@ -38,15 +37,13 @@ export default function GanttTaskBar({ task, left, width }: GanttTaskBarProps) {
   const formatDate = (date: Date | string | null) => {
     if (!date) return '';
     const utcDate = new Date(date);
-    // Use the timezone utility to format date in GMT-5
-    const { date: dateStr, time: timeStr } = formatDateTimeGMTMinus5(utcDate);
-
-    // Convert to more friendly format
-    const [year, month, day] = dateStr.split('-');
-    const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-    const monthName = dateObj.toLocaleDateString('en-US', { month: 'short' });
-
-    return `${monthName} ${parseInt(day)}, ${timeStr}`;
+    // Use browser timezone for formatting
+    return utcDate.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   };
 
   return (

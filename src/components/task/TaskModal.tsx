@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { formatDateTimeGMTMinus5, parseGMTMinus5DateTime } from '@/utils/timezone';
 import { displayConflictError } from '@/utils/taskErrorHandling';
 
 interface TaskModalProps {
@@ -33,10 +32,11 @@ export default function TaskModal({ isOpen, onClose, task, onSave, items, machin
       setMachineId(task.machine?.id ?? null);
       setOperatorId(task.operator?.id ?? null);
 
-      // Set date and time from task.scheduledAt using GMT-5
+      // Set date and time from task.scheduledAt using browser timezone
       if (task.scheduledAt) {
         const date = new Date(task.scheduledAt);
-        const { date: dateStr, time: timeStr } = formatDateTimeGMTMinus5(date);
+        const dateStr = date.toISOString().slice(0, 10); // YYYY-MM-DD
+        const timeStr = date.toTimeString().slice(0, 5); // HH:MM
         setScheduledDate(dateStr);
         setStartTime(timeStr);
       } else {
@@ -159,8 +159,8 @@ export default function TaskModal({ isOpen, onClose, task, onSave, items, machin
               // Combine date and time into ISO datetime if both are provided
               let scheduledDateTime = undefined;
               if (scheduledDate && startTime) {
-                // Parse as GMT-5 and convert to UTC for storage
-                const localDateTime = parseGMTMinus5DateTime(scheduledDate, startTime);
+                // Parse as local time and convert to UTC for storage
+                const localDateTime = new Date(`${scheduledDate}T${startTime}`);
                 scheduledDateTime = localDateTime.toISOString();
               }
 

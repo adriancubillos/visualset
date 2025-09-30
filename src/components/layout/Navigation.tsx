@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import TimezoneStatus from '../ui/TimezoneStatus';
 
 const navigationItems = [
   { name: 'Dashboard', href: '/', icon: '📊' },
@@ -45,9 +44,7 @@ export default function Navigation() {
               })}
             </div>
           </div>
-          <div className="flex items-center mr-8">
-            <TimezoneStatus />
-          </div>
+          <div className="flex items-center mr-8">{/* Timezone status removed - using browser timezone */}</div>
         </div>
       </div>
 

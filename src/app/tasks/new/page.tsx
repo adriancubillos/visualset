@@ -2,7 +2,6 @@
 
 import { Suspense, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { formatDateTimeGMTMinus5 } from '@/utils/timezone';
 import { TASK_PRIORITY, TASK_STATUS } from '@/config/workshop-properties';
 import { useTaskFormData } from '@/hooks/useTaskFormData';
 import ProjectItemSelect from '@/components/forms/ProjectItemSelect';
@@ -18,9 +17,10 @@ function NewTaskPageContent() {
 
   const sortedOperators = useMemo(() => [...operators].sort((a, b) => a.name.localeCompare(b.name)), [operators]);
 
-  // Initialize with current date and time in display timezone
-  const currentUTCDate = new Date();
-  const { date: currentDateStr, time: currentTimeStr } = formatDateTimeGMTMinus5(currentUTCDate);
+  // Initialize with current date and time using browser timezone
+  const currentDate = new Date();
+  const currentDateStr = currentDate.toISOString().slice(0, 10); // YYYY-MM-DD
+  const currentTimeStr = currentDate.toTimeString().slice(0, 5); // HH:MM
   const defaultDateTime = `${currentDateStr}T${currentTimeStr}`;
   const defaultDuration = 60;
   const defaultEndDateTime = new Date(new Date(defaultDateTime).getTime() + defaultDuration * 60000).toISOString();

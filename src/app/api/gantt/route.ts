@@ -17,8 +17,8 @@ export async function GET() {
           include: {
             tasks: {
               where: {
-                scheduledAt: {
-                  not: null, // Only include tasks with scheduled dates
+                timeSlots: {
+                  some: {}, // Only include tasks that have time slots
                 },
               },
               include: {
@@ -36,9 +36,11 @@ export async function GET() {
                     type: true,
                   },
                 },
-              },
-              orderBy: {
-                scheduledAt: 'asc',
+                timeSlots: {
+                  orderBy: {
+                    startDateTime: 'asc',
+                  },
+                },
               },
             },
           },
@@ -60,28 +62,36 @@ export async function GET() {
           id: item.id,
           name: item.name,
           status: item.status,
-          tasks: item.tasks.map((task) => ({
-            id: task.id,
-            title: task.title,
-            startDate: task.scheduledAt,
-            endDate: task.scheduledAt ? new Date(task.scheduledAt.getTime() + task.durationMin * 60 * 1000) : null,
-            status: task.status,
-            durationMin: task.durationMin,
-            operator: task.operator
-              ? {
-                  id: task.operator.id,
-                  name: task.operator.name,
-                  color: task.operator.color,
-                }
-              : null,
-            machine: task.machine
-              ? {
-                  id: task.machine.id,
-                  name: task.machine.name,
-                  type: task.machine.type,
-                }
-              : null,
-          })),
+          tasks: item.tasks.map((task) => {
+            // Get primary time slot or first time slot for start/end dates
+            const primarySlot = task.timeSlots.find((slot) => slot.isPrimary) || task.timeSlots[0];
+
+            return {
+              id: task.id,
+              title: task.title,
+              startDate: primarySlot ? primarySlot.startDateTime : null,
+              endDate: primarySlot
+                ? primarySlot.endDateTime ||
+                  new Date(primarySlot.startDateTime.getTime() + primarySlot.durationMin * 60 * 1000)
+                : null,
+              status: task.status,
+              durationMin: primarySlot ? primarySlot.durationMin : 0,
+              operator: task.operator
+                ? {
+                    id: task.operator.id,
+                    name: task.operator.name,
+                    color: task.operator.color,
+                  }
+                : null,
+              machine: task.machine
+                ? {
+                    id: task.machine.id,
+                    name: task.machine.name,
+                    type: task.machine.type,
+                  }
+                : null,
+            };
+          }),
         })),
       })),
     };

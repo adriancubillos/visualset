@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { formatDateTimeGMTMinus5 } from '@/utils/timezone';
 import { TASK_PRIORITY, TASK_STATUS } from '@/config/workshop-properties';
 import { useTaskFormData } from '@/hooks/useTaskFormData';
 import { TaskResponseDTO } from '@/types/api';
@@ -58,13 +57,17 @@ export default function EditTaskPage() {
               durationMin: number;
               isPrimary: boolean;
             }) => {
-              const { date: dateStr, time: timeStr } = formatDateTimeGMTMinus5(new Date(slot.startDateTime));
+              const startDate = new Date(slot.startDateTime);
+              const dateStr = startDate.toISOString().slice(0, 10); // YYYY-MM-DD
+              const timeStr = startDate.toTimeString().slice(0, 5); // HH:MM
               const localStartDateTime = `${dateStr}T${timeStr}`;
 
               // Calculate endDateTime if not present, or convert if present
               let endDateTime: string | undefined;
               if (slot.endDateTime) {
-                const { date: endDateStr, time: endTimeStr } = formatDateTimeGMTMinus5(new Date(slot.endDateTime));
+                const endDate = new Date(slot.endDateTime);
+                const endDateStr = endDate.toISOString().slice(0, 10); // YYYY-MM-DD
+                const endTimeStr = endDate.toTimeString().slice(0, 5); // HH:MM
                 endDateTime = `${endDateStr}T${endTimeStr}`;
               } else if (slot.durationMin > 0) {
                 // Calculate endDateTime from startDateTime + duration
