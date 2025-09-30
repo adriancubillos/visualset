@@ -22,12 +22,12 @@ interface Task {
   item: { id: string; name: string } | null;
   machine: { id: string; name: string; type?: string; location?: string } | null;
   operator: { id: string; name: string; email?: string | null; shift?: string | null } | null;
-  timeSlots?: { 
-    id: string; 
-    startDateTime: string; 
-    endDateTime?: string | null; 
-    durationMin: number; 
-    isPrimary: boolean; 
+  timeSlots?: {
+    id: string;
+    startDateTime: string;
+    endDateTime?: string | null;
+    durationMin: number;
+    isPrimary: boolean;
   }[];
   createdAt: string;
   updatedAt: string;
@@ -207,52 +207,54 @@ export default function ScheduleCalendar() {
 
   // Memoize events array to prevent recreation on every render
   const events: CalendarEvent[] = useMemo(() => {
-    const eventList = filteredTasks.map((task) => {
-      // Get primary time slot or first time slot for scheduling
-      const primarySlot = task.timeSlots?.find(slot => slot.isPrimary) || task.timeSlots?.[0];
-      
-      if (!primarySlot) {
-        // Skip tasks without time slots
-        return null;
-      }
+    const eventList = filteredTasks
+      .map((task) => {
+        // Get primary time slot or first time slot for scheduling
+        const primarySlot = task.timeSlots?.find((slot) => slot.isPrimary) || task.timeSlots?.[0];
 
-      const start = new Date(primarySlot.startDateTime);
-      const end = primarySlot.endDateTime 
-        ? new Date(primarySlot.endDateTime)
-        : new Date(start.getTime() + primarySlot.durationMin * 60000);
+        if (!primarySlot) {
+          // Skip tasks without time slots
+          return null;
+        }
 
-      // Get operator colors/patterns
-      const operatorColor = task.operator ? getOperatorColor(task.operator) : null;
-      const machineColor = task.machine ? getMachineColor(task.machine) : null;
+        const start = new Date(primarySlot.startDateTime);
+        const end = primarySlot.endDateTime
+          ? new Date(primarySlot.endDateTime)
+          : new Date(start.getTime() + primarySlot.durationMin * 60000);
 
-      return {
-        id: task.id,
-        title: task.title, // Just the task title, project info goes in tooltip
-        start,
-        end,
-        allDay: false,
-        resource: {
-          color: getEventColor(task),
-          machine: task.machine?.name,
-          project: task.project?.name,
-          duration: primarySlot.durationMin,
-          operatorColor: operatorColor?.hex || '#6b7280',
-          operatorPattern: operatorColor?.pattern || 'solid',
-          machineColor: machineColor?.hex || '#6b7280',
-          machinePattern: machineColor?.pattern || 'solid',
-          // Additional tooltip data
-          status: task.status,
-          description: task.description,
-          item: task.item?.name,
-          machineType: task.machine?.type,
-          machineLocation: task.machine?.location,
-          operatorEmail: task.operator?.email,
-          operatorShift: task.operator?.shift,
-          startDate: formatDisplayDate(primarySlot.startDateTime),
-          endDate: formatDisplayDate(end.toISOString()),
-        },
-      };
-    }).filter((event): event is NonNullable<typeof event> => event !== null); // Type-safe filter
+        // Get operator colors/patterns
+        const operatorColor = task.operator ? getOperatorColor(task.operator) : null;
+        const machineColor = task.machine ? getMachineColor(task.machine) : null;
+
+        return {
+          id: task.id,
+          title: task.title, // Just the task title, project info goes in tooltip
+          start,
+          end,
+          allDay: false,
+          resource: {
+            color: getEventColor(task),
+            machine: task.machine?.name,
+            project: task.project?.name,
+            duration: primarySlot.durationMin,
+            operatorColor: operatorColor?.hex || '#6b7280',
+            operatorPattern: operatorColor?.pattern || 'solid',
+            machineColor: machineColor?.hex || '#6b7280',
+            machinePattern: machineColor?.pattern || 'solid',
+            // Additional tooltip data
+            status: task.status,
+            description: task.description,
+            item: task.item?.name,
+            machineType: task.machine?.type,
+            machineLocation: task.machine?.location,
+            operatorEmail: task.operator?.email,
+            operatorShift: task.operator?.shift,
+            startDate: formatDisplayDate(primarySlot.startDateTime),
+            endDate: formatDisplayDate(end.toISOString()),
+          },
+        };
+      })
+      .filter((event): event is NonNullable<typeof event> => event !== null); // Type-safe filter
 
     return eventList;
   }, [filteredTasks, getEventColor]);
@@ -262,7 +264,7 @@ export default function ScheduleCalendar() {
       if (!updatedTask) return;
 
       // Get primary time slot or first time slot for duration
-      const primarySlot = updatedTask.timeSlots?.find(slot => slot.isPrimary) || updatedTask.timeSlots?.[0];
+      const primarySlot = updatedTask.timeSlots?.find((slot) => slot.isPrimary) || updatedTask.timeSlots?.[0];
       const duration = primarySlot?.durationMin ?? 60; // fallback 60 minutes
 
       // Convert the drag position to a proper UTC time string using timezone utilities
