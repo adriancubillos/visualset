@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import PageContainer from '@/components/layout/PageContainer';
 import VisualIdentifier from '@/components/ui/VisualIdentifier';
 import { PatternType } from '@/utils/entityColors';
 import { MACHINE_TYPES, MACHINE_STATUS } from '@/config/workshop-properties';
@@ -134,41 +135,42 @@ export default function EditMachinePage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      {/* Header */}
-      <div className="mb-8">
-        <nav
-          className="flex mb-4"
-          aria-label="Breadcrumb">
-          <ol className="flex items-center space-x-4">
-            <li>
-              <Link
-                href="/machines"
-                className="text-gray-500 hover:text-gray-700">
-                Machines
-              </Link>
-            </li>
-            <li>
-              <span className="text-gray-400">/</span>
-            </li>
-            <li>
-              <Link
-                href={`/machines/${machine.id}`}
-                className="text-gray-500 hover:text-gray-700">
-                {machine.name}
-              </Link>
-            </li>
-            <li>
-              <span className="text-gray-400">/</span>
-            </li>
-            <li>
-              <span className="text-gray-900 font-medium">Edit</span>
-            </li>
-          </ol>
-        </nav>
-        <h1 className="text-3xl font-bold text-gray-900">Edit Machine</h1>
-        <p className="mt-2 text-gray-600">Update machine information</p>
-      </div>
+    <PageContainer
+      header={{
+        title: 'Edit Machine',
+        description: 'Update machine information',
+      }}
+      variant="form">
+      {/* Breadcrumb Navigation */}
+      <nav
+        className="flex mb-6"
+        aria-label="Breadcrumb">
+        <ol className="flex items-center space-x-4">
+          <li>
+            <Link
+              href="/machines"
+              className="text-gray-500 hover:text-gray-700">
+              Machines
+            </Link>
+          </li>
+          <li>
+            <span className="text-gray-400">/</span>
+          </li>
+          <li>
+            <Link
+              href={`/machines/${machine.id}`}
+              className="text-gray-500 hover:text-gray-700">
+              {machine.name}
+            </Link>
+          </li>
+          <li>
+            <span className="text-gray-400">/</span>
+          </li>
+          <li>
+            <span className="text-gray-900 font-medium">Edit</span>
+          </li>
+        </ol>
+      </nav>
 
       {/* Form */}
       <div className="bg-white shadow rounded-lg">
@@ -292,6 +294,6 @@ export default function EditMachinePage() {
           </div>
         </form>
       </div>
-    </div>
+    </PageContainer>
   );
 }

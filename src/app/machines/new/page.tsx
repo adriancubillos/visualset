@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import PageContainer from '@/components/layout/PageContainer';
 import VisualIdentifier from '@/components/ui/VisualIdentifier';
 import { PatternType } from '@/utils/entityColors';
 import { MACHINE_TYPES, MACHINE_STATUS } from '@/config/workshop-properties';
@@ -58,13 +59,12 @@ export default function NewMachinePage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Add New Machine</h1>
-        <p className="mt-2 text-gray-600">Register a new machine in the workshop</p>
-      </div>
-
+    <PageContainer
+      header={{
+        title: 'Add New Machine',
+        description: 'Register a new machine in the workshop',
+      }}
+      variant="form">
       {/* Form */}
       <div className="bg-white shadow rounded-lg">
         <form
@@ -199,6 +199,6 @@ export default function NewMachinePage() {
           </div>
         </form>
       </div>
-    </div>
+    </PageContainer>
   );
 }

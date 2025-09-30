@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import PageContainer from '@/components/layout/PageContainer';
 import { MachineColorIndicator } from '@/components/ui/ColorIndicator';
 import StatusBadge from '@/components/ui/StatusBadge';
 
@@ -132,55 +133,58 @@ export default function MachineDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <nav
-            className="flex mb-4"
-            aria-label="Breadcrumb">
-            <ol className="flex items-center space-x-4">
-              <li>
-                <Link
-                  href="/machines"
-                  className="text-gray-500 hover:text-gray-700">
-                  Machines
-                </Link>
-              </li>
-              <li>
-                <span className="text-gray-400">/</span>
-              </li>
-              <li>
-                <span className="text-gray-900 font-medium">{machine.name}</span>
-              </li>
-            </ol>
-          </nav>
-          <h1 className="text-3xl font-bold text-gray-900">{machine.name}</h1>
-          <div className="mt-2 flex items-center space-x-4">
-            <StatusBadge
-              status={machine.status ? machine.status.replace(/_/g, ' ') : 'Unknown'}
-              variant={getStatusVariant(machine.status)}
-            />
-            <MachineColorIndicator
-              machine={machine}
-              size="md"
-            />
-            <span className="text-gray-500">{formatMachineType(machine.type)}</span>
-            <span className="text-gray-500">{machine.location}</span>
+    <PageContainer
+      header={{
+        title: machine.name,
+        actions: (
+          <div className="flex space-x-3">
+            <Link
+              href={`/machines/${machine.id}/edit`}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              Edit
+            </Link>
+            <button
+              onClick={handleDelete}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+              Delete
+            </button>
           </div>
-        </div>
-        <div className="flex space-x-3">
-          <Link
-            href={`/machines/${machine.id}/edit`}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-            Edit
-          </Link>
-          <button
-            onClick={handleDelete}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-            Delete
-          </button>
-        </div>
+        ),
+      }}
+      variant="detail">
+      {/* Breadcrumb Navigation */}
+      <nav
+        className="flex mb-6"
+        aria-label="Breadcrumb">
+        <ol className="flex items-center space-x-4">
+          <li>
+            <Link
+              href="/machines"
+              className="text-gray-500 hover:text-gray-700">
+              Machines
+            </Link>
+          </li>
+          <li>
+            <span className="text-gray-400">/</span>
+          </li>
+          <li>
+            <span className="text-gray-900 font-medium">{machine.name}</span>
+          </li>
+        </ol>
+      </nav>
+
+      {/* Status and Info */}
+      <div className="mb-6 flex items-center space-x-4">
+        <StatusBadge
+          status={machine.status ? machine.status.replace(/_/g, ' ') : 'Unknown'}
+          variant={getStatusVariant(machine.status)}
+        />
+        <MachineColorIndicator
+          machine={machine}
+          size="md"
+        />
+        <span className="text-gray-500">{formatMachineType(machine.type)}</span>
+        <span className="text-gray-500">{machine.location}</span>
       </div>
 
       {/* Quick Status Actions */}
@@ -275,6 +279,6 @@ export default function MachineDetailPage() {
           </div>
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }
