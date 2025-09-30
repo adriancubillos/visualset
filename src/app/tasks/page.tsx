@@ -14,13 +14,22 @@ interface Task {
   title: string;
   description: string;
   status: string;
-  priority: string;
-  scheduledAt: string;
-  durationMin: number;
-  project: { id: string; name: string } | null;
-  item: { id: string; name: string; project: { id: string; name: string } } | null;
+  quantity: number;
+  completed_quantity: number;
+  item: {
+    id: string;
+    name: string;
+    project: { id: string; name: string };
+  } | null;
   machine: { id: string; name: string } | null;
   operator: { id: string; name: string } | null;
+  timeSlots: {
+    id: string;
+    startDateTime: string;
+    endDateTime: string | null;
+    durationMin: number;
+    isPrimary: boolean;
+  }[];
   createdAt: string;
   updatedAt: string;
 }
@@ -104,7 +113,7 @@ export default function TasksPage() {
       (task) =>
         task.title.toLowerCase().includes(query.toLowerCase()) ||
         task.description.toLowerCase().includes(query.toLowerCase()) ||
-        task.project?.name.toLowerCase().includes(query.toLowerCase()) ||
+        task.item?.project?.name.toLowerCase().includes(query.toLowerCase()) ||
         task.machine?.name.toLowerCase().includes(query.toLowerCase()) ||
         task.operator?.name.toLowerCase().includes(query.toLowerCase()),
     );
@@ -183,10 +192,10 @@ export default function TasksPage() {
       ),
     },
     {
-      key: 'project' as keyof Task,
+      key: 'item' as keyof Task,
       header: 'Project',
       sortable: false,
-      render: (project: Task['project']) => <span className="text-sm">{project?.name || 'No Project'}</span>,
+      render: (item: Task['item']) => <span className="text-sm">{item?.project?.name || 'No Project'}</span>,
     },
     {
       key: 'item' as keyof Task,
@@ -195,16 +204,48 @@ export default function TasksPage() {
       render: (item: Task['item']) => <span className="text-sm">{item?.name || 'No Item'}</span>,
     },
     {
+      key: 'quantity' as keyof Task,
+      header: 'Progress',
+      sortable: false,
+      render: (quantity: number, task: Task) => (
+        <div className="text-sm">
+          <div>
+            {task.completed_quantity}/{quantity}
+          </div>
+          <div className="w-16 bg-gray-200 rounded-full h-1 mt-1">
+            <div
+              className="bg-blue-600 h-1 rounded-full"
+              style={{ width: `${Math.min((task.completed_quantity / quantity) * 100, 100)}%` }}></div>
+          </div>
+        </div>
+      ),
+    },
+    {
       key: 'operator' as keyof Task,
       header: 'Operator',
       sortable: false,
       render: (operator: Task['operator']) => <span className="text-sm">{operator?.name || 'Unassigned'}</span>,
     },
     {
-      key: 'scheduledAt' as keyof Task,
+      key: 'timeSlots' as keyof Task,
       header: 'Scheduled',
       sortable: true,
-      render: (date: string) => <span className="text-sm">{new Date(date).toLocaleDateString()}</span>,
+      render: (timeSlots: Task['timeSlots']) => {
+        if (!timeSlots || timeSlots.length === 0) {
+          return <span className="text-sm text-gray-500">Not scheduled</span>;
+        }
+
+        // Find primary slot or use first slot
+        const primarySlot = timeSlots.find((slot) => slot.isPrimary) || timeSlots[0];
+        const date = new Date(primarySlot.startDateTime);
+
+        return (
+          <div className="text-sm">
+            <div>{date.toLocaleDateString()}</div>
+            {timeSlots.length > 1 && <div className="text-xs text-gray-500">+{timeSlots.length - 1} more</div>}
+          </div>
+        );
+      },
     },
   ];
 
