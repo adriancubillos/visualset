@@ -49,8 +49,8 @@ export const handleTaskAssignmentUpdate = async (
         machineId: update.machineId,
         operatorId: update.operatorId,
         timeSlots: update.timeSlots.map((slot) => ({
-          startDateTime: slot.startDateTime,
-          endDateTime: slot.endDateTime,
+          startDateTime: new Date(slot.startDateTime).toISOString(),
+          endDateTime: slot.endDateTime ? new Date(slot.endDateTime).toISOString() : undefined,
           durationMin: slot.durationMin,
           isPrimary: slot.isPrimary,
         })),

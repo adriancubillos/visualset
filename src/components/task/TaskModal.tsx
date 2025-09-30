@@ -39,13 +39,36 @@ export default function TaskModal({ isOpen, onClose, task, onSave, items, machin
               endDateTime?: string | null;
               durationMin: number;
               isPrimary: boolean;
-            }) => ({
-              id: slot.id,
-              startDateTime: new Date(slot.startDateTime).toISOString().slice(0, 16), // Format: YYYY-MM-DDTHH:MM
-              endDateTime: slot.endDateTime ? new Date(slot.endDateTime).toISOString().slice(0, 16) : undefined,
-              durationMin: slot.durationMin,
-              isPrimary: slot.isPrimary,
-            }),
+            }) => {
+              // Convert UTC datetime to local datetime string for TimeSlotsManager
+              // The datetime-local input expects format: YYYY-MM-DDTHH:MM in local time
+              const startDate = new Date(slot.startDateTime);
+              const localStartDateTime = new Date(startDate.getTime() - startDate.getTimezoneOffset() * 60000)
+                .toISOString()
+                .slice(0, 16);
+
+              const endDateTime = slot.endDateTime
+                ? (() => {
+                    const endDate = new Date(slot.endDateTime);
+                    return new Date(endDate.getTime() - endDate.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                  })()
+                : undefined;
+
+              // Calculate actual duration from start and end times if endDateTime exists
+              const actualDurationMin = slot.endDateTime
+                ? Math.round(
+                    (new Date(slot.endDateTime).getTime() - new Date(slot.startDateTime).getTime()) / (1000 * 60),
+                  )
+                : slot.durationMin;
+
+              return {
+                id: slot.id,
+                startDateTime: localStartDateTime,
+                endDateTime,
+                durationMin: actualDurationMin, // Use calculated duration instead of stored value
+                isPrimary: slot.isPrimary,
+              };
+            },
           ),
         );
       } else {
