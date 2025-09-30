@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import PageContainer from '@/components/layout/PageContainer';
 import DataTable from '@/components/ui/DataTable';
 import SearchFilter from '@/components/ui/SearchFilter';
 import StatusBadge from '@/components/ui/StatusBadge';
@@ -178,20 +179,19 @@ export default function ItemsPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Items</h1>
-          <p className="mt-2 text-gray-600">Manage project items and their associated tasks</p>
-        </div>
-        <Link
-          href="/items/new"
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-          Add New Item
-        </Link>
-      </div>
-
+    <PageContainer
+      header={{
+        title: 'Items',
+        description: 'Manage project items and their associated tasks',
+        actions: (
+          <Link
+            href="/items/new"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            Add New Item
+          </Link>
+        ),
+      }}
+      variant="list">
       {/* Stats */}
       <StatisticsCards
         stats={[
@@ -228,6 +228,6 @@ export default function ItemsPage() {
           )}
         />
       </div>
-    </div>
+    </PageContainer>
   );
 }

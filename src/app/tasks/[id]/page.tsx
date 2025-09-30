@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import PageContainer from '@/components/layout/PageContainer';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { formatDateTimeGMTMinus5 } from '@/utils/timezone';
 
@@ -152,55 +153,58 @@ export default function TaskDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <nav
-            className="flex mb-4"
-            aria-label="Breadcrumb">
-            <ol className="flex items-center space-x-4">
-              <li>
-                <Link
-                  href="/tasks"
-                  className="text-gray-500 hover:text-gray-700">
-                  Tasks
-                </Link>
-              </li>
-              <li>
-                <span className="text-gray-400">/</span>
-              </li>
-              <li>
-                <span className="text-gray-900 font-medium">{task.title}</span>
-              </li>
-            </ol>
-          </nav>
-          <h1 className="text-3xl font-bold text-gray-900">{task.title}</h1>
-          <div className="mt-2 flex items-center space-x-4">
-            <StatusBadge
-              status={task.status}
-              variant={getStatusVariant(task.status)}
-            />
-            <span className="text-gray-500">
-              {task.completed_quantity}/{task.quantity} completed
-            </span>
-            <span className="text-gray-500">
-              {task.timeSlots.reduce((total, slot) => total + slot.durationMin, 0)} minutes total
-            </span>
+    <PageContainer
+      header={{
+        title: task.title,
+        actions: (
+          <div className="flex space-x-3">
+            <Link
+              href={`/tasks/${task.id}/edit`}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              Edit
+            </Link>
+            <button
+              onClick={handleDelete}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+              Delete
+            </button>
           </div>
-        </div>
-        <div className="flex space-x-3">
-          <Link
-            href={`/tasks/${task.id}/edit`}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-            Edit
-          </Link>
-          <button
-            onClick={handleDelete}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-            Delete
-          </button>
-        </div>
+        ),
+      }}
+      variant="detail">
+      {/* Breadcrumb Navigation */}
+      <nav
+        className="flex mb-6"
+        aria-label="Breadcrumb">
+        <ol className="flex items-center space-x-4">
+          <li>
+            <Link
+              href="/tasks"
+              className="text-gray-500 hover:text-gray-700">
+              Tasks
+            </Link>
+          </li>
+          <li>
+            <span className="text-gray-400">/</span>
+          </li>
+          <li>
+            <span className="text-gray-900 font-medium">{task.title}</span>
+          </li>
+        </ol>
+      </nav>
+
+      {/* Status and Progress Info */}
+      <div className="mb-6 flex items-center space-x-4">
+        <StatusBadge
+          status={task.status}
+          variant={getStatusVariant(task.status)}
+        />
+        <span className="text-gray-500">
+          {task.completed_quantity}/{task.quantity} completed
+        </span>
+        <span className="text-gray-500">
+          {task.timeSlots.reduce((total, slot) => total + slot.durationMin, 0)} minutes total
+        </span>
       </div>
 
       {/* Quick Status Actions */}
@@ -393,6 +397,6 @@ export default function TaskDetailPage() {
           )}
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }

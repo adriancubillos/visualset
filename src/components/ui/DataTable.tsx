@@ -8,6 +8,7 @@ interface Column<T> {
   sortable?: boolean;
   width?: string; // e.g., "150px", "20%", "auto"
   minWidth?: string; // e.g., "100px"
+  id?: string; // Unique identifier for the column (optional, defaults to key)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   render?: (value: any, item: T) => React.ReactNode;
 }
@@ -128,7 +129,7 @@ export default function DataTable<T extends { id: string }>({
             <tr>
               {columns.map((column) => (
                 <th
-                  key={String(column.key)}
+                  key={column.id || String(column.key)}
                   className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200 ${
                     column.sortable ? 'cursor-pointer hover:bg-gray-100' : ''
                   }`}
@@ -160,7 +161,7 @@ export default function DataTable<T extends { id: string }>({
                 onClick={() => onRowClick?.(item)}>
                 {columns.map((column) => (
                   <td
-                    key={String(column.key)}
+                    key={column.id || String(column.key)}
                     className="px-6 py-4 text-sm text-gray-900"
                     style={{
                       width: column.width,

@@ -197,6 +197,7 @@ export default function TasksPage() {
       ),
     },
     {
+      id: 'project',
       key: 'item' as keyof Task,
       header: 'Project',
       sortable: false,
@@ -205,6 +206,7 @@ export default function TasksPage() {
       render: (item: Task['item']) => <span className="text-sm">{item?.project?.name || 'No Project'}</span>,
     },
     {
+      id: 'item',
       key: 'item' as keyof Task,
       header: 'Item',
       sortable: false,
