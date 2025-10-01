@@ -136,7 +136,8 @@ export default function TimeSlotsManager({ timeSlots, onChange, disabled = false
         <div className="space-y-3">
           {timeSlots.map((slot, index) => {
             // Determine if this slot should be disabled
-            const isSlotDisabled = selectedSlotIndex !== undefined && selectedSlotIndex !== index;
+            // Only disable if selectedSlotIndex is set AND this slot has an ID (exists in DB) AND it's not the selected one
+            const isSlotDisabled = selectedSlotIndex !== undefined && slot.id !== undefined && selectedSlotIndex !== index;
             
             return (
             <div

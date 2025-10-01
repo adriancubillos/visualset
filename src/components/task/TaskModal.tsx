@@ -24,8 +24,9 @@ export default function TaskModal({ isOpen, onClose, task, selectedSlotIndex, on
   const [operatorId, setOperatorId] = useState<string | null>(null);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
 
+  // Reset state whenever modal opens or task changes
   useEffect(() => {
-    if (task) {
+    if (isOpen && task) {
       setItemId(task.item?.id ?? null);
       setMachineId(task.machine?.id ?? null);
       setOperatorId(task.operator?.id ?? null);
@@ -77,7 +78,7 @@ export default function TaskModal({ isOpen, onClose, task, selectedSlotIndex, on
         ]);
       }
     }
-  }, [task]);
+  }, [task, isOpen]);
 
   if (!isOpen || !task) return null;
 
