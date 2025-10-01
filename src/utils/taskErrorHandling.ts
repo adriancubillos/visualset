@@ -8,10 +8,14 @@ export interface ConflictError {
   conflict?: {
     id: string;
     title: string;
-    scheduledAt: string;
-    durationMin: number;
-    machine?: { id: string; name: string };
-    operator?: { id: string; name: string };
+    timeSlot: {
+      id: string;
+      startDateTime: Date | string;
+      endDateTime: Date | string | null;
+      durationMin: number;
+    };
+    machine?: { id: string; name: string } | null;
+    operator?: { id: string; name: string } | null;
   };
 }
 
@@ -22,10 +26,13 @@ export function displayConflictError(errorData: ConflictError): void {
   if (errorData.conflict) {
     const conflictType = errorData.conflict.machine ? 'Machine' : 'Operator';
     const conflictName = errorData.conflict.machine?.name || errorData.conflict.operator?.name || 'Unknown';
-    const conflictStartDate = new Date(errorData.conflict.scheduledAt);
-    const conflictEndDate = new Date(
-      new Date(errorData.conflict.scheduledAt).getTime() + (errorData.conflict.durationMin || 60) * 60 * 1000,
-    );
+    
+    // Get time slot information
+    const timeSlot = errorData.conflict.timeSlot;
+    const conflictStartDate = new Date(timeSlot.startDateTime);
+    const conflictEndDate = timeSlot.endDateTime 
+      ? new Date(timeSlot.endDateTime)
+      : new Date(conflictStartDate.getTime() + timeSlot.durationMin * 60 * 1000);
 
     // Format dates using native browser date formatting
     const conflictStart = conflictStartDate.toLocaleString();

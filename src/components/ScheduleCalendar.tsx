@@ -15,6 +15,7 @@ import FilterSelect from './ui/FilterSelect';
 import { sortByName } from '@/utils/sorting';
 import { logger } from '@/utils/logger';
 import toast from 'react-hot-toast';
+import { displayConflictError } from '@/utils/taskErrorHandling';
 
 interface Task {
   id: string;
@@ -347,8 +348,13 @@ export default function ScheduleCalendar() {
           setTasks((prev) => prev.map((task) => (task.id === data.id ? { ...task, ...data } : task)));
           toast.success('Task rescheduled successfully');
         } else {
-          logger.error('Error updating task during drag operation', data.error);
-          toast.error(data.error || 'Failed to reschedule task');
+          // Use the conflict error handler for detailed error messages
+          if (data.conflict) {
+            displayConflictError(data);
+          } else {
+            logger.error('Error updating task during drag operation', data.error);
+            toast.error(data.error || 'Failed to reschedule task');
+          }
         }
       } catch (err) {
         logger.error('Error rescheduling task', err);

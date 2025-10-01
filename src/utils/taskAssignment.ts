@@ -1,5 +1,6 @@
 import { logger } from './logger';
 import toast from 'react-hot-toast';
+import { displayConflictError } from './taskErrorHandling';
 // Shared utility for handling task assignment updates
 export interface TimeSlot {
   id?: string;
@@ -69,7 +70,12 @@ export const handleTaskAssignmentUpdate = async (
       onClose();
       toast.success('Task updated successfully');
     } else {
-      toast.error(data.error || 'Failed to update assignment');
+      // Use the conflict error handler for detailed error messages
+      if (data.conflict) {
+        displayConflictError(data);
+      } else {
+        toast.error(data.error || 'Failed to update assignment');
+      }
     }
   } catch (error) {
     logger.error('Error updating task assignment,', error);
