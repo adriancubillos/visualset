@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { OperatorColorIndicator } from '@/components/ui/ColorIndicator';
 import StatusBadge from '@/components/ui/StatusBadge';
+import { logger } from '@/utils/logger';
 
 interface Operator {
   id: string;
@@ -37,7 +38,7 @@ export default function OperatorDetailPage() {
         setOperator(operatorData);
         setLoading(false);
       } catch (error) {
-        console.error('Error fetching operator:', error);
+        logger.error('Error fetching operator,', error);
         setLoading(false);
       }
     };
@@ -79,11 +80,11 @@ export default function OperatorDetailPage() {
         setOperator({ ...operator, status: newStatus });
       } else {
         const errorData = await response.json();
-        console.error('Failed to update operator status:', errorData.error);
+        logger.error('Failed to update operator status,', errorData.error);
         alert('Failed to update operator status: ' + (errorData.error || 'Unknown error'));
       }
     } catch (error) {
-      console.error('Error updating operator status:', error);
+      logger.error('Error updating operator status,', error);
       alert('Error updating operator status. Please try again.');
     }
   };
@@ -99,11 +100,11 @@ export default function OperatorDetailPage() {
           router.push('/operators');
         } else {
           const errorData = await response.json();
-          console.error('Failed to delete operator:', errorData.error);
+          logger.error('Failed to delete operator,', errorData.error);
           alert('Failed to delete operator: ' + (errorData.error || 'Unknown error'));
         }
       } catch (error) {
-        console.error('Error deleting operator:', error);
+        logger.error('Error deleting operator,', error);
         alert('Error deleting operator. Please try again.');
       }
     }

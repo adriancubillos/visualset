@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger';
 // Shared utility for handling task assignment updates
 export interface TimeSlot {
   id?: string;
@@ -63,7 +64,7 @@ export const handleTaskAssignmentUpdate = async (
       alert(data.error || 'Failed to update assignment');
     }
   } catch (error) {
-    console.error('Error updating task assignment:', error);
+    logger.error('Error updating task assignment,', error);
     alert('Error updating task. Please try again.');
   }
 };

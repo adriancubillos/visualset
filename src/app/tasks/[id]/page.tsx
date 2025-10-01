@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import PageContainer from '@/components/layout/PageContainer';
 import StatusBadge from '@/components/ui/StatusBadge';
+import { logger } from '@/utils/logger';
 
 interface Task {
   id: string;
@@ -56,7 +57,7 @@ export default function TaskDetailPage() {
         setTask(taskData);
         setLoading(false);
       } catch (error) {
-        console.error('Error fetching task:', error);
+        logger.error('Error fetching task,', error);
         setLoading(false);
       }
     };
@@ -96,10 +97,10 @@ export default function TaskDetailPage() {
       if (response.ok && task) {
         setTask({ ...task, status: newStatus });
       } else {
-        console.error('Failed to update task status');
+        logger.error('Failed to update task status');
       }
     } catch (error) {
-      console.error('Error updating task status:', error);
+      logger.error('Error updating task status,', error);
     }
   };
 
@@ -113,10 +114,10 @@ export default function TaskDetailPage() {
         if (response.ok) {
           router.push('/tasks');
         } else {
-          console.error('Failed to delete task');
+          logger.error('Failed to delete task');
         }
       } catch (error) {
-        console.error('Error deleting task:', error);
+        logger.error('Error deleting task,', error);
       }
     }
   };

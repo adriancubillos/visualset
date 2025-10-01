@@ -8,6 +8,7 @@ import SearchFilter from '@/components/ui/SearchFilter';
 import StatusBadge from '@/components/ui/StatusBadge';
 import TableActions from '@/components/ui/TableActions';
 import StatisticsCards from '@/components/ui/StatisticsCards';
+import { logger } from '@/utils/logger';
 
 // Import the Column type from DataTable
 type Column<T> = {
@@ -131,17 +132,17 @@ export default function ItemsPage() {
           setItems(itemsData);
           setFilteredItems(itemsData);
         } else {
-          console.error('Failed to fetch items');
+          logger.error('Failed to fetch items');
         }
 
         if (projectsResponse.ok) {
           const projectsData = await projectsResponse.json();
           setProjects(projectsData.map((p: { id: string; name: string }) => ({ id: p.id, name: p.name })));
         } else {
-          console.error('Failed to fetch projects');
+          logger.error('Failed to fetch projects');
         }
       } catch (error) {
-        console.error('Error fetching data:', error);
+        logger.error('Error fetching data,', error);
       } finally {
         setLoading(false);
       }
@@ -186,10 +187,10 @@ export default function ItemsPage() {
           setItems(updatedItems);
           setFilteredItems(updatedItems.filter((item) => filteredItems.some((filtered) => filtered.id === item.id)));
         } else {
-          console.error('Failed to delete item');
+          logger.error('Failed to delete item');
         }
       } catch (error) {
-        console.error('Error deleting item:', error);
+        logger.error('Error deleting item,', error);
       }
     }
   };

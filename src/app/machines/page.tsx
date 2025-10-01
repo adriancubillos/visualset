@@ -134,7 +134,7 @@ const getInitialColumns = (): Column<Machine>[] => {
 
     return orderedColumns;
   } catch (error) {
-    console.error('Error loading column order:', error);
+    logger.error('Error loading column order,', error);
     return defaultColumns;
   }
 };
@@ -154,10 +154,10 @@ export default function MachinesPage() {
           setMachines(data);
           setFilteredMachines(data);
         } else {
-          console.error('Failed to fetch machines');
+          logger.error('Failed to fetch machines');
         }
       } catch (error) {
-        console.error('Error fetching machines:', error);
+        logger.error('Error fetching machines,', error);
       } finally {
         setLoading(false);
       }

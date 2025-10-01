@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AVAILABLE_SKILLS, OPERATOR_STATUS, OPERATOR_SHIFTS } from '@/config/workshop-properties';
 import VisualIdentifier from '@/components/ui/VisualIdentifier';
 import { PatternType } from '@/utils/entityColors';
+import { logger } from '@/utils/logger';
 
 export default function NewOperatorPage() {
   const router = useRouter();
@@ -45,10 +46,10 @@ export default function NewOperatorPage() {
       if (response.ok) {
         router.push('/operators');
       } else {
-        console.error('Failed to create operator');
+        logger.error('Failed to create operator');
       }
     } catch (error) {
-      console.error('Error creating operator:', error);
+      logger.error('Error creating operator,', error);
     } finally {
       setLoading(false);
     }

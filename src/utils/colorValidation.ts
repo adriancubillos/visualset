@@ -1,5 +1,6 @@
 // Validation utilities for color and pattern combinations
 import { PatternType } from './entityColors';
+import { logger } from '@/utils/logger';
 
 export interface EntityColorCombination {
   color: string;
@@ -50,7 +51,7 @@ export async function getColorPatternAvailability(
     const data = await response.json();
     return processAvailability(data.usedCombinations);
   } catch (error) {
-    console.error('Error fetching color pattern availability:', error);
+    logger.error('Error fetching color pattern availability,', error);
     return {
       usedCombinations: [],
       availablePatterns: {},
@@ -165,7 +166,7 @@ export async function validateColorPatternUniqueness(
 
     return await response.json();
   } catch (error) {
-    console.error('Error validating color pattern:', error);
+    logger.error('Error validating color pattern,', error);
     return { isValid: false };
   }
 }

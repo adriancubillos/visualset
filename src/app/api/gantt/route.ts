@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { logger } from '@/utils/logger';
 
 const prisma = new PrismaClient();
 
@@ -106,7 +107,7 @@ export async function GET() {
 
     return NextResponse.json(ganttData);
   } catch (error) {
-    console.error('Error fetching Gantt data:', error);
+    logger.error('Error fetching Gantt data,', error);
     return NextResponse.json({ error: 'Failed to fetch Gantt data' }, { status: 500 });
   }
 }

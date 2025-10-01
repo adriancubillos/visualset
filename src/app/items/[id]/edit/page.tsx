@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { checkItemCompletionReadiness, getItemCompletionMessage } from '@/utils/itemValidation';
 import { ITEM_STATUS } from '@/config/workshop-properties';
+import { logger } from '@/utils/logger';
 
 interface Project {
   id: string;
@@ -69,7 +70,7 @@ export default function EditItemPage() {
             tasks: itemData.tasks || [],
           });
         } else {
-          console.error('Failed to fetch item');
+          logger.error('Failed to fetch item');
         }
 
         if (projectsResponse.ok) {
@@ -89,10 +90,10 @@ export default function EditItemPage() {
 
           setProjects(activeProjects);
         } else {
-          console.error('Failed to fetch projects');
+          logger.error('Failed to fetch projects');
         }
       } catch (error) {
-        console.error('Error fetching data:', error);
+        logger.error('Error fetching data,', error);
       } finally {
         setInitialLoading(false);
         setProjectsLoading(false);
@@ -139,11 +140,11 @@ export default function EditItemPage() {
         } else {
           const errorMessage = errorData.error || 'Failed to update item';
           setStatusValidationError(errorMessage);
-          console.error('Failed to update item:', errorMessage);
+          logger.error('Failed to update item,', errorMessage);
         }
       }
     } catch (error) {
-      console.error('Error updating item:', error);
+      logger.error('Error updating item,', error);
       setStatusValidationError('An unexpected error occurred');
     } finally {
       setLoading(false);

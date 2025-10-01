@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ColorPicker from '@/components/ui/ColorPicker';
 import { PROJECT_STATUS } from '@/config/workshop-properties';
+import { logger } from '@/utils/logger';
 
 export default function NewProjectPage() {
   const router = useRouter();
@@ -30,7 +31,7 @@ export default function NewProjectPage() {
           setUsedColors(colors);
         }
       } catch (error) {
-        console.error('Error fetching used colors:', error);
+        logger.error('Error fetching used colors,', error);
       }
     };
 
@@ -66,15 +67,15 @@ export default function NewProjectPage() {
           if (errorData.error && errorData.error.includes('Color is already in use')) {
             setColorError('This color is already in use by another project');
           } else {
-            console.error('Failed to create project:', errorData);
+            logger.error('Failed to create project,', errorData);
           }
         } catch {
-          console.error('Failed to create project - Server error');
-          console.error('Response status:', response.status);
+          logger.error('Failed to create project - Server error');
+          logger.error('Response status,', response.status);
         }
       }
     } catch (error) {
-      console.error('Error creating project:', error);
+      logger.error('Error creating project,', error);
     } finally {
       setLoading(false);
     }

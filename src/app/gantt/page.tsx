@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import GanttChart from '@/components/gantt/GanttChart';
+import { logger } from '@/utils/logger';
 
 interface GanttTask {
   id: string;
@@ -62,10 +63,10 @@ export default function GanttPage() {
           const ganttData = await response.json();
           setData(ganttData);
         } else {
-          console.error('Failed to fetch Gantt data');
+          logger.error('Failed to fetch Gantt data');
         }
       } catch (error) {
-        console.error('Error fetching Gantt data:', error);
+        logger.error('Error fetching Gantt data,', error);
       } finally {
         setLoading(false);
       }

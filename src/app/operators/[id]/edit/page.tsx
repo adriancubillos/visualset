@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { AVAILABLE_SKILLS, OPERATOR_STATUS, OPERATOR_SHIFTS } from '@/config/workshop-properties';
 import VisualIdentifier from '@/components/ui/VisualIdentifier';
 import { PatternType } from '@/utils/entityColors';
+import { logger } from '@/utils/logger';
 
 interface Operator {
   id: string;
@@ -73,7 +74,7 @@ export default function EditOperatorPage() {
         });
         setLoading(false);
       } catch (error) {
-        console.error('Error fetching operator:', error);
+        logger.error('Error fetching operator,', error);
         setLoading(false);
       }
     };
@@ -102,10 +103,10 @@ export default function EditOperatorPage() {
       if (response.ok) {
         router.push(`/operators/${params.id}`);
       } else {
-        console.error('Failed to update operator');
+        logger.error('Failed to update operator');
       }
     } catch (error) {
-      console.error('Error updating operator:', error);
+      logger.error('Error updating operator,', error);
     } finally {
       setSaving(false);
     }

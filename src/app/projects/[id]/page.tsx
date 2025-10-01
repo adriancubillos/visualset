@@ -8,6 +8,7 @@ import ColorIndicator from '@/components/ui/ColorIndicator';
 import StatisticsCards from '@/components/ui/StatisticsCards';
 import { PatternType } from '@/utils/entityColors';
 import { checkProjectCompletionReadiness } from '@/utils/projectValidation';
+import { logger } from '@/utils/logger';
 
 interface Project {
   id: string;
@@ -57,7 +58,7 @@ export default function ProjectDetailPage() {
         setProject(projectData);
         setLoading(false);
       } catch (error) {
-        console.error('Error fetching project:', error);
+        logger.error('Error fetching project,', error);
         setLoading(false);
       }
     };
@@ -224,7 +225,7 @@ export default function ProjectDetailPage() {
               onClick={() => {
                 if (confirm('Are you sure you want to delete this project?')) {
                   fetch(`/api/projects/${params.id}`, { method: 'DELETE' }).then((response) =>
-                    response.ok ? router.push('/projects') : console.error('Failed to delete'),
+                    response.ok ? router.push('/projects') : logger.error('Failed to delete'),
                   );
                 }
               }}

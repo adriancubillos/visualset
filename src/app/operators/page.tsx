@@ -273,7 +273,7 @@ export default function OperatorsPage() {
           setFilteredOperators(updatedOperators);
         } else {
           const errorData = await response.json();
-          console.error('Failed to delete operator:', errorData.error);
+          logger.error('Failed to delete operator,', errorData.error);
           
           // Show user-friendly error message
           if (errorData.error?.includes('assigned tasks')) {
@@ -283,7 +283,7 @@ export default function OperatorsPage() {
           }
         }
       } catch (error) {
-        console.error('Error deleting operator:', error);
+        logger.error('Error deleting operator,', error);
         alert('Error deleting operator. Please try again.');
       }
     }

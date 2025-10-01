@@ -7,6 +7,7 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import DataTable from '@/components/ui/DataTable';
 import TableActions from '@/components/ui/TableActions';
 import { checkItemCompletionReadiness } from '@/utils/itemValidation';
+import { logger } from '@/utils/logger';
 
 interface Task {
   id: string;
@@ -58,10 +59,10 @@ export default function ItemDetailPage() {
           const data = await response.json();
           setItem(data);
         } else {
-          console.error('Failed to fetch item');
+          logger.error('Failed to fetch item');
         }
       } catch (error) {
-        console.error('Error fetching item:', error);
+        logger.error('Error fetching item,', error);
       } finally {
         setLoading(false);
       }
@@ -83,10 +84,10 @@ export default function ItemDetailPage() {
           const updatedTasks = item.tasks.filter((task) => task.id !== taskId);
           setItem({ ...item, tasks: updatedTasks });
         } else {
-          console.error('Failed to delete task');
+          logger.error('Failed to delete task');
         }
       } catch (error) {
-        console.error('Error deleting task:', error);
+        logger.error('Error deleting task,', error);
       }
     }
   };

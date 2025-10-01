@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { mapTaskToResponse, TaskResponseDTO, TaskWithRelationsDTO } from '@/types/api';
 import { checkSchedulingConflicts, createConflictErrorResponse } from '@/utils/conflictDetection';
+import { logger } from '@/utils/logger';
 
 const prisma = new PrismaClient();
 
@@ -131,7 +132,7 @@ export async function POST(req: Request) {
     const mapped = mapTaskToResponse(result as unknown as TaskWithRelationsDTO);
     return NextResponse.json(mapped);
   } catch (error) {
-    console.error('Error creating task:', error);
+    logger.error('Error creating task,', error);
     return NextResponse.json({ error: 'Failed to create task' }, { status: 500 });
   }
 }

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import ColorPicker from '@/components/ui/ColorPicker';
 import { PROJECT_STATUS } from '@/config/workshop-properties';
 import { checkProjectCompletionReadiness, getProjectCompletionMessage } from '@/utils/projectValidation';
+import { logger } from '@/utils/logger';
 
 interface Item {
   id: string;
@@ -73,7 +74,7 @@ export default function EditProjectPage() {
         });
         setLoading(false);
       } catch (error) {
-        console.error('Error fetching project:', error);
+        logger.error('Error fetching project,', error);
         setLoading(false);
       }
     };
@@ -114,11 +115,11 @@ export default function EditProjectPage() {
             setStatusValidationError(errorData.error || 'Failed to update project');
           }
         } else {
-          console.error('Failed to update project:', errorData.error);
+          logger.error('Failed to update project,', errorData.error);
         }
       }
     } catch (error) {
-      console.error('Error updating project:', error);
+      logger.error('Error updating project,', error);
     } finally {
       setSaving(false);
     }

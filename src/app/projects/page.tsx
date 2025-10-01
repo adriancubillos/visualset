@@ -10,6 +10,7 @@ import TableActions from '@/components/ui/TableActions';
 import { ProjectColorIndicator } from '@/components/ui/ColorIndicator';
 import StatisticsCards from '@/components/ui/StatisticsCards';
 import { PROJECT_STATUS } from '@/config/workshop-properties';
+import { logger } from '@/utils/logger';
 
 // Column type for DataTable
 type Column<T> = {
@@ -128,7 +129,7 @@ const getInitialColumns = (): Column<Project>[] => {
 
     return orderedColumns;
   } catch (error) {
-    console.error('Error loading column order:', error);
+    logger.error('Error loading column order,', error);
     return defaultColumns;
   }
 };
@@ -148,10 +149,10 @@ export default function ProjectsPage() {
           setProjects(data);
           setFilteredProjects(data);
         } else {
-          console.error('Failed to fetch projects');
+          logger.error('Failed to fetch projects');
         }
       } catch (error) {
-        console.error('Error fetching projects:', error);
+        logger.error('Error fetching projects,', error);
       } finally {
         setLoading(false);
       }
@@ -229,11 +230,11 @@ export default function ProjectsPage() {
           setFilteredProjects(updatedProjects);
         } else {
           const errorData = await response.json();
-          console.error('Failed to delete project:', errorData.error);
+          logger.error('Failed to delete project,', errorData.error);
           alert('Failed to delete project: ' + (errorData.error || 'Unknown error'));
         }
       } catch (error) {
-        console.error('Error deleting project:', error);
+        logger.error('Error deleting project,', error);
         alert('Error deleting project. Please try again.');
       }
     }

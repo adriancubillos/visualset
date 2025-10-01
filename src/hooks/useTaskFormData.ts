@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { logger } from '@/utils/logger';
 
 export interface DropdownOption {
   id: string;
@@ -87,7 +88,7 @@ export function useTaskFormData() {
           error: null,
         });
       } catch (error) {
-        console.error('Error fetching task form data:', error);
+        logger.error('Error fetching task form data,', error);
         setData((prev) => ({
           ...prev,
           loading: false,

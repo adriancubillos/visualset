@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import StatusBadge from '@/components/ui/StatusBadge';
 import StatisticsCards from '@/components/ui/StatisticsCards';
+import { logger } from '@/utils/logger';
 
 interface DashboardStats {
   activeProjects: number;
@@ -71,7 +72,7 @@ export default function Dashboard() {
           activeOperators: operators.filter((o: Operator) => o.status === 'ACTIVE').length,
         });
       } catch (error) {
-        console.error('Error fetching dashboard stats:', error);
+        logger.error('Error fetching dashboard stats,', error);
       } finally {
         setLoading(false);
       }
@@ -129,7 +130,7 @@ export default function Dashboard() {
           setRecentProjects(projects.slice(0, 2)); // Get 2 most recent projects
         }
       } catch (error) {
-        console.error('Error fetching recent data:', error);
+        logger.error('Error fetching recent data,', error);
       }
     };
 

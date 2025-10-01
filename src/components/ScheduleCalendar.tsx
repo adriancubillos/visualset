@@ -273,14 +273,14 @@ export default function ScheduleCalendar() {
       const updatedTask = tasks.find((t) => t.id === originalTaskId);
 
       if (!updatedTask || !updatedTask.timeSlots || slotIndex >= updatedTask.timeSlots.length) {
-        console.error('Invalid task or slot index for drag drop');
+        logger.error('Invalid task or slot index for drag drop');
         return;
       }
 
       // Get the specific time slot that was dragged
       const draggedSlot = updatedTask.timeSlots[slotIndex];
       if (!draggedSlot) {
-        console.error('Could not find dragged slot');
+        logger.error('Could not find dragged slot');
         return;
       }
 
@@ -343,11 +343,11 @@ export default function ScheduleCalendar() {
         if (res.ok) {
           setTasks((prev) => prev.map((task) => (task.id === data.id ? { ...task, ...data } : task)));
         } else {
-          console.warn('Error updating task during drag operation:', data.error);
+          logger.error('Error updating task during drag operation', data.error);
           alert('Error rescheduling task: ' + (data.error || 'Unknown error'));
         }
       } catch (err) {
-        console.error(err);
+        logger.error('Error rescheduling task', err);
         alert('Error rescheduling task');
       }
     },

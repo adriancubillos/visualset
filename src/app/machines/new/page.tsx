@@ -6,6 +6,7 @@ import PageContainer from '@/components/layout/PageContainer';
 import VisualIdentifier from '@/components/ui/VisualIdentifier';
 import { PatternType } from '@/utils/entityColors';
 import { MACHINE_TYPES, MACHINE_STATUS } from '@/config/workshop-properties';
+import { logger } from '@/utils/logger';
 
 export default function NewMachinePage() {
   const router = useRouter();
@@ -36,10 +37,10 @@ export default function NewMachinePage() {
       if (response.ok) {
         router.push('/machines');
       } else {
-        console.error('Failed to create machine');
+        logger.error('Failed to create machine');
       }
     } catch (error) {
-      console.error('Error creating machine:', error);
+      logger.error('Error creating machine,', error);
     } finally {
       setLoading(false);
     }

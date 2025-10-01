@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger';
 /**
  * Reusable utility for handling task conflict errors on the frontend
  */
@@ -54,7 +55,7 @@ export async function handleTaskResponse(
     if (errorData.conflict) {
       console.warn(`Scheduling conflict during ${operationName}:`, errorData.error);
     } else {
-      console.error(`Failed to ${operationName}:`, errorData.error);
+      logger.error(`Failed to ${operationName},`, errorData.error);
     }
 
     displayConflictError(errorData);

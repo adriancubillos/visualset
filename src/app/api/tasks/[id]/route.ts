@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { mapTaskToResponse, TaskWithRelationsDTO } from '@/types/api';
 import { checkSchedulingConflicts, createConflictErrorResponse } from '@/utils/conflictDetection';
+import { logger } from '@/utils/logger';
 
 const prisma = new PrismaClient();
 
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const mapped = mapTaskToResponse(task as unknown as TaskWithRelationsDTO);
     return NextResponse.json(mapped);
   } catch (error) {
-    console.error('Error fetching task:', error);
+    logger.error('Error fetching task,', error);
     return NextResponse.json({ error: 'Failed to fetch task' }, { status: 500 });
   }
 }
@@ -161,7 +162,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const mapped = mapTaskToResponse(result as unknown as TaskWithRelationsDTO);
     return NextResponse.json(mapped);
   } catch (error) {
-    console.error('Error updating task:', error);
+    logger.error('Error updating task,', error);
     return NextResponse.json({ error: 'Failed to update task' }, { status: 500 });
   }
 }
@@ -193,7 +194,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const mapped = mapTaskToResponse(task as unknown as TaskWithRelationsDTO);
     return NextResponse.json(mapped);
   } catch (error) {
-    console.error('Error updating task:', error);
+    logger.error('Error updating task,', error);
     return NextResponse.json({ error: 'Failed to update task' }, { status: 500 });
   }
 }
@@ -205,7 +206,7 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
     await prisma.task.delete({ where: { id } });
     return NextResponse.json({ message: 'Task deleted successfully' });
   } catch (error) {
-    console.error('Error deleting task:', error);
+    logger.error('Error deleting task,', error);
     return NextResponse.json({ error: 'Failed to delete task' }, { status: 500 });
   }
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { logger } from '@/utils/logger';
 
 const prisma = new PrismaClient();
 
@@ -70,7 +71,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Invalid entityType' }, { status: 400 });
     }
   } catch (error) {
-    console.error('Error fetching color pattern usage:', error);
+    logger.error('Error fetching color pattern usage,', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
