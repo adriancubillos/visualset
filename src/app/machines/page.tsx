@@ -262,7 +262,13 @@ export default function MachinesPage() {
         } else {
           const errorData = await response.json();
           console.error('Failed to delete machine:', errorData.error);
-          alert('Failed to delete machine: ' + (errorData.error || 'Unknown error'));
+          
+          // Show user-friendly error message
+          if (errorData.error?.includes('assigned tasks')) {
+            alert(`Cannot delete "${machineName}"\n\nThis machine is currently assigned to one or more tasks. Please unassign or delete those tasks first.`);
+          } else {
+            alert('Failed to delete machine: ' + (errorData.error || 'Unknown error'));
+          }
         }
       } catch (error) {
         console.error('Error deleting machine:', error);

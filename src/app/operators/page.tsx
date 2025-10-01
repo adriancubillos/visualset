@@ -273,7 +273,13 @@ export default function OperatorsPage() {
         } else {
           const errorData = await response.json();
           console.error('Failed to delete operator:', errorData.error);
-          alert('Failed to delete operator: ' + (errorData.error || 'Unknown error'));
+          
+          // Show user-friendly error message
+          if (errorData.error?.includes('assigned tasks')) {
+            alert(`Cannot delete "${operatorName}"\n\nThis operator is currently assigned to one or more tasks. Please unassign or delete those tasks first.`);
+          } else {
+            alert('Failed to delete operator: ' + (errorData.error || 'Unknown error'));
+          }
         }
       } catch (error) {
         console.error('Error deleting operator:', error);

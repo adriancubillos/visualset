@@ -51,23 +51,13 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    // First, check if operator exists
-    const operator = await prisma.operator.findUnique({
-      where: { id },
-      include: { tasks: true },
+    // Check if operator has any assigned tasks
+    const tasksCount = await prisma.task.count({
+      where: { operatorId: id },
     });
 
-    if (!operator) {
-      return NextResponse.json({ error: 'Operator not found' }, { status: 404 });
-    }
-
-    // Check if operator has assigned tasks
-    if (operator.tasks.length > 0) {
-      // Update tasks to remove operator assignment before deleting
-      await prisma.task.updateMany({
-        where: { operatorId: id },
-        data: { operatorId: null },
-      });
+    if (tasksCount > 0) {
+      return NextResponse.json({ error: 'Cannot delete operator with assigned tasks' }, { status: 400 });
     }
 
     // Now delete the operator
