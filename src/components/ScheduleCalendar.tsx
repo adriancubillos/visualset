@@ -14,6 +14,7 @@ import { handleTaskAssignmentUpdate, TaskAssignmentUpdate } from '@/utils/taskAs
 import FilterSelect from './ui/FilterSelect';
 import { sortByName } from '@/utils/sorting';
 import { logger } from '@/utils/logger';
+import toast from 'react-hot-toast';
 
 interface Task {
   id: string;
@@ -342,13 +343,14 @@ export default function ScheduleCalendar() {
 
         if (res.ok) {
           setTasks((prev) => prev.map((task) => (task.id === data.id ? { ...task, ...data } : task)));
+          toast.success('Task rescheduled successfully');
         } else {
           logger.error('Error updating task during drag operation', data.error);
-          alert('Error rescheduling task: ' + (data.error || 'Unknown error'));
+          toast.error(data.error || 'Failed to reschedule task');
         }
       } catch (err) {
         logger.error('Error rescheduling task', err);
-        alert('Error rescheduling task');
+        toast.error('Error rescheduling task. Please try again.');
       }
     },
     [tasks],
