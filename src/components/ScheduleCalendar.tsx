@@ -104,7 +104,6 @@ const formatDisplayDate = (dateStr: string): string => {
 
   return `${monthName} ${day}, ${time}`;
 };
-
 export default function ScheduleCalendar() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -126,7 +125,14 @@ export default function ScheduleCalendar() {
   const [machines, setMachines] = useState<{ id: string; name: string }[]>([]);
   const [operators, setOperators] = useState<{ id: string; name: string }[]>([]);
   const [projects, setProjects] = useState<{ id: string; name: string; color?: string | null }[]>([]);
-  const [items, setItems] = useState<{ id: string; name: string; project?: { name: string } }[]>([]);
+  const [items, setItems] = useState<{ id: string; name: string; project?: { id: string; name: string } }[]>([]);
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (touchTimer) clearTimeout(touchTimer);
+    };
+  }, [touchTimer]);
 
   useEffect(() => {
     fetch('/api/machines')
@@ -513,9 +519,11 @@ export default function ScheduleCalendar() {
               return (
                 <div
                   className="relative w-full h-full rounded-lg cursor-pointer"
+                  title="" // Disable browser's default tooltip
                   onMouseEnter={(e) => {
-                    setMousePosition({ x: e.clientX, y: e.clientY });
+                    // Immediately show this event's tooltip
                     setHoveredEventId(event.id);
+                    setMousePosition({ x: e.clientX, y: e.clientY });
                   }}
                   onMouseMove={(e) => {
                     if (hoveredEventId === event.id) {
@@ -523,7 +531,8 @@ export default function ScheduleCalendar() {
                     }
                   }}
                   onMouseLeave={() => {
-                    setHoveredEventId(null);
+                    // Only hide if we're leaving this specific event
+                    setHoveredEventId((current) => (current === event.id ? null : current));
                   }}
                   onTouchStart={(e) => {
                     // For mobile: only show tooltip on actual long press
@@ -575,19 +584,6 @@ export default function ScheduleCalendar() {
                   {/* Content overlay */}
                   <div className="relative z-10 p-1 h-full flex flex-col justify-center text-white">
                     <div className="font-medium truncate text-xs leading-tight">{event.title}</div>
-                    <div className="text-xs opacity-90 truncate leading-tight">
-                      {event.start.toLocaleTimeString('en-US', {
-                        hour: 'numeric',
-                        minute: '2-digit',
-                        hour12: true,
-                      })}{' '}
-                      -{' '}
-                      {event.end.toLocaleTimeString('en-US', {
-                        hour: 'numeric',
-                        minute: '2-digit',
-                        hour12: true,
-                      })}
-                    </div>
                   </div>
 
                   {/* Text shadow overlay for better readability */}
