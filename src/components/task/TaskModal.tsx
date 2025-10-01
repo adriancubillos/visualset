@@ -34,6 +34,18 @@ export default function TaskModal({ isOpen, onClose, task, selectedSlotIndex, on
   const [completedQuantity, setCompletedQuantity] = useState<number>(0);
   const [status, setStatus] = useState<string>('PENDING');
 
+  // Handle Escape key to close modal
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen, onClose]);
+
   // Reset state whenever modal opens or task changes
   useEffect(() => {
     if (isOpen && task) {
@@ -100,23 +112,19 @@ export default function TaskModal({ isOpen, onClose, task, selectedSlotIndex, on
       <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-2xl mx-4 border max-h-[90vh] overflow-y-auto">
         <h3 className="text-xl font-bold mb-6 text-gray-900">Update Assignment</h3>
 
-        {/* Project - Read Only */}
-        <label className="block mb-2 text-sm font-semibold text-gray-700">Project</label>
-        <input
-          type="text"
-          value={task.project?.name || 'No Project'}
-          readOnly
-          className="w-full border-2 border-gray-300 rounded-md p-3 mb-4 text-gray-900 bg-gray-100 cursor-not-allowed"
-        />
-
-        {/* Item - Read Only */}
-        <label className="block mb-2 text-sm font-semibold text-gray-700">Item</label>
-        <input
-          type="text"
-          value={task.item?.name || 'No Item'}
-          readOnly
-          className="w-full border-2 border-gray-300 rounded-md p-3 mb-4 text-gray-900 bg-gray-100 cursor-not-allowed"
-        />
+        {/* Project and Item - Compact Display */}
+        <div className="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-200">
+          <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+            <div>
+              <span className="font-semibold text-gray-700">Project:</span>{' '}
+              <span className="text-gray-900">{task.project?.name || 'No Project'}</span>
+            </div>
+            <div>
+              <span className="font-semibold text-gray-700">Item:</span>{' '}
+              <span className="text-gray-900">{task.item?.name || 'No Item'}</span>
+            </div>
+          </div>
+        </div>
 
         {/* Machine and Operator in same row */}
         <div className="grid grid-cols-2 gap-4 mb-4">
