@@ -316,7 +316,7 @@ export default function EditTaskPage() {
             label="Machine"
             value={formData.machineId}
             options={machines}
-            onChange={(value) => setFormData((prev) => ({ ...prev, machineId: value }))}
+            onChange={(value) => setFormData((prev) => ({ ...prev, machineId: value || '' }))}
           />
 
           {/* Operator Assignment */}
@@ -326,7 +326,7 @@ export default function EditTaskPage() {
             label="Operator"
             value={formData.operatorId}
             options={operators}
-            onChange={(value) => setFormData((prev) => ({ ...prev, operatorId: value }))}
+            onChange={(value) => setFormData((prev) => ({ ...prev, operatorId: value || '' }))}
           />
 
           {/* Priority and Status */}

@@ -179,7 +179,7 @@ function NewTaskPageContent() {
             label="Machine"
             value={formData.machineId}
             options={machines}
-            onChange={(value) => setFormData((prev) => ({ ...prev, machineId: value }))}
+            onChange={(value) => setFormData((prev) => ({ ...prev, machineId: value || '' }))}
           />
 
           {/* Operator Assignment */}
@@ -189,7 +189,7 @@ function NewTaskPageContent() {
             label="Operator"
             value={formData.operatorId}
             options={sortedOperators}
-            onChange={(value) => setFormData((prev) => ({ ...prev, operatorId: value }))}
+            onChange={(value) => setFormData((prev) => ({ ...prev, operatorId: value || '' }))}
           />
 
           {/* Priority and Status */}
