@@ -57,7 +57,7 @@ function NewTaskPageContent() {
         variant="form"
         maxWidth="2xl"
         header={{
-          title: 'Create New Task',
+          title: 'Add Task',
           description: 'Schedule a new task in the workshop',
         }}>
         <div className="animate-pulse">
@@ -123,7 +123,7 @@ function NewTaskPageContent() {
       variant="form"
       maxWidth="2xl"
       header={{
-        title: 'Create New Task',
+        title: 'Add Task',
         description: 'Schedule a new task in the workshop',
       }}>
       {/* Form */}
@@ -291,11 +291,10 @@ function NewTaskPageContent() {
               disabled={
                 loading || !formData.title.trim() || !formData.projectId || !formData.itemId || timeSlots.length === 0
               }
-              className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                loading || !formData.title.trim() || !formData.projectId || !formData.itemId || timeSlots.length === 0
+              className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${loading || !formData.title.trim() || !formData.projectId || !formData.itemId || timeSlots.length === 0
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700'
-              }`}>
+                }`}>
               {loading ? 'Creating...' : 'Create Task'}
             </button>
           </div>

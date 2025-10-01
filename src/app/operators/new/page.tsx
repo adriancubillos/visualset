@@ -73,7 +73,7 @@ export default function NewOperatorPage() {
       variant="form"
       maxWidth="2xl"
       header={{
-        title: 'Add New Operator',
+        title: 'Add Operator',
         description: 'Register a new operator in the workshop',
       }}>
       {/* Form */}
@@ -134,9 +134,8 @@ export default function NewOperatorPage() {
                     onChange={() => handleSkillToggle(skill.value)}
                   />
                   <div
-                    className={`w-4 h-4 rounded border-2 mr-3 flex items-center justify-center ${
-                      formData.skills.includes(skill.value) ? 'bg-blue-600 border-blue-600' : 'border-gray-300'
-                    }`}>
+                    className={`w-4 h-4 rounded border-2 mr-3 flex items-center justify-center ${formData.skills.includes(skill.value) ? 'bg-blue-600 border-blue-600' : 'border-gray-300'
+                      }`}>
                     {formData.skills.includes(skill.value) && (
                       <svg
                         className="w-3 h-3 text-white"
@@ -235,17 +234,16 @@ export default function NewOperatorPage() {
                 !formData.pattern ||
                 !isColorPatternValid
               }
-              className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                loading ||
-                !formData.name.trim() ||
-                !formData.email.trim() ||
-                formData.skills.length === 0 ||
-                !formData.color ||
-                !formData.pattern ||
-                !isColorPatternValid
+              className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${loading ||
+                  !formData.name.trim() ||
+                  !formData.email.trim() ||
+                  formData.skills.length === 0 ||
+                  !formData.color ||
+                  !formData.pattern ||
+                  !isColorPatternValid
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700'
-              }`}>
+                }`}>
               {loading ? 'Adding...' : 'Add Operator'}
             </button>
           </div>

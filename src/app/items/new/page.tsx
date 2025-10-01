@@ -86,7 +86,7 @@ export default function NewItemPage() {
       variant="form"
       maxWidth="2xl"
       header={{
-        title: 'Add New Item',
+        title: 'Add Item',
         description: 'Create a new item within a project',
       }}>
       {/* Form */}
@@ -209,11 +209,10 @@ export default function NewItemPage() {
             <button
               type="submit"
               disabled={loading || !formData.name.trim() || !formData.projectId}
-              className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                loading || !formData.name.trim() || !formData.projectId
+              className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${loading || !formData.name.trim() || !formData.projectId
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700'
-              }`}>
+                }`}>
               {loading ? 'Creating...' : 'Create Item'}
             </button>
           </div>

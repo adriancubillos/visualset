@@ -154,8 +154,9 @@ export default function Dashboard() {
   ];
 
   const quickActions = [
-    { label: 'Create New Project', href: '/projects/new', icon: '📁', color: 'bg-blue-500' },
-    { label: 'Schedule Task', href: '/tasks/new', icon: '✅', color: 'bg-green-500' },
+    { label: 'Add Project', href: '/projects/new', icon: '📁', color: 'bg-blue-500' },
+    { label: 'Add Item', href: '/items/new', icon: '📦', color: 'bg-blue-500' },
+    { label: 'Add Task', href: '/tasks/new', icon: '✅', color: 'bg-green-500' },
     { label: 'Add Machine', href: '/machines/new', icon: '⚙️', color: 'bg-purple-500' },
     { label: 'Add Operator', href: '/operators/new', icon: '👥', color: 'bg-orange-500' },
   ];
@@ -249,6 +250,42 @@ export default function Dashboard() {
             <div>
               <h3 className="text-lg font-semibold text-gray-900">Projects</h3>
               <p className="text-gray-600">Manage project portfolio</p>
+            </div>
+          </div>
+        </Link>
+
+        <Link
+          href="/items"
+          className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
+          <div className="flex items-center">
+            <div className="text-2xl mr-4">📦</div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Items</h3>
+              <p className="text-gray-600">Manage items portfolio</p>
+            </div>
+          </div>
+        </Link>
+
+        <Link
+          href="/tasks"
+          className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
+          <div className="flex items-center">
+            <div className="text-2xl mr-4">✅</div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Tasks</h3>
+              <p className="text-gray-600">Manage tasks portfolio</p>
+            </div>
+          </div>
+        </Link>
+
+        <Link
+          href="/operators"
+          className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
+          <div className="flex items-center">
+            <div className="text-2xl mr-4">👥</div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Operators</h3>
+              <p className="text-gray-600">Manage operators portfolio</p>
             </div>
           </div>
         </Link>

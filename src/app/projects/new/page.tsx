@@ -97,7 +97,7 @@ export default function NewProjectPage() {
       variant="form"
       maxWidth="2xl"
       header={{
-        title: 'Create New Project',
+        title: 'Add Project',
         description: 'Add a new project to your portfolio',
       }}>
 
@@ -186,9 +186,8 @@ export default function NewProjectPage() {
             <button
               type="submit"
               disabled={loading || !formData.name.trim()}
-              className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                loading || !formData.name.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
-              }`}>
+              className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${loading || !formData.name.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+                }`}>
               {loading ? 'Creating...' : 'Create Project'}
             </button>
           </div>
