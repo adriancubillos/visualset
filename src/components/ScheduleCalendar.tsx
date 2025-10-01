@@ -101,6 +101,7 @@ const formatDisplayDate = (dateStr: string): string => {
 export default function ScheduleCalendar() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedSlotIndex, setSelectedSlotIndex] = useState<number | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentView, setCurrentView] = useState<'week' | 'day' | 'agenda'>('week');
   const [currentDate, setCurrentDate] = useState(() => new Date());
@@ -383,11 +384,13 @@ export default function ScheduleCalendar() {
   // Memoize event selection handler
   const handleSelectEvent = useCallback(
     (event: CalendarEvent) => {
-      // Extract original task ID from event resource
+      // Extract original task ID and slot index from event resource
       const originalTaskId = event.resource?.originalTaskId || event.id.split('-')[0];
+      const slotIndex = event.resource?.slotIndex ?? parseInt(event.id.split('-')[1] || '0');
       const task = tasks.find((t) => t.id === originalTaskId);
       if (task) {
         setSelectedTask(task);
+        setSelectedSlotIndex(slotIndex); // Track which slot was clicked
         setHoveredEventId(null); // Clear tooltip when opening modal
         setIsModalOpen(true);
       }
@@ -675,8 +678,12 @@ export default function ScheduleCalendar() {
 
       <TaskModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedSlotIndex(null); // Reset selected slot when closing
+        }}
         task={selectedTask}
+        selectedSlotIndex={selectedSlotIndex}
         onSave={handleSaveAssignment}
         items={items}
         machines={machines}

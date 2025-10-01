@@ -6,6 +6,7 @@ interface TaskModalProps {
   onClose: () => void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   task: any;
+  selectedSlotIndex?: number | null; // Index of the time slot that was clicked
   onSave: (update: {
     itemId: string | null;
     machineId: string | null;
@@ -17,7 +18,7 @@ interface TaskModalProps {
   operators: { id: string; name: string }[];
 }
 
-export default function TaskModal({ isOpen, onClose, task, onSave, items, machines, operators }: TaskModalProps) {
+export default function TaskModal({ isOpen, onClose, task, selectedSlotIndex, onSave, items, machines, operators }: TaskModalProps) {
   const [itemId, setItemId] = useState<string | null>(null);
   const [machineId, setMachineId] = useState<string | null>(null);
   const [operatorId, setOperatorId] = useState<string | null>(null);
@@ -153,6 +154,7 @@ export default function TaskModal({ isOpen, onClose, task, onSave, items, machin
           <TimeSlotsManager
             timeSlots={timeSlots}
             onChange={setTimeSlots}
+            selectedSlotIndex={selectedSlotIndex ?? undefined}
           />
         </div>
 

@@ -13,9 +13,10 @@ interface TimeSlotsManagerProps {
   timeSlots: TimeSlot[];
   onChange: (timeSlots: TimeSlot[]) => void;
   disabled?: boolean;
+  selectedSlotIndex?: number; // If provided, only this slot is editable, others are disabled
 }
 
-export default function TimeSlotsManager({ timeSlots, onChange, disabled = false }: TimeSlotsManagerProps) {
+export default function TimeSlotsManager({ timeSlots, onChange, disabled = false, selectedSlotIndex }: TimeSlotsManagerProps) {
   const [dateWarnings, setDateWarnings] = useState<{ [key: number]: string }>({});
 
   const addTimeSlot = () => {
@@ -133,20 +134,34 @@ export default function TimeSlotsManager({ timeSlots, onChange, disabled = false
         </div>
       ) : (
         <div className="space-y-3">
-          {timeSlots.map((slot, index) => (
+          {timeSlots.map((slot, index) => {
+            // Determine if this slot should be disabled
+            const isSlotDisabled = selectedSlotIndex !== undefined && selectedSlotIndex !== index;
+            
+            return (
             <div
               key={index}
-              className="border rounded-lg p-4 border-gray-200 bg-white">
+              className={`border rounded-lg p-4 ${
+                isSlotDisabled 
+                  ? 'border-gray-300 bg-gray-50 opacity-60' 
+                  : 'border-gray-200 bg-white'
+              }`}>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center space-x-2">
-                  <span className="text-sm font-medium text-gray-700">Time Slot {index + 1}</span>
+                  <span className={`text-sm font-medium ${
+                    isSlotDisabled ? 'text-gray-500' : 'text-gray-700'
+                  }`}>
+                    Time Slot {index + 1}
+                    {isSlotDisabled && ' (Read-only)'}
+                    {selectedSlotIndex === index && timeSlots.length > 1 && ' (Editing)'}
+                  </span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <button
                     type="button"
                     onClick={() => removeTimeSlot(index)}
-                    disabled={disabled || timeSlots.length === 1}
-                    className="text-red-600 hover:text-red-800 disabled:opacity-50">
+                    disabled={disabled || timeSlots.length === 1 || isSlotDisabled}
+                    className="text-red-600 hover:text-red-800 disabled:opacity-50 disabled:cursor-not-allowed">
                     <svg
                       className="w-4 h-4"
                       fill="none"
@@ -174,8 +189,8 @@ export default function TimeSlotsManager({ timeSlots, onChange, disabled = false
                       const time = slot.startDateTime ? slot.startDateTime.split('T')[1] : '09:00';
                       handleDateTimeChange(index, date ? `${date}T${time}` : '');
                     }}
-                    disabled={disabled}
-                    className="block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                    disabled={disabled || isSlotDisabled}
+                    className="block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                   />
                 </div>
                 <div>
@@ -190,8 +205,8 @@ export default function TimeSlotsManager({ timeSlots, onChange, disabled = false
                         : new Date().toISOString().split('T')[0];
                       handleDateTimeChange(index, date ? `${date}T${time}` : '');
                     }}
-                    disabled={disabled}
-                    className="block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                    disabled={disabled || isSlotDisabled}
+                    className="block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                   />
                 </div>
                 <div>
@@ -204,8 +219,8 @@ export default function TimeSlotsManager({ timeSlots, onChange, disabled = false
                       const durationMin = parseInt(e.target.value) || 60;
                       updateTimeSlot(index, { durationMin });
                     }}
-                    disabled={disabled}
-                    className="block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                    disabled={disabled || isSlotDisabled}
+                    className="block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                   />
                 </div>
               </div>
@@ -233,7 +248,8 @@ export default function TimeSlotsManager({ timeSlots, onChange, disabled = false
               {/* Date Warning */}
               {dateWarnings[index] && <div className="mt-2 text-xs text-yellow-600">{dateWarnings[index]}</div>}
             </div>
-          ))}
+          );
+          })}
         </div>
       )}
 
@@ -252,7 +268,15 @@ export default function TimeSlotsManager({ timeSlots, onChange, disabled = false
                 d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            <strong>All time slots</strong> will be checked for scheduling conflicts.
+            {selectedSlotIndex !== undefined && timeSlots.length > 1 ? (
+              <>
+                <strong>Editing Time Slot {selectedSlotIndex + 1}</strong> - Other time slots are read-only.
+              </>
+            ) : (
+              <>
+                <strong>All time slots</strong> will be checked for scheduling conflicts.
+              </>
+            )}
           </p>
           <p className="mt-1">
             Each slot has its own duration and will be displayed as separate events on the calendar.
