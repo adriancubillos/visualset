@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import FilterSelect from './FilterSelect';
 
 interface SearchFilterProps {
   placeholder?: string;
@@ -55,7 +56,8 @@ export default function SearchFilter({
 
   const handleFilterChange = (key: string, value: string) => {
     const newFilters = { ...activeFilters, [key]: value };
-    if (value === '') {
+    // If value is 'all' or empty, remove the filter
+    if (value === '' || value === 'all') {
       delete newFilters[key];
     }
     setActiveFilters(newFilters);
@@ -98,19 +100,12 @@ export default function SearchFilter({
             <div
               key={filter.key}
               className="min-w-0 flex-1 sm:flex-none sm:min-w-48 lg:min-w-52">
-              <select
-                className="block w-full px-3 py-3 border-2 border-gray-200 rounded-lg bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-colors duration-200"
-                value={activeFilters[filter.key] || ''}
-                onChange={(e) => handleFilterChange(filter.key, e.target.value)}>
-                <option value="">{filter.label}</option>
-                {filter.options.map((option) => (
-                  <option
-                    key={option.value}
-                    value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+              <FilterSelect
+                value={activeFilters[filter.key] || 'all'}
+                onChange={(value) => handleFilterChange(filter.key, value)}
+                options={filter.options.map(opt => ({ id: opt.value, name: opt.label }))}
+                allLabel={filter.label}
+              />
             </div>
           ))}
         </div>

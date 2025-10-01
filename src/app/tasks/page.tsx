@@ -206,6 +206,8 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
+  const [items, setItems] = useState<{ id: string; name: string }[]>([]);
+  const [machines, setMachines] = useState<{ id: string; name: string }[]>([]);
   const [operators, setOperators] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [columns, setColumns] = useState<Column<Task>[]>(getInitialColumns);
@@ -213,9 +215,10 @@ export default function TasksPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [tasksResponse, projectsResponse, operatorsResponse] = await Promise.all([
+        const [tasksResponse, projectsResponse, machinesResponse, operatorsResponse] = await Promise.all([
           fetch('/api/tasks'),
           fetch('/api/projects'),
+          fetch('/api/machines'),
           fetch('/api/operators'),
         ]);
 
@@ -230,8 +233,20 @@ export default function TasksPage() {
         if (projectsResponse.ok) {
           const projectsData = await projectsResponse.json();
           setProjects(projectsData.map((p: { id: string; name: string }) => ({ id: p.id, name: p.name })));
+          // Extract items from projects
+          const allItems = projectsData.flatMap((p: { id: string; name: string; items?: { id: string; name: string }[] }) =>
+            (p.items || []).map((item: { id: string; name: string }) => ({ id: item.id, name: item.name })),
+          );
+          setItems(allItems);
         } else {
           console.error('Failed to fetch projects - Status:', projectsResponse.status, 'URL:', projectsResponse.url);
+        }
+
+        if (machinesResponse.ok) {
+          const machinesData = await machinesResponse.json();
+          setMachines(machinesData.map((m: { id: string; name: string }) => ({ id: m.id, name: m.name })));
+        } else {
+          console.error('Failed to fetch machines');
         }
 
         if (operatorsResponse.ok) {
@@ -271,6 +286,14 @@ export default function TasksPage() {
 
     if (filters.project) {
       filtered = filtered.filter((task) => task.item?.project.id === filters.project);
+    }
+
+    if (filters.item) {
+      filtered = filtered.filter((task) => task.item?.id === filters.item);
+    }
+
+    if (filters.machine) {
+      filtered = filtered.filter((task) => task.machine?.id === filters.machine);
     }
 
     if (filters.operator) {
@@ -320,6 +343,28 @@ export default function TasksPage() {
         .map((project) => ({
           value: project.id,
           label: project.name,
+        })),
+    },
+    {
+      key: 'item',
+      label: 'Filter by Item',
+      options: items
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((item) => ({
+          value: item.id,
+          label: item.name,
+        })),
+    },
+    {
+      key: 'machine',
+      label: 'Filter by Machine',
+      options: machines
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((machine) => ({
+          value: machine.id,
+          label: machine.name,
         })),
     },
     {
