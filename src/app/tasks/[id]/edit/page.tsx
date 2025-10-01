@@ -12,6 +12,7 @@ import TimeSlotsManager, { TimeSlot } from '@/components/forms/TimeSlotsManager'
 import ProgressBar from '@/components/ui/ProgressBar';
 import { handleTaskResponse } from '@/utils/taskErrorHandling';
 import { logger } from '@/utils/logger';
+import toast from 'react-hot-toast';
 
 export default function EditTaskPage() {
   const params = useParams();
@@ -173,7 +174,7 @@ export default function EditTaskPage() {
       await handleTaskResponse(response, () => router.push(`/tasks/${params.id}`), 'update task');
     } catch (error) {
       logger.error('Error updating task', error);
-      alert('Error updating task. Please try again.');
+      toast.error('Error updating task. Please try again.');
     } finally {
       setSaving(false);
     }

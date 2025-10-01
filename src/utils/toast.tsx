@@ -3,6 +3,7 @@
  * Centralized toast notifications using react-hot-toast
  */
 
+import React from 'react';
 import toast from 'react-hot-toast';
 
 /**

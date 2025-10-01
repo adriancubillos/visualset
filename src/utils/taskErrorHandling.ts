@@ -1,4 +1,5 @@
-import { logger } from '@/utils/logger';
+import { logger } from './logger';
+import toast from 'react-hot-toast';
 /**
  * Reusable utility for handling task conflict errors on the frontend
  */
@@ -30,11 +31,12 @@ export function displayConflictError(errorData: ConflictError): void {
     const conflictStart = conflictStartDate.toLocaleString();
     const conflictEnd = conflictEndDate.toLocaleString();
 
-    alert(
-      `Scheduling conflict detected:\n\n${conflictType} "${conflictName}" is already booked for task "${errorData.conflict.title}" from ${conflictStart} to ${conflictEnd}`,
+    toast.error(
+      `Scheduling conflict: ${conflictType} "${conflictName}" is already booked for task "${errorData.conflict.title}" from ${conflictStart} to ${conflictEnd}`,
+      { duration: 7000 }
     );
   } else {
-    alert('Failed to save task: ' + (errorData.error || 'Unknown error'));
+    toast.error('Failed to save task: ' + (errorData.error || 'Unknown error'));
   }
 }
 

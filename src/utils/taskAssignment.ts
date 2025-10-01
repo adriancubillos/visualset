@@ -1,4 +1,5 @@
-import { logger } from '@/utils/logger';
+import { logger } from './logger';
+import toast from 'react-hot-toast';
 // Shared utility for handling task assignment updates
 export interface TimeSlot {
   id?: string;
@@ -60,11 +61,12 @@ export const handleTaskAssignmentUpdate = async (
     if (response.ok) {
       onSuccess(data);
       onClose();
+      toast.success('Task updated successfully');
     } else {
-      alert(data.error || 'Failed to update assignment');
+      toast.error(data.error || 'Failed to update assignment');
     }
   } catch (error) {
     logger.error('Error updating task assignment,', error);
-    alert('Error updating task. Please try again.');
+    toast.error('Error updating task. Please try again.');
   }
 };

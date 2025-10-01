@@ -11,6 +11,7 @@ import { OperatorColorIndicator } from '@/components/ui/ColorIndicator';
 import StatisticsCards from '@/components/ui/StatisticsCards';
 import { AVAILABLE_SKILLS, OPERATOR_STATUS, OPERATOR_SHIFTS } from '@/config/workshop-properties';
 import { logger } from '@/utils/logger';
+import toast from 'react-hot-toast';
 
 // Column type for DataTable
 type Column<T> = {
@@ -277,14 +278,14 @@ export default function OperatorsPage() {
           
           // Show user-friendly error message
           if (errorData.error?.includes('assigned tasks')) {
-            alert(`Cannot delete "${operatorName}"\n\nThis operator is currently assigned to one or more tasks. Please unassign or delete those tasks first.`);
+            toast.error(`Cannot delete "${operatorName}". This operator is currently assigned to one or more tasks. Please unassign or delete those tasks first.`, { duration: 6000 });
           } else {
-            alert('Failed to delete operator: ' + (errorData.error || 'Unknown error'));
+            toast.error('Failed to delete operator: ' + (errorData.error || 'Unknown error'));
           }
         }
       } catch (error) {
         logger.error('Error deleting operator,', error);
-        alert('Error deleting operator. Please try again.');
+        toast.error('Error deleting operator. Please try again.');
       }
     }
   };
@@ -313,11 +314,11 @@ export default function OperatorsPage() {
       } else {
         const errorData = await response.json();
         logger.apiError('Update operator status', `/api/operators/${operatorId}`, errorData.error);
-        alert('Failed to update operator status: ' + (errorData.error || 'Unknown error'));
+        toast.error('Failed to update operator status: ' + (errorData.error || 'Unknown error'));
       }
     } catch (error) {
       logger.error('Error updating operator status', error);
-      alert('Error updating operator status. Please try again.');
+      toast.error('Error updating operator status. Please try again.');
     }
   };
 

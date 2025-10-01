@@ -10,6 +10,7 @@ import TimeSlotsManager, { TimeSlot } from '@/components/forms/TimeSlotsManager'
 import ProgressBar from '@/components/ui/ProgressBar';
 import { handleTaskResponse } from '@/utils/taskErrorHandling';
 import { logger } from '@/utils/logger';
+import toast from 'react-hot-toast';
 
 function NewTaskPageContent() {
   const router = useRouter();
@@ -106,7 +107,7 @@ function NewTaskPageContent() {
       await handleTaskResponse(response, () => router.push('/tasks'), 'create task');
     } catch (error) {
       logger.error('Error creating task', error);
-      alert('Error creating task. Please try again.');
+      toast.error('Error creating task. Please try again.');
     } finally {
       setLoading(false);
     }

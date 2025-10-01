@@ -11,6 +11,7 @@ import StatisticsCards from '@/components/ui/StatisticsCards';
 import { MachineColorIndicator } from '@/components/ui/ColorIndicator';
 import { MACHINE_TYPES, MACHINE_STATUS } from '@/config/workshop-properties';
 import { logger } from '@/utils/logger';
+import toast from 'react-hot-toast';
 
 // Column type for DataTable
 type Column<T> = {
@@ -266,14 +267,14 @@ export default function MachinesPage() {
 
           // Show user-friendly error message
           if (errorData.error?.includes('assigned tasks')) {
-            alert(`Cannot delete "${machineName}"\n\nThis machine is currently assigned to one or more tasks. Please unassign or delete those tasks first.`);
+            toast.error(`Cannot delete "${machineName}". This machine is currently assigned to one or more tasks. Please unassign or delete those tasks first.`, { duration: 6000 });
           } else {
-            alert('Failed to delete machine: ' + (errorData.error || 'Unknown error'));
+            toast.error('Failed to delete machine: ' + (errorData.error || 'Unknown error'));
           }
         }
       } catch (error) {
         logger.error('Error deleting machine:', error);
-        alert('Error deleting machine. Please try again.');
+        toast.error('Error deleting machine. Please try again.');
       }
     }
   };

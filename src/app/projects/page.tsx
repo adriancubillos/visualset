@@ -11,6 +11,7 @@ import { ProjectColorIndicator } from '@/components/ui/ColorIndicator';
 import StatisticsCards from '@/components/ui/StatisticsCards';
 import { PROJECT_STATUS } from '@/config/workshop-properties';
 import { logger } from '@/utils/logger';
+import toast from 'react-hot-toast';
 
 // Column type for DataTable
 type Column<T> = {
@@ -231,11 +232,11 @@ export default function ProjectsPage() {
         } else {
           const errorData = await response.json();
           logger.error('Failed to delete project,', errorData.error);
-          alert('Failed to delete project: ' + (errorData.error || 'Unknown error'));
+          toast.error('Failed to delete project: ' + (errorData.error || 'Unknown error'));
         }
       } catch (error) {
         logger.error('Error deleting project,', error);
-        alert('Error deleting project. Please try again.');
+        toast.error('Error deleting project. Please try again.');
       }
     }
   };

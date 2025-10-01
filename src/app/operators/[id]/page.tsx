@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { OperatorColorIndicator } from '@/components/ui/ColorIndicator';
 import StatusBadge from '@/components/ui/StatusBadge';
@@ -81,11 +82,11 @@ export default function OperatorDetailPage() {
       } else {
         const errorData = await response.json();
         logger.error('Failed to update operator status,', errorData.error);
-        alert('Failed to update operator status: ' + (errorData.error || 'Unknown error'));
+        toast.error('Failed to update operator status: ' + (errorData.error || 'Unknown error'));
       }
     } catch (error) {
       logger.error('Error updating operator status,', error);
-      alert('Error updating operator status. Please try again.');
+      toast.error('Error updating operator status. Please try again.');
     }
   };
 
@@ -101,11 +102,11 @@ export default function OperatorDetailPage() {
         } else {
           const errorData = await response.json();
           logger.error('Failed to delete operator,', errorData.error);
-          alert('Failed to delete operator: ' + (errorData.error || 'Unknown error'));
+          toast.error('Failed to delete operator: ' + (errorData.error || 'Unknown error'));
         }
       } catch (error) {
         logger.error('Error deleting operator,', error);
-        alert('Error deleting operator. Please try again.');
+        toast.error('Error deleting operator. Please try again.');
       }
     }
   };
