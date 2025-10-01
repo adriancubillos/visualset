@@ -10,6 +10,21 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const { id } = await params;
     const operator = await prisma.operator.findUnique({
       where: { id },
+      include: {
+        tasks: {
+          include: {
+            item: {
+              include: {
+                project: true,
+              },
+            },
+            machine: true,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+      },
     });
 
     if (!operator) {

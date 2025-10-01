@@ -10,6 +10,25 @@ import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { logger } from '@/utils/logger';
 
+interface Task {
+  id: string;
+  title: string;
+  status: string;
+  priority: string;
+  item?: {
+    id: string;
+    name: string;
+    project?: {
+      id: string;
+      name: string;
+    };
+  };
+  machine?: {
+    id: string;
+    name: string;
+  };
+}
+
 interface Operator {
   id: string;
   name: string;
@@ -22,6 +41,7 @@ interface Operator {
   availability: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
+  tasks?: Task[];
 }
 
 export default function OperatorDetailPage() {
@@ -185,7 +205,7 @@ export default function OperatorDetailPage() {
             <Link
               href={`/operators/${operator.id}/edit`}
               className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-              Edit
+              Edit Operator
             </Link>
             <button
               onClick={handleDelete}
@@ -209,11 +229,10 @@ export default function OperatorDetailPage() {
               key={status}
               onClick={() => handleStatusChange(status)}
               disabled={operator.status === status}
-              className={`px-4 py-2 text-sm font-medium rounded-md border ${
-                operator.status === status
-                  ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
-              }`}>
+              className={`px-4 py-2 text-sm font-medium rounded-md border ${operator.status === status
+                ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                }`}>
               Mark as {status ? status.replace(/_/g, ' ') : 'Unknown'}
             </button>
           ))}
@@ -298,18 +317,69 @@ export default function OperatorDetailPage() {
           <div className="flex justify-between items-center">
             <h2 className="text-lg font-semibold text-gray-900">Current Tasks</h2>
             <Link
-              href={`/tasks/new?operator=${operator.id}`}
-              className="text-sm text-blue-600 hover:text-blue-800 font-medium">
-              Assign Task
+              href={`/tasks/new?operator=${operator.id}&returnUrl=/operators/${operator.id}`}
+              className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+              Add Task
             </Link>
           </div>
         </div>
         <div className="px-6 py-4">
-          <div className="text-center py-8 text-gray-500">
-            {operator.status === 'ACTIVE'
-              ? 'Task assignments will be displayed here when integrated with the task system.'
-              : 'No tasks can be assigned while operator is not active.'}
-          </div>
+          {operator.tasks && operator.tasks.length > 0 ? (
+            <div className="space-y-3">
+              {operator.tasks.map((task) => (
+                <div
+                  key={task.id}
+                  className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer"
+                  onClick={() => router.push(`/tasks/${task.id}`)}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <h3 className="font-medium text-gray-900">{task.title}</h3>
+                      {task.item && (
+                        <p className="text-sm text-gray-500 mt-1">
+                          Item: <Link href={`/items/${task.item.id}`} className="text-blue-600 hover:text-blue-800" onClick={(e) => e.stopPropagation()}>{task.item.name}</Link>
+                          {task.item.project && (
+                            <span> • Project: <Link href={`/projects/${task.item.project.id}`} className="text-blue-600 hover:text-blue-800" onClick={(e) => e.stopPropagation()}>{task.item.project.name}</Link></span>
+                          )}
+                        </p>
+                      )}
+                      {task.machine && (
+                        <p className="text-sm text-gray-500 mt-1">
+                          Machine: <Link href={`/machines/${task.machine.id}`} className="text-blue-600 hover:text-blue-800" onClick={(e) => e.stopPropagation()}>{task.machine.name}</Link>
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <StatusBadge
+                        status={task.status.replace(/_/g, ' ')}
+                        variant={
+                          task.status === 'COMPLETED'
+                            ? 'success'
+                            : task.status === 'IN_PROGRESS'
+                              ? 'info'
+                              : task.status === 'SCHEDULED'
+                                ? 'info'
+                                : 'warning'
+                        }
+                      />
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${task.priority === 'HIGH'
+                          ? 'bg-red-100 text-red-800'
+                          : task.priority === 'MEDIUM'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-green-100 text-green-800'
+                          }`}>
+                        {task.priority}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              No tasks currently assigned to this operator.
+            </div>
+          )}
         </div>
       </div>
 

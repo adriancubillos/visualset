@@ -10,6 +10,21 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const { id } = await params;
     const machine = await prisma.machine.findUnique({
       where: { id },
+      include: {
+        tasks: {
+          include: {
+            item: {
+              include: {
+                project: true,
+              },
+            },
+            operator: true,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+      },
     });
 
     if (!machine) {
