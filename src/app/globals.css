@@ -53,3 +53,8 @@ body {
   scrollbar-width: auto;
   scrollbar-color: #cbd5e1 #f1f5f9;
 }
+
+/* Dropdown select with limited height */
+/* Note: Native HTML select dropdowns cannot be styled with max-height in most browsers.
+   The dropdown menu height is controlled by the browser's native UI.
+   For custom-styled dropdowns, consider using a library like Headless UI or Radix UI. */

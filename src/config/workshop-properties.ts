@@ -1,6 +1,15 @@
 // Workshop Properties Configuration
 // Centralized definitions for skills, machine types, and other workshop-related constants
 
+// UI Configuration
+export const UI_CONFIG = {
+  // Maximum height for dropdown select elements (in pixels)
+  // This prevents long dropdowns from extending to the bottom of the page
+  // Used by the custom Select component (/src/components/ui/Select.tsx)
+  // To change: Simply update this value - it's automatically applied to all Select components
+  SELECT_MAX_HEIGHT: 500,
+} as const;
+
 export const AVAILABLE_SKILLS = [
   { value: 'CNC_MILL', label: 'CNC Mill' },
   { value: 'CNC_LATHE', label: 'CNC Lathe' },

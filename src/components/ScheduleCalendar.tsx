@@ -430,7 +430,7 @@ export default function ScheduleCalendar() {
             <select
               value={selectedProject}
               onChange={(e) => setSelectedProject(e.target.value)}
-              className="w-full border-2 border-slate-200 rounded-lg p-3 text-slate-700 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition-colors">
+              className="w-full border-2 border-slate-200 rounded-lg p-3 text-slate-700 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition-colors select-limited">
               <option value="all">All Projects</option>
               {projects
                 .slice()
@@ -450,7 +450,7 @@ export default function ScheduleCalendar() {
             <select
               value={selectedItem}
               onChange={(e) => setSelectedItem(e.target.value)}
-              className="w-full border-2 border-slate-200 rounded-lg p-3 text-slate-700 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition-colors">
+              className="w-full border-2 border-slate-200 rounded-lg p-3 text-slate-700 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition-colors select-limited">
               <option value="all">All Items</option>
               {availableItems
                 .slice()
@@ -470,7 +470,7 @@ export default function ScheduleCalendar() {
             <select
               value={selectedMachine}
               onChange={(e) => setSelectedMachine(e.target.value)}
-              className="w-full border-2 border-slate-200 rounded-lg p-3 text-slate-700 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition-colors">
+              className="w-full border-2 border-slate-200 rounded-lg p-3 text-slate-700 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition-colors select-limited">
               <option value="all">All Machines</option>
               {machines
                 .slice()
@@ -490,7 +490,7 @@ export default function ScheduleCalendar() {
             <select
               value={selectedOperator}
               onChange={(e) => setSelectedOperator(e.target.value)}
-              className="w-full border-2 border-slate-200 rounded-lg p-3 text-slate-700 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition-colors">
+              className="w-full border-2 border-slate-200 rounded-lg p-3 text-slate-700 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition-colors select-limited">
               <option value="all">All Operators</option>
               {operators
                 .slice()

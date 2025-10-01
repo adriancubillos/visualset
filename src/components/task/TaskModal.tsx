@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import TimeSlotsManager, { TimeSlot } from '@/components/forms/TimeSlotsManager';
+import { sortByName } from '@/utils/sorting';
+import Select from '@/components/ui/Select';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -45,16 +47,16 @@ export default function TaskModal({ isOpen, onClose, task, selectedSlotIndex, on
 
               const endDateTime = slot.endDateTime
                 ? (() => {
-                    const endDate = new Date(slot.endDateTime);
-                    return new Date(endDate.getTime() - endDate.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-                  })()
+                  const endDate = new Date(slot.endDateTime);
+                  return new Date(endDate.getTime() - endDate.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                })()
                 : undefined;
 
               // Calculate actual duration from start and end times if endDateTime exists
               const actualDurationMin = slot.endDateTime
                 ? Math.round(
-                    (new Date(slot.endDateTime).getTime() - new Date(slot.startDateTime).getTime()) / (1000 * 60),
-                  )
+                  (new Date(slot.endDateTime).getTime() - new Date(slot.startDateTime).getTime()) / (1000 * 60),
+                )
                 : slot.durationMin;
 
               return {
@@ -87,68 +89,41 @@ export default function TaskModal({ isOpen, onClose, task, selectedSlotIndex, on
       <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-2xl mx-4 border max-h-[90vh] overflow-y-auto">
         <h3 className="text-xl font-bold mb-6 text-gray-900">Update Assignment</h3>
 
-        {/* Item Dropdown */}
+        {/* Project - Read Only */}
+        <label className="block mb-2 text-sm font-semibold text-gray-700">Project</label>
+        <input
+          type="text"
+          value={task.project?.name || 'No Project'}
+          readOnly
+          className="w-full border-2 border-gray-300 rounded-md p-3 mb-4 text-gray-900 bg-gray-100 cursor-not-allowed"
+        />
+
+        {/* Item - Read Only */}
         <label className="block mb-2 text-sm font-semibold text-gray-700">Item</label>
-        <select
-          className="w-full border-2 border-gray-300 rounded-md p-3 mb-4 text-gray-900 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-          value={itemId ?? ''}
-          onChange={(e) => setItemId(e.target.value || null)}>
-          <option
-            value=""
-            className="text-gray-500">
-            -- None --
-          </option>
-          {items.map((item) => (
-            <option
-              key={item.id}
-              value={item.id}
-              className="text-gray-900">
-              {item.name} {item.project ? `(${item.project.name})` : ''}
-            </option>
-          ))}
-        </select>
+        <input
+          type="text"
+          value={task.item?.name || 'No Item'}
+          readOnly
+          className="w-full border-2 border-gray-300 rounded-md p-3 mb-4 text-gray-900 bg-gray-100 cursor-not-allowed"
+        />
 
-        {/* Machine Dropdown */}
-        <label className="block mb-2 text-sm font-semibold text-gray-700">Machine</label>
-        <select
-          className="w-full border-2 border-gray-300 rounded-md p-3 mb-4 text-gray-900 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-          value={machineId ?? ''}
-          onChange={(e) => setMachineId(e.target.value || null)}>
-          <option
-            value=""
-            className="text-gray-500">
-            -- None --
-          </option>
-          {machines.map((m) => (
-            <option
-              key={m.id}
-              value={m.id}
-              className="text-gray-900">
-              {m.name}
-            </option>
-          ))}
-        </select>
-
-        {/* Operator Dropdown */}
-        <label className="block mb-2 text-sm font-semibold text-gray-700">Operator</label>
-        <select
-          className="w-full border-2 border-gray-300 rounded-md p-3 mb-4 text-gray-900 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-          value={operatorId ?? ''}
-          onChange={(e) => setOperatorId(e.target.value || null)}>
-          <option
-            value=""
-            className="text-gray-500">
-            -- None --
-          </option>
-          {operators.map((o) => (
-            <option
-              key={o.id}
-              value={o.id}
-              className="text-gray-900">
-              {o.name}
-            </option>
-          ))}
-        </select>
+        {/* Machine and Operator in same row */}
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <Select
+            label="Machine"
+            value={machineId}
+            onChange={setMachineId}
+            options={sortByName(machines)}
+            placeholder="-- None --"
+          />
+          <Select
+            label="Operator"
+            value={operatorId}
+            onChange={setOperatorId}
+            options={sortByName(operators)}
+            placeholder="-- None --"
+          />
+        </div>
 
         {/* Time Slots */}
         <div className="mb-6">
