@@ -11,6 +11,7 @@ import AssignmentSelect from '@/components/forms/AssignmentSelect';
 import TimeSlotsManager, { TimeSlot } from '@/components/forms/TimeSlotsManager';
 import ProgressBar from '@/components/ui/ProgressBar';
 import { handleTaskResponse } from '@/utils/taskErrorHandling';
+import { logger } from '@/utils/logger';
 
 export default function EditTaskPage() {
   const params = useParams();
@@ -97,7 +98,7 @@ export default function EditTaskPage() {
 
         setLoading(false);
       } catch (error) {
-        console.error('Error fetching task data:', error);
+        logger.error('Error fetching task data', error);
         setLoading(false);
       }
     };
@@ -171,7 +172,7 @@ export default function EditTaskPage() {
 
       await handleTaskResponse(response, () => router.push(`/tasks/${params.id}`), 'update task');
     } catch (error) {
-      console.error('Error updating task:', error);
+      logger.error('Error updating task', error);
       alert('Error updating task. Please try again.');
     } finally {
       setSaving(false);

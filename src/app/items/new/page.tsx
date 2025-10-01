@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { logger } from '@/utils/logger';
 
 interface Project {
   id: string;
@@ -33,10 +34,10 @@ export default function NewItemPage() {
           const activeProjects = data.filter((project: Project) => project.status === 'ACTIVE');
           setProjects(activeProjects);
         } else {
-          console.error('Failed to fetch projects');
+          logger.apiError('Fetch projects', '/api/projects', 'Failed to fetch');
         }
       } catch (error) {
-        console.error('Error fetching projects:', error);
+        logger.error('Error fetching projects', error);
       } finally {
         setProjectsLoading(false);
       }
@@ -62,10 +63,10 @@ export default function NewItemPage() {
         router.push('/items');
       } else {
         const errorData = await response.json();
-        console.error('Failed to create item:', errorData.error);
+        logger.apiError('Create item', '/api/items', errorData.error);
       }
     } catch (error) {
-      console.error('Error creating item:', error);
+      logger.error('Error creating item', error);
     } finally {
       setLoading(false);
     }

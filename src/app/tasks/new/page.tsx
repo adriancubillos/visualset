@@ -9,6 +9,7 @@ import AssignmentSelect from '@/components/forms/AssignmentSelect';
 import TimeSlotsManager, { TimeSlot } from '@/components/forms/TimeSlotsManager';
 import ProgressBar from '@/components/ui/ProgressBar';
 import { handleTaskResponse } from '@/utils/taskErrorHandling';
+import { logger } from '@/utils/logger';
 
 function NewTaskPageContent() {
   const router = useRouter();
@@ -104,7 +105,7 @@ function NewTaskPageContent() {
 
       await handleTaskResponse(response, () => router.push('/tasks'), 'create task');
     } catch (error) {
-      console.error('Error creating task:', error);
+      logger.error('Error creating task', error);
       alert('Error creating task. Please try again.');
     } finally {
       setLoading(false);

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { logger } from '@/utils/logger';
 import Link from 'next/link';
 import PageContainer from '@/components/layout/PageContainer';
 import VisualIdentifier from '@/components/ui/VisualIdentifier';
@@ -55,7 +56,7 @@ export default function EditMachinePage() {
         });
         setLoading(false);
       } catch (error) {
-        console.error('Error fetching machine:', error);
+        logger.error('Error fetching machine', error);
         setLoading(false);
       }
     };
@@ -80,10 +81,10 @@ export default function EditMachinePage() {
       if (response.ok) {
         router.push(`/machines/${params.id}`);
       } else {
-        console.error('Failed to update machine');
+        logger.apiError('Update machine', `/api/machines/${params.id}`, 'Failed to update');
       }
     } catch (error) {
-      console.error('Error updating machine:', error);
+      logger.error('Error updating machine', error);
     } finally {
       setSaving(false);
     }

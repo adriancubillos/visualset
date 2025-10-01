@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { logger } from '@/utils/logger';
 import Link from 'next/link';
 import PageContainer from '@/components/layout/PageContainer';
 import { MachineColorIndicator } from '@/components/ui/ColorIndicator';
@@ -36,7 +37,7 @@ export default function MachineDetailPage() {
         setMachine(machineData);
         setLoading(false);
       } catch (error) {
-        console.error('Error fetching machine:', error);
+        logger.error('Error fetching machine', error);
         setLoading(false);
       }
     };
@@ -77,14 +78,16 @@ export default function MachineDetailPage() {
       if (response.ok && machine) {
         setMachine({ ...machine, status: newStatus });
       } else {
-        console.error('Failed to update machine status');
+        logger.apiError('Update machine status', `/api/machines/${machine?.id}`, 'Failed to update');
       }
     } catch (error) {
-      console.error('Error updating machine status:', error);
+      logger.error('Error updating machine status', error);
     }
   };
 
   const handleDelete = async () => {
+    if (!machine) return;
+    
     if (confirm('Are you sure you want to delete this machine?')) {
       try {
         // TODO: Replace with actual API call
@@ -95,10 +98,10 @@ export default function MachineDetailPage() {
         if (response.ok) {
           router.push('/machines');
         } else {
-          console.error('Failed to delete machine');
+          logger.apiError('Delete machine', `/api/machines/${machine.id}`, 'Failed to delete');
         }
       } catch (error) {
-        console.error('Error deleting machine:', error);
+        logger.error('Error deleting machine', error);
       }
     }
   };

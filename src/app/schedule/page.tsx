@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import ScheduleCalendar from '@/components/ScheduleCalendar';
+import { logger } from '@/utils/logger';
 import GanttChart from '@/components/gantt/GanttChart';
 
 interface GanttTask {
@@ -68,10 +69,10 @@ export default function SchedulePage() {
             const data = await response.json();
             setGanttData(data);
           } else {
-            console.error('Failed to fetch Gantt data');
+            logger.apiError('Fetch Gantt data', '/api/gantt', 'Failed to fetch');
           }
         } catch (error) {
-          console.error('Error fetching Gantt data:', error);
+          logger.error('Error fetching Gantt data', error);
         } finally {
           setLoading(false);
         }
