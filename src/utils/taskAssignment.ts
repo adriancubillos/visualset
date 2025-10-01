@@ -15,6 +15,7 @@ export interface TaskAssignmentUpdate {
   timeSlots: TimeSlot[];
   quantity: number;
   completed_quantity: number;
+  status: string;
 }
 
 export interface Task {
@@ -47,6 +48,7 @@ export const handleTaskAssignmentUpdate = async (
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         title: selectedTask.title, // Required field
+        status: update.status,
         itemId: update.itemId,
         machineId: update.machineId,
         operatorId: update.operatorId,

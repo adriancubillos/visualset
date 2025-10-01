@@ -3,6 +3,7 @@ import TimeSlotsManager, { TimeSlot } from '@/components/forms/TimeSlotsManager'
 import { sortByName } from '@/utils/sorting';
 import Select from '@/components/ui/Select';
 import QuantityProgress from '@/components/forms/QuantityProgress';
+import TaskStatusQuickActions from './TaskStatusQuickActions';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ interface TaskModalProps {
     timeSlots: TimeSlot[];
     quantity: number;
     completed_quantity: number;
+    status: string;
   }) => void;
   items: { id: string; name: string; project?: { name: string } }[];
   machines: { id: string; name: string }[];
@@ -30,6 +32,7 @@ export default function TaskModal({ isOpen, onClose, task, selectedSlotIndex, on
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [quantity, setQuantity] = useState<number>(1);
   const [completedQuantity, setCompletedQuantity] = useState<number>(0);
+  const [status, setStatus] = useState<string>('PENDING');
 
   // Reset state whenever modal opens or task changes
   useEffect(() => {
@@ -39,6 +42,7 @@ export default function TaskModal({ isOpen, onClose, task, selectedSlotIndex, on
       setOperatorId(task.operator?.id ?? null);
       setQuantity(task.quantity ?? 1);
       setCompletedQuantity(task.completed_quantity ?? 0);
+      setStatus(task.status ?? 'PENDING');
 
       // Convert task timeSlots to TimeSlot format, or create a default one if none exist
       if (task.timeSlots && task.timeSlots.length > 0) {
@@ -132,6 +136,14 @@ export default function TaskModal({ isOpen, onClose, task, selectedSlotIndex, on
           />
         </div>
 
+        {/* Quick Status Actions */}
+        <div className="mb-6">
+          <TaskStatusQuickActions
+            currentStatus={status}
+            onStatusChange={setStatus}
+          />
+        </div>
+
         {/* Quantity & Progress */}
         <div className="mb-6">
           <QuantityProgress
@@ -166,6 +178,7 @@ export default function TaskModal({ isOpen, onClose, task, selectedSlotIndex, on
                 timeSlots,
                 quantity,
                 completed_quantity: completedQuantity,
+                status,
               });
             }}
             className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium shadow-sm">

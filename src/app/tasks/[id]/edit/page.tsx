@@ -10,6 +10,7 @@ import ProjectItemSelect from '@/components/forms/ProjectItemSelect';
 import AssignmentSelect from '@/components/forms/AssignmentSelect';
 import TimeSlotsManager, { TimeSlot } from '@/components/forms/TimeSlotsManager';
 import QuantityProgress from '@/components/forms/QuantityProgress';
+import TaskStatusQuickActions from '@/components/task/TaskStatusQuickActions';
 import { handleTaskResponse } from '@/utils/taskErrorHandling';
 import { logger } from '@/utils/logger';
 import toast from 'react-hot-toast';
@@ -376,6 +377,17 @@ export default function EditTaskPage() {
                 ))}
               </select>
             </div>
+          </div>
+
+          {/* Quick Status Actions */}
+          <div>
+            <TaskStatusQuickActions
+              currentStatus={formData.status}
+              onStatusChange={(newStatus) => {
+                setFormData((prev) => ({ ...prev, status: newStatus }));
+              }}
+              disabled={saving}
+            />
           </div>
 
           {/* Quantity & Progress */}

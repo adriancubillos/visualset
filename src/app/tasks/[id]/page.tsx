@@ -6,6 +6,8 @@ import Link from 'next/link';
 import PageContainer from '@/components/layout/PageContainer';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { logger } from '@/utils/logger';
+import TaskStatusQuickActions from '@/components/task/TaskStatusQuickActions';
+import toast from 'react-hot-toast';
 
 interface Task {
   id: string;
@@ -96,11 +98,14 @@ export default function TaskDetailPage() {
 
       if (response.ok && task) {
         setTask({ ...task, status: newStatus });
+        toast.success('Task status updated successfully');
       } else {
         logger.error('Failed to update task status');
+        toast.error('Failed to update task status');
       }
     } catch (error) {
       logger.error('Error updating task status,', error);
+      toast.error('Error updating task status. Please try again.');
     }
   };
 
@@ -207,23 +212,11 @@ export default function TaskDetailPage() {
       </div>
 
       {/* Quick Status Actions */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="flex flex-wrap gap-3">
-          {['PENDING', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'BLOCKED'].map((status) => (
-            <button
-              key={status}
-              onClick={() => handleStatusChange(status)}
-              disabled={task.status === status}
-              className={`px-4 py-2 text-sm font-medium rounded-md border ${
-                task.status === status
-                  ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
-              }`}>
-              Mark as {status.replace('_', ' ')}
-            </button>
-          ))}
-        </div>
+      <div className="bg-white shadow rounded-lg p-6 mb-6">
+        <TaskStatusQuickActions
+          currentStatus={task.status}
+          onStatusChange={handleStatusChange}
+        />
       </div>
 
       {/* Task Details */}
