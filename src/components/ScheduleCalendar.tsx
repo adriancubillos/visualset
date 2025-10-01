@@ -481,7 +481,7 @@ export default function ScheduleCalendar() {
           events={events}
           startAccessor="start"
           endAccessor="end"
-          style={{ height: 600 }}
+          style={{ height: 'auto', minHeight: 600 }}
           view={currentView}
           onView={(view) => setCurrentView(view as 'week' | 'day' | 'agenda')}
           date={currentDate}

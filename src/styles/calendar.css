@@ -24,6 +24,12 @@
   font-size: 0.75rem !important;
   border-top: 1px solid #f1f5f9 !important;
   font-weight: 500 !important;
+  min-height: 60px !important; /* Increased from default ~40px to 60px for better visibility */
+}
+
+/* Time slot groups (hourly blocks) */
+.rbc-timeslot-group {
+  min-height: 120px !important; /* 2 slots per hour = 120px total */
 }
 
 /* Toolbar */
@@ -80,10 +86,6 @@
 
 .rbc-time-content {
   border-top: 1px solid #e2e8f0 !important;
-}
-
-.rbc-timeslot-group {
-  border-bottom: 1px solid #f1f5f9 !important;
 }
 
 .rbc-day-slot .rbc-time-slot {
