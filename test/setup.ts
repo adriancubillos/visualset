@@ -15,7 +15,7 @@ vi.mock('next/server', async () => {
 });
 
 // Shared in-memory Prisma mock placed on globalThis for test files to use
-type MockFn = Mock<[], Promise<unknown>> & { mockReset: () => void };
+type MockFn = Mock & { mockReset: () => void };
 
 type PrismaMock = {
   task: {
