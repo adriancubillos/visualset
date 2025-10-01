@@ -4,30 +4,37 @@ import { Fragment } from 'react';
 import { Listbox, ListboxButton, ListboxOptions, ListboxOption, Transition } from '@headlessui/react';
 import { UI_CONFIG } from '@/config/workshop-properties';
 
-interface SelectOption {
+interface FilterOption {
   id: string;
   name: string;
 }
 
-interface SelectProps {
-  value: string | null;
-  onChange: (value: string | null) => void;
-  options: SelectOption[];
-  placeholder?: string;
+interface FilterSelectProps {
+  value: string;
+  onChange: (value: string) => void;
+  options: FilterOption[];
+  allLabel?: string;
   label?: string;
   className?: string;
 }
 
-export default function Select({ value, onChange, options, placeholder = '-- None --', label, className = '' }: SelectProps) {
-  const selectedOption = options.find((opt) => opt.id === value);
+export default function FilterSelect({
+  value,
+  onChange,
+  options,
+  allLabel = 'All',
+  label,
+  className = '',
+}: FilterSelectProps) {
+  const selectedOption = value === 'all' ? null : options.find((opt) => opt.id === value);
 
   return (
     <div className={className}>
-      {label && <label className="block mb-2 text-sm font-semibold text-gray-700">{label}</label>}
+      {label && <label className="block text-sm font-medium text-slate-700 mb-2">{label}</label>}
       <Listbox value={value} onChange={onChange}>
         <div className="relative">
-          <ListboxButton className="relative w-full border-2 border-gray-300 rounded-md p-3 text-left text-gray-900 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 cursor-pointer">
-            <span className="block truncate">{selectedOption ? selectedOption.name : placeholder}</span>
+          <ListboxButton className="relative w-full border-2 border-slate-200 rounded-lg p-3 text-left text-slate-700 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition-colors cursor-pointer">
+            <span className="block truncate">{selectedOption ? selectedOption.name : allLabel}</span>
             <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
               <svg
                 className="h-5 w-5 text-gray-400"
@@ -50,19 +57,17 @@ export default function Select({ value, onChange, options, placeholder = '-- Non
             <ListboxOptions
               className="absolute z-10 mt-1 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
               style={{ maxHeight: `${UI_CONFIG.SELECT_MAX_HEIGHT}px` }}>
-              {/* None option */}
+              {/* All option */}
               <ListboxOption
-                value={null}
+                value="all"
                 className={({ active }) =>
                   `relative cursor-pointer select-none py-2 pl-3 pr-9 ${
-                    active ? 'bg-blue-100 text-blue-900' : 'text-gray-900'
+                    active ? 'bg-blue-100 text-blue-900' : 'text-slate-700'
                   }`
                 }>
                 {({ selected }) => (
                   <>
-                    <span className={`block truncate ${selected ? 'font-semibold' : 'font-normal'}`}>
-                      {placeholder}
-                    </span>
+                    <span className={`block truncate ${selected ? 'font-semibold' : 'font-normal'}`}>{allLabel}</span>
                     {selected && (
                       <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-blue-600">
                         <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -85,7 +90,7 @@ export default function Select({ value, onChange, options, placeholder = '-- Non
                   value={option.id}
                   className={({ active }) =>
                     `relative cursor-pointer select-none py-2 pl-3 pr-9 ${
-                      active ? 'bg-blue-100 text-blue-900' : 'text-gray-900'
+                      active ? 'bg-blue-100 text-blue-900' : 'text-slate-700'
                     }`
                   }>
                   {({ selected }) => (

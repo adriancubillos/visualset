@@ -11,6 +11,8 @@ import { enUS } from 'date-fns/locale'; // ✅ Named import
 import TaskModal from './task/TaskModal';
 import { getProjectColor, getOperatorColor, getMachineColor, getPatternStyles, type PatternType } from '@/utils/colors';
 import { handleTaskAssignmentUpdate, TaskAssignmentUpdate } from '@/utils/taskAssignment';
+import FilterSelect from './ui/FilterSelect';
+import { sortByName } from '@/utils/sorting';
 
 interface Task {
   id: string;
@@ -425,85 +427,34 @@ export default function ScheduleCalendar() {
           Filters
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Project</label>
-            <select
-              value={selectedProject}
-              onChange={(e) => setSelectedProject(e.target.value)}
-              className="w-full border-2 border-slate-200 rounded-lg p-3 text-slate-700 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition-colors select-limited">
-              <option value="all">All Projects</option>
-              {projects
-                .slice()
-                .sort((a, b) => a.name.localeCompare(b.name))
-                .map((p) => (
-                  <option
-                    key={p.id}
-                    value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Item</label>
-            <select
-              value={selectedItem}
-              onChange={(e) => setSelectedItem(e.target.value)}
-              className="w-full border-2 border-slate-200 rounded-lg p-3 text-slate-700 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition-colors select-limited">
-              <option value="all">All Items</option>
-              {availableItems
-                .slice()
-                .sort((a, b) => a.name.localeCompare(b.name))
-                .map((item) => (
-                  <option
-                    key={item.id}
-                    value={item.id}>
-                    {item.name}
-                  </option>
-                ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Machine</label>
-            <select
-              value={selectedMachine}
-              onChange={(e) => setSelectedMachine(e.target.value)}
-              className="w-full border-2 border-slate-200 rounded-lg p-3 text-slate-700 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition-colors select-limited">
-              <option value="all">All Machines</option>
-              {machines
-                .slice()
-                .sort((a, b) => a.name.localeCompare(b.name))
-                .map((m) => (
-                  <option
-                    key={m.id}
-                    value={m.id}>
-                    {m.name}
-                  </option>
-                ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Operator</label>
-            <select
-              value={selectedOperator}
-              onChange={(e) => setSelectedOperator(e.target.value)}
-              className="w-full border-2 border-slate-200 rounded-lg p-3 text-slate-700 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition-colors select-limited">
-              <option value="all">All Operators</option>
-              {operators
-                .slice()
-                .sort((a, b) => a.name.localeCompare(b.name))
-                .map((o) => (
-                  <option
-                    key={o.id}
-                    value={o.id}>
-                    {o.name}
-                  </option>
-                ))}
-            </select>
-          </div>
+          <FilterSelect
+            label="Project"
+            value={selectedProject}
+            onChange={setSelectedProject}
+            options={sortByName(projects)}
+            allLabel="All Projects"
+          />
+          <FilterSelect
+            label="Item"
+            value={selectedItem}
+            onChange={setSelectedItem}
+            options={sortByName(availableItems)}
+            allLabel="All Items"
+          />
+          <FilterSelect
+            label="Machine"
+            value={selectedMachine}
+            onChange={setSelectedMachine}
+            options={sortByName(machines)}
+            allLabel="All Machines"
+          />
+          <FilterSelect
+            label="Operator"
+            value={selectedOperator}
+            onChange={setSelectedOperator}
+            options={sortByName(operators)}
+            allLabel="All Operators"
+          />
         </div>
       </div>
 

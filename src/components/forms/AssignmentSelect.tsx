@@ -2,6 +2,8 @@
 
 import React from 'react';
 import { DropdownOption } from '@/hooks/useTaskFormData';
+import Select from '@/components/ui/Select';
+import { sortByName } from '@/utils/sorting';
 
 interface AssignmentSelectProps {
   id: string;
@@ -9,7 +11,7 @@ interface AssignmentSelectProps {
   label: string;
   value: string;
   options: DropdownOption[];
-  onChange: (value: string) => void;
+  onChange: (value: string | null) => void;
   required?: boolean;
   disabled?: boolean;
   placeholder?: string;
@@ -30,15 +32,6 @@ export default function AssignmentSelect({
   noSelectionText,
   className = '',
 }: AssignmentSelectProps) {
-  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    onChange(e.target.value);
-  };
-
-  const baseClassName =
-    'mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500';
-  const disabledClassName = disabled ? ' disabled:bg-gray-100 disabled:cursor-not-allowed' : '';
-  const selectClassName = `${baseClassName}${disabledClassName} ${className}`;
-
   // Default texts based on assignment type
   const getDefaultNoSelectionText = () => {
     if (noSelectionText) return noSelectionText;
@@ -54,30 +47,21 @@ export default function AssignmentSelect({
     return required ? `Select a ${label}` : getDefaultNoSelectionText();
   };
 
+  const handleChange = (newValue: string | null) => {
+    onChange(newValue || '');
+  };
+
   return (
-    <div>
-      <label
-        htmlFor={id}
-        className="block text-sm font-medium text-gray-700">
-        {label} {required && '*'}
-      </label>
-      <select
-        id={id}
-        name={name}
-        required={required}
-        value={value}
+    <div className={className}>
+      <Select
+        label={`${label}${required ? ' *' : ''}`}
+        value={value || null}
         onChange={handleChange}
-        disabled={disabled}
-        className={selectClassName}>
-        <option value="">{getDefaultPlaceholder()}</option>
-        {options.map((option) => (
-          <option
-            key={option.id}
-            value={option.id}>
-            {option.name}
-          </option>
-        ))}
-      </select>
+        options={sortByName(options)}
+        placeholder={getDefaultPlaceholder()}
+      />
+      {/* Hidden input for form submission if needed */}
+      <input type="hidden" id={id} name={name} value={value} />
     </div>
   );
 }
