@@ -21,6 +21,8 @@ interface Task {
   title: string;
   description?: string | null;
   status: string;
+  quantity?: number;
+  completed_quantity?: number;
   project: { id: string; name: string; color?: string | null } | null;
   item: { id: string; name: string } | null;
   machine: { id: string; name: string; type?: string; location?: string } | null;
@@ -326,8 +328,8 @@ export default function ScheduleCalendar() {
             title: updatedTask.title,
             description: updatedTask.description,
             status: updatedTask.status,
-            quantity: 1, // Default value
-            completed_quantity: 0, // Default value
+            quantity: updatedTask.quantity || 1,
+            completed_quantity: updatedTask.completed_quantity || 0,
             itemId: updatedTask.item?.id || null,
             machineId: updatedTask.machine?.id || null,
             operatorId: updatedTask.operator?.id || null,
