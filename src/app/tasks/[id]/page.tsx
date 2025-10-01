@@ -175,27 +175,11 @@ export default function TaskDetailPage() {
           </div>
         ),
       }}
-      variant="detail">
-      {/* Breadcrumb Navigation */}
-      <nav
-        className="flex mb-6"
-        aria-label="Breadcrumb">
-        <ol className="flex items-center space-x-4">
-          <li>
-            <Link
-              href="/tasks"
-              className="text-gray-500 hover:text-gray-700">
-              Tasks
-            </Link>
-          </li>
-          <li>
-            <span className="text-gray-400">/</span>
-          </li>
-          <li>
-            <span className="text-gray-900 font-medium">{task.title}</span>
-          </li>
-        </ol>
-      </nav>
+      variant="detail"
+      breadcrumbs={[
+        { label: 'Tasks', href: '/tasks' },
+        { label: task.title },
+      ]}>
 
       {/* Status and Progress Info */}
       <div className="mb-6 flex items-center space-x-4">

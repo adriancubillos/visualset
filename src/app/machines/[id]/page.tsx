@@ -154,27 +154,11 @@ export default function MachineDetailPage() {
           </div>
         ),
       }}
-      variant="detail">
-      {/* Breadcrumb Navigation */}
-      <nav
-        className="flex mb-6"
-        aria-label="Breadcrumb">
-        <ol className="flex items-center space-x-4">
-          <li>
-            <Link
-              href="/machines"
-              className="text-gray-500 hover:text-gray-700">
-              Machines
-            </Link>
-          </li>
-          <li>
-            <span className="text-gray-400">/</span>
-          </li>
-          <li>
-            <span className="text-gray-900 font-medium">{machine.name}</span>
-          </li>
-        </ol>
-      </nav>
+      variant="detail"
+      breadcrumbs={[
+        { label: 'Machines', href: '/machines' },
+        { label: machine.name },
+      ]}>
 
       {/* Status and Info */}
       <div className="mb-6 flex items-center space-x-4">

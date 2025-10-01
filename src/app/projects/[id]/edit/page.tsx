@@ -187,37 +187,12 @@ export default function EditProjectPage() {
       header={{
         title: 'Edit Project',
         description: 'Update project information',
-      }}>
-      {/* Breadcrumb Navigation */}
-      <nav
-        className="flex mb-6"
-        aria-label="Breadcrumb">
-        <ol className="flex items-center space-x-4">
-          <li>
-            <Link
-              href="/projects"
-              className="text-gray-500 hover:text-gray-700">
-              Projects
-            </Link>
-          </li>
-          <li>
-            <span className="text-gray-400">/</span>
-          </li>
-          <li>
-            <Link
-              href={`/projects/${project.id}`}
-              className="text-gray-500 hover:text-gray-700">
-              {project.name}
-            </Link>
-          </li>
-          <li>
-            <span className="text-gray-400">/</span>
-          </li>
-          <li>
-            <span className="text-gray-900 font-medium">Edit</span>
-          </li>
-        </ol>
-      </nav>
+      }}
+      breadcrumbs={[
+        { label: 'Projects', href: '/projects' },
+        { label: project.name, href: `/projects/${project.id}` },
+        { label: 'Edit' },
+      ]}>
 
       {/* Global Error Message */}
       {statusValidationError && (

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
+import PageContainer from '@/components/layout/PageContainer';
 import { OperatorColorIndicator } from '@/components/ui/ColorIndicator';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { logger } from '@/utils/logger';
@@ -141,30 +142,11 @@ export default function OperatorDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <nav
-            className="flex mb-4"
-            aria-label="Breadcrumb">
-            <ol className="flex items-center space-x-4">
-              <li>
-                <Link
-                  href="/operators"
-                  className="text-gray-500 hover:text-gray-700">
-                  Operators
-                </Link>
-              </li>
-              <li>
-                <span className="text-gray-400">/</span>
-              </li>
-              <li>
-                <span className="text-gray-900 font-medium">{operator.name}</span>
-              </li>
-            </ol>
-          </nav>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center space-x-3">
+    <PageContainer
+      variant="detail"
+      header={{
+        title: (
+          <div className="flex items-center space-x-3">
             <span>{operator.name}</span>
             <OperatorColorIndicator
               operator={{
@@ -174,8 +156,10 @@ export default function OperatorDetailPage() {
               }}
               size="lg"
             />
-          </h1>
-          <div className="mt-2 flex items-center space-x-4">
+          </div>
+        ),
+        description: (
+          <div className="flex items-center space-x-4 mt-2">
             <StatusBadge
               status={operator.status ? operator.status.replace(/_/g, ' ') : 'Unknown'}
               variant={getStatusVariant(operator.status)}
@@ -185,20 +169,26 @@ export default function OperatorDetailPage() {
             </span>
             <span className="text-gray-500">{operator.email}</span>
           </div>
-        </div>
-        <div className="flex space-x-3">
-          <Link
-            href={`/operators/${operator.id}/edit`}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-            Edit
-          </Link>
-          <button
-            onClick={handleDelete}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-            Delete
-          </button>
-        </div>
-      </div>
+        ),
+        actions: (
+          <div className="flex space-x-3">
+            <Link
+              href={`/operators/${operator.id}/edit`}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              Edit
+            </Link>
+            <button
+              onClick={handleDelete}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+              Delete
+            </button>
+          </div>
+        ),
+      }}
+      breadcrumbs={[
+        { label: 'Operators', href: '/operators' },
+        { label: operator.name },
+      ]}>
 
       {/* Quick Status Actions */}
       <div className="bg-white shadow rounded-lg p-6">
@@ -357,6 +347,6 @@ export default function OperatorDetailPage() {
           </div>
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }

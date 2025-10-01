@@ -191,30 +191,7 @@ export default function EditTaskPage() {
     }));
   };
 
-  if (loading) {
-    return (
-      <PageContainer
-        variant="form"
-        maxWidth="2xl"
-        header={{
-          title: 'Edit Task',
-          description: 'Update task information',
-        }}>
-        <div className="animate-pulse">
-          <div className="bg-white shadow rounded-lg p-6">
-            <div className="space-y-6">
-              <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-              <div className="h-10 bg-gray-200 rounded"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-              <div className="h-24 bg-gray-200 rounded"></div>
-            </div>
-          </div>
-        </div>
-      </PageContainer>
-    );
-  }
-
-  if (!task) {
+  if (!task && !loading) {
     return (
       <div className="text-center py-12">
         <div className="text-gray-500">Task not found</div>
@@ -234,37 +211,13 @@ export default function EditTaskPage() {
       header={{
         title: 'Edit Task',
         description: 'Update task information',
-      }}>
-      {/* Breadcrumb Navigation */}
-      <nav
-        className="flex mb-6"
-        aria-label="Breadcrumb">
-        <ol className="flex items-center space-x-4">
-          <li>
-            <Link
-              href="/tasks"
-              className="text-gray-500 hover:text-gray-700">
-              Tasks
-            </Link>
-          </li>
-          <li>
-            <span className="text-gray-400">/</span>
-          </li>
-          <li>
-            <Link
-              href={`/tasks/${task.id}`}
-              className="text-gray-500 hover:text-gray-700">
-              {task.title}
-            </Link>
-          </li>
-          <li>
-            <span className="text-gray-400">/</span>
-          </li>
-          <li>
-            <span className="text-gray-900 font-medium">Edit</span>
-          </li>
-        </ol>
-      </nav>
+      }}
+      loading={loading}
+      breadcrumbs={task ? [
+        { label: 'Tasks', href: '/tasks' },
+        { label: task.title, href: `/tasks/${task.id}` },
+        { label: 'Edit' },
+      ] : undefined}>
 
       {/* Form */}
       <div className="bg-white shadow rounded-lg">

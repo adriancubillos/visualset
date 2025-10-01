@@ -1,3 +1,12 @@
+# CHANGES October 1 2025
+
+Next Steps
+To fully utilize the improvements:
+
+Migrate breadcrumbs - Replace manual breadcrumb code with breadcrumbs prop
+Simplify loading - Use loading prop instead of conditional returns
+Remove duplication - Clean up ~385 lines of repetitive code
+
 # CHANGES September 30 2025
 
 Migration Strategy

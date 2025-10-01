@@ -209,27 +209,11 @@ export default function ItemDetailPage() {
             Edit Item
           </Link>
         ),
-      }}>
-      {/* Breadcrumb Navigation */}
-      <nav
-        className="flex mb-6"
-        aria-label="Breadcrumb">
-        <ol className="flex items-center space-x-4">
-          <li>
-            <Link
-              href="/items"
-              className="text-gray-500 hover:text-gray-700">
-              Items
-            </Link>
-          </li>
-          <li>
-            <span className="text-gray-400">/</span>
-          </li>
-          <li>
-            <span className="text-gray-900 font-medium">{item.name}</span>
-          </li>
-        </ol>
-      </nav>
+      }}
+      breadcrumbs={[
+        { label: 'Items', href: '/items' },
+        { label: item.name },
+      ]}>
 
       {/* Item Info Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

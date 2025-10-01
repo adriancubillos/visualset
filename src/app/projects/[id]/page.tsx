@@ -179,7 +179,11 @@ export default function ProjectDetailPage() {
           </div>
         ),
       }}
-      variant="detail">
+      variant="detail"
+      breadcrumbs={[
+        { label: 'Projects', href: '/projects' },
+        { label: project.name },
+      ]}>
 
       <div className="flex items-center space-x-4">
         <ColorIndicator
@@ -198,29 +202,6 @@ export default function ProjectDetailPage() {
           </div>
         </div>
       </div>
-
-
-      {/* Breadcrumb Navigation */}
-      <nav
-        className="flex mb-6"
-        aria-label="Breadcrumb">
-        <ol className="flex items-center space-x-4">
-          <li>
-            <Link
-              href="/projects"
-              className="text-gray-500 hover:text-gray-700">
-              Projects
-            </Link>
-          </li>
-          <li>
-            <span className="text-gray-400">/</span>
-          </li>
-          <li>
-            <span className="text-gray-900 font-medium">{project.name}</span>
-          </li>
-        </ol>
-      </nav>
-
 
       {/* Status and Info */}
       <div className="mb-6 flex items-center space-x-4">

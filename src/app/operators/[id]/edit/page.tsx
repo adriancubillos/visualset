@@ -133,30 +133,7 @@ export default function EditOperatorPage() {
     setFormData((prev) => ({ ...prev, pattern }));
   };
 
-  if (loading) {
-    return (
-      <PageContainer
-        variant="form"
-        maxWidth="2xl"
-        header={{
-          title: 'Edit Operator',
-          description: 'Update operator information',
-        }}>
-        <div className="animate-pulse">
-          <div className="bg-white shadow rounded-lg p-6">
-            <div className="space-y-6">
-              <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-              <div className="h-10 bg-gray-200 rounded"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-              <div className="h-10 bg-gray-200 rounded"></div>
-            </div>
-          </div>
-        </div>
-      </PageContainer>
-    );
-  }
-
-  if (!operator) {
+  if (!operator && !loading) {
     return (
       <div className="text-center py-12">
         <div className="text-gray-500">Operator not found</div>
@@ -176,39 +153,15 @@ export default function EditOperatorPage() {
       header={{
         title: 'Edit Operator',
         description: 'Update operator information',
-      }}>
-      {/* Breadcrumb Navigation */}
-      <nav
-        className="flex mb-6"
-        aria-label="Breadcrumb">
-        <ol className="flex items-center space-x-4">
-          <li>
-            <Link
-              href="/operators"
-              className="text-gray-500 hover:text-gray-700">
-              Operators
-            </Link>
-          </li>
-          <li>
-            <span className="text-gray-400">/</span>
-          </li>
-          <li>
-            <Link
-              href={`/operators/${operator.id}`}
-              className="text-gray-500 hover:text-gray-700">
-              {operator.name}
-            </Link>
-          </li>
-          <li>
-            <span className="text-gray-400">/</span>
-          </li>
-          <li>
-            <span className="text-gray-900 font-medium">Edit</span>
-          </li>
-        </ol>
-      </nav>
+      }}
+      loading={loading}
+      breadcrumbs={operator ? [
+        { label: 'Operators', href: '/operators' },
+        { label: operator.name, href: `/operators/${operator.id}` },
+        { label: 'Edit' },
+      ] : undefined}>
 
-      {/* Form */}
+      {operator && (
       <div className="bg-white shadow rounded-lg">
         <form
           onSubmit={handleSubmit}
@@ -379,6 +332,7 @@ export default function EditOperatorPage() {
           </div>
         </form>
       </div>
+      )}
     </PageContainer>
   );
 }

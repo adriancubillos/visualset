@@ -171,22 +171,6 @@ export default function EditItemPage() {
   const isAttemptingCompletion = formData.status === 'COMPLETED';
   const showCompletionWarning = isAttemptingCompletion && completionStatus && !completionStatus.canComplete;
 
-  if (initialLoading) {
-    return (
-      <PageContainer
-        variant="form"
-        maxWidth="2xl"
-        header={{
-          title: 'Edit Item',
-          description: 'Update item information',
-        }}>
-        <div className="flex justify-center items-center min-h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        </div>
-      </PageContainer>
-    );
-  }
-
   return (
     <PageContainer
       variant="form"
@@ -194,37 +178,18 @@ export default function EditItemPage() {
       header={{
         title: 'Edit Item',
         description: 'Update item information',
-      }}>
-      {/* Breadcrumb Navigation */}
-      <nav
-        className="flex mb-6"
-        aria-label="Breadcrumb">
-        <ol className="flex items-center space-x-4">
-          <li>
-            <Link
-              href="/items"
-              className="text-gray-500 hover:text-gray-700">
-              Items
-            </Link>
-          </li>
-          <li>
-            <span className="text-gray-400">/</span>
-          </li>
-          <li>
-            <Link
-              href={`/items/${formData.id}`}
-              className="text-gray-500 hover:text-gray-700">
-              {formData.name}
-            </Link>
-          </li>
-          <li>
-            <span className="text-gray-400">/</span>
-          </li>
-          <li>
-            <span className="text-gray-900 font-medium">Edit</span>
-          </li>
-        </ol>
-      </nav>
+      }}
+      loading={initialLoading}
+      loadingComponent={
+        <div className="flex justify-center items-center min-h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      }
+      breadcrumbs={formData.name ? [
+        { label: 'Items', href: '/items' },
+        { label: formData.name, href: `/items/${formData.id}` },
+        { label: 'Edit' },
+      ] : undefined}>
 
       {/* Global Error Message */}
       {statusValidationError && (
