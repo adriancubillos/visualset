@@ -33,12 +33,7 @@ export default function TaskModal({ isOpen, onClose, task, onSave, items, machin
       if (task.timeSlots && task.timeSlots.length > 0) {
         setTimeSlots(
           task.timeSlots.map(
-            (slot: {
-              id: string;
-              startDateTime: string;
-              endDateTime?: string | null;
-              durationMin: number;
-            }) => {
+            (slot: { id: string; startDateTime: string; endDateTime?: string | null; durationMin: number }) => {
               // Convert UTC datetime to local datetime string for TimeSlotsManager
               // The datetime-local input expects format: YYYY-MM-DDTHH:MM in local time
               const startDate = new Date(slot.startDateTime);

@@ -50,12 +50,7 @@ export default function EditTaskPage() {
         // Convert time slots to the format expected by TimeSlotsManager
         const convertedTimeSlots: TimeSlot[] =
           taskData.timeSlots?.map(
-            (slot: {
-              id: string;
-              startDateTime: string;
-              endDateTime?: string;
-              durationMin: number;
-            }) => {
+            (slot: { id: string; startDateTime: string; endDateTime?: string; durationMin: number }) => {
               const startDate = new Date(slot.startDateTime);
               const dateStr = startDate.toISOString().slice(0, 10); // YYYY-MM-DD
               const timeStr = startDate.toTimeString().slice(0, 5); // HH:MM
