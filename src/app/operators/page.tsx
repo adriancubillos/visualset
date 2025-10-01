@@ -2,18 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 import PageContainer from '@/components/layout/PageContainer';
 import DataTable from '@/components/ui/DataTable';
 import SearchFilter from '@/components/ui/SearchFilter';
 import StatusBadge from '@/components/ui/StatusBadge';
 import TableActions from '@/components/ui/TableActions';
 import { OperatorColorIndicator } from '@/components/ui/ColorIndicator';
+import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { logger } from '@/utils/logger';
 import StatisticsCards from '@/components/ui/StatisticsCards';
 import { AVAILABLE_SKILLS, OPERATOR_STATUS, OPERATOR_SHIFTS } from '@/config/workshop-properties';
-import { logger } from '@/utils/logger';
-import toast from 'react-hot-toast';
-
-// Column type for DataTable
 type Column<T> = {
   key: keyof T;
   header: string;
@@ -260,33 +259,41 @@ export default function OperatorsPage() {
     window.location.href = `/operators/${operator.id}`;
   };
 
-  const handleDelete = async (operatorId: string, operatorName?: string) => {
-    if (confirm(`Are you sure you want to delete operator "${operatorName || 'this operator'}"?`)) {
-      try {
-        const response = await fetch(`/api/operators/${operatorId}`, {
-          method: 'DELETE',
-        });
+  const handleDelete = (operatorId: string, operatorName?: string) => {
+    showConfirmDialog({
+      title: 'Delete Operator',
+      message: `Are you sure you want to delete operator "${operatorName || 'this operator'}"? This action cannot be undone.`,
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      variant: 'danger',
+      onConfirm: () => performDelete(operatorId, operatorName),
+    });
+  };
 
-        if (response.ok) {
-          // Remove operator from local state to update UI immediately
-          const updatedOperators = operators.filter((op) => op.id !== operatorId);
-          setOperators(updatedOperators);
-          setFilteredOperators(updatedOperators);
+  const performDelete = async (operatorId: string, operatorName?: string) => {
+    try {
+      const response = await fetch(`/api/operators/${operatorId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        const updatedOperators = operators.filter((op) => op.id !== operatorId);
+        setOperators(updatedOperators);
+        setFilteredOperators(updatedOperators);
+        toast.success('Operator deleted successfully');
+      } else {
+        const errorData = await response.json();
+        logger.error('Failed to delete operator,', errorData.error);
+        
+        if (errorData.error?.includes('assigned tasks')) {
+          toast.error(`Cannot delete "${operatorName}". This operator is currently assigned to one or more tasks. Please unassign or delete those tasks first.`, { duration: 6000 });
         } else {
-          const errorData = await response.json();
-          logger.error('Failed to delete operator,', errorData.error);
-          
-          // Show user-friendly error message
-          if (errorData.error?.includes('assigned tasks')) {
-            toast.error(`Cannot delete "${operatorName}". This operator is currently assigned to one or more tasks. Please unassign or delete those tasks first.`, { duration: 6000 });
-          } else {
-            toast.error('Failed to delete operator: ' + (errorData.error || 'Unknown error'));
-          }
+          toast.error('Failed to delete operator: ' + (errorData.error || 'Unknown error'));
         }
-      } catch (error) {
-        logger.error('Error deleting operator,', error);
-        toast.error('Error deleting operator. Please try again.');
       }
+    } catch (error) {
+      logger.error('Error deleting operator:', error);
+      toast.error('Error deleting operator');
     }
   };
 

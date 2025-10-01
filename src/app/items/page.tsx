@@ -2,13 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 import PageContainer from '@/components/layout/PageContainer';
 import DataTable from '@/components/ui/DataTable';
 import SearchFilter from '@/components/ui/SearchFilter';
 import StatusBadge from '@/components/ui/StatusBadge';
 import TableActions from '@/components/ui/TableActions';
-import StatisticsCards from '@/components/ui/StatisticsCards';
+import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { logger } from '@/utils/logger';
+import StatisticsCards from '@/components/ui/StatisticsCards';
 
 // Import the Column type from DataTable
 type Column<T> = {
@@ -175,23 +177,36 @@ export default function ItemsPage() {
     setFilteredItems(filtered);
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this item?')) {
-      try {
-        const response = await fetch(`/api/items/${id}`, {
-          method: 'DELETE',
-        });
+  const handleDelete = (id: string, itemName?: string) => {
+    showConfirmDialog({
+      title: 'Delete Item',
+      message: `Are you sure you want to delete item "${itemName || 'this item'}"? This action cannot be undone.`,
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      variant: 'danger',
+      onConfirm: () => performDelete(id),
+    });
+  };
 
-        if (response.ok) {
-          const updatedItems = items.filter((item) => item.id !== id);
-          setItems(updatedItems);
-          setFilteredItems(updatedItems.filter((item) => filteredItems.some((filtered) => filtered.id === item.id)));
-        } else {
-          logger.error('Failed to delete item');
-        }
-      } catch (error) {
-        logger.error('Error deleting item,', error);
+  const performDelete = async (id: string) => {
+    try {
+      const response = await fetch(`/api/items/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        const updatedItems = items.filter((item) => item.id !== id);
+        setItems(updatedItems);
+        setFilteredItems(updatedItems.filter((item) => filteredItems.some((filtered) => filtered.id === item.id)));
+        toast.success('Item deleted successfully');
+      } else {
+        const errorData = await response.json();
+        logger.apiError('Delete item', `/api/items/${id}`, errorData.error);
+        toast.error('Failed to delete: ' + errorData.error);
       }
+    } catch (error) {
+      logger.error('Error deleting item', error);
+      toast.error('Error deleting item' + error);
     }
   };
 

@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import Link from 'next/link';
 import PageContainer from '@/components/layout/PageContainer';
 import { OperatorColorIndicator } from '@/components/ui/ColorIndicator';
+import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { logger } from '@/utils/logger';
 
@@ -86,29 +87,38 @@ export default function OperatorDetailPage() {
         toast.error('Failed to update operator status: ' + (errorData.error || 'Unknown error'));
       }
     } catch (error) {
-      logger.error('Error updating operator status,', error);
-      toast.error('Error updating operator status. Please try again.');
+      logger.error('Error deleting operator', error);
+      toast.error('Error deleting operator');
     }
   };
 
-  const handleDelete = async () => {
-    if (confirm('Are you sure you want to delete this operator?')) {
-      try {
-        const response = await fetch(`/api/operators/${params.id}`, {
-          method: 'DELETE',
-        });
+  const handleDelete = () => {
+    showConfirmDialog({
+      title: 'Delete Operator',
+      message: 'Are you sure you want to delete this operator? This action cannot be undone.',
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      variant: 'danger',
+      onConfirm: performDelete,
+    });
+  };
 
-        if (response.ok) {
-          router.push('/operators');
-        } else {
-          const errorData = await response.json();
-          logger.error('Failed to delete operator,', errorData.error);
-          toast.error('Failed to delete operator: ' + (errorData.error || 'Unknown error'));
-        }
-      } catch (error) {
-        logger.error('Error deleting operator,', error);
-        toast.error('Error deleting operator. Please try again.');
+  const performDelete = async () => {
+    try {
+      const response = await fetch(`/api/operators/${params.id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        toast.success('Operator deleted successfully');
+        router.push('/operators');
+      } else {
+        logger.error('Failed to delete operator');
+        toast.error('Failed to delete operator');
       }
+    } catch (error) {
+      logger.error('Error deleting operator', error);
+      toast.error('Error deleting operator');
     }
   };
 

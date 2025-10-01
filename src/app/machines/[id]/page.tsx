@@ -4,8 +4,10 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { logger } from '@/utils/logger';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 import PageContainer from '@/components/layout/PageContainer';
 import { MachineColorIndicator } from '@/components/ui/ColorIndicator';
+import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import StatusBadge from '@/components/ui/StatusBadge';
 
 interface Machine {
@@ -81,28 +83,38 @@ export default function MachineDetailPage() {
         logger.apiError('Update machine status', `/api/machines/${machine?.id}`, 'Failed to update');
       }
     } catch (error) {
-      logger.error('Error updating machine status', error);
+      logger.error('Error deleting machine', error);
+      toast.error('Error deleting machine');
     }
   };
 
-  const handleDelete = async () => {
-    if (!machine) return;
-    
-    if (confirm('Are you sure you want to delete this machine?')) {
-      try {
-        // TODO: Replace with actual API call
-        const response = await fetch(`/api/machines/${params.id}`, {
-          method: 'DELETE',
-        });
+  const handleDelete = () => {
+    showConfirmDialog({
+      title: 'Delete Machine',
+      message: 'Are you sure you want to delete this machine? This action cannot be undone.',
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      variant: 'danger',
+      onConfirm: performDelete,
+    });
+  };
 
-        if (response.ok) {
-          router.push('/machines');
-        } else {
-          logger.apiError('Delete machine', `/api/machines/${machine.id}`, 'Failed to delete');
-        }
-      } catch (error) {
-        logger.error('Error deleting machine', error);
+  const performDelete = async () => {
+    try {
+      const response = await fetch(`/api/machines/${params.id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        toast.success('Machine deleted successfully');
+        router.push('/machines');
+      } else {
+        logger.error('Failed to delete machine');
+        toast.error('Failed to delete machine');
       }
+    } catch (error) {
+      logger.error('Error deleting machine', error);
+      toast.error('Error deleting machine');
     }
   };
 

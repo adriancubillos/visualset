@@ -9,6 +9,7 @@ import DataTable from '@/components/ui/DataTable';
 import TableActions from '@/components/ui/TableActions';
 import PageContainer from '@/components/layout/PageContainer';
 import { checkItemCompletionReadiness } from '@/utils/itemValidation';
+import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { logger } from '@/utils/logger';
 
 interface Task {
@@ -54,38 +55,14 @@ export default function ItemDetailPage() {
   const [item, setItem] = useState<Item | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const handleDelete = async () => {
-    // Show custom confirmation toast
-    toast((t) => (
-      <div className="flex flex-col gap-3">
-        <div>
-          <p className="font-semibold text-gray-900">Delete Item</p>
-          <p className="text-sm text-gray-600 mt-1">
-            Are you sure you want to delete this item? This action cannot be undone.
-          </p>
-        </div>
-        <div className="flex gap-2 justify-end">
-          <button
-            onClick={() => toast.dismiss(t.id)}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-            Cancel
-          </button>
-          <button
-            onClick={async () => {
-              toast.dismiss(t.id);
-              await performDelete();
-            }}
-            className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-            Delete
-          </button>
-        </div>
-      </div>
-    ), {
-      duration: Infinity,
-      position: 'top-center',
-      style: {
-        maxWidth: '500px',
-      },
+  const handleDelete = () => {
+    showConfirmDialog({
+      title: 'Delete Item',
+      message: 'Are you sure you want to delete this item? This action cannot be undone.',
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      variant: 'danger',
+      onConfirm: performDelete,
     });
   };
 
@@ -132,22 +109,34 @@ export default function ItemDetailPage() {
     }
   }, [params.id]);
 
-  const handleTaskDelete = async (taskId: string) => {
-    if (window.confirm('Are you sure you want to delete this task?')) {
-      try {
-        const response = await fetch(`/api/tasks/${taskId}`, {
-          method: 'DELETE',
-        });
+  const handleTaskDelete = (taskId: string) => {
+    showConfirmDialog({
+      title: 'Delete Task',
+      message: 'Are you sure you want to delete this task? This action cannot be undone.',
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      variant: 'danger',
+      onConfirm: () => performTaskDelete(taskId),
+    });
+  };
 
-        if (response.ok && item) {
-          const updatedTasks = item.tasks.filter((task) => task.id !== taskId);
-          setItem({ ...item, tasks: updatedTasks });
-        } else {
-          logger.error('Failed to delete task');
-        }
-      } catch (error) {
-        logger.error('Error deleting task,', error);
+  const performTaskDelete = async (taskId: string) => {
+    try {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok && item) {
+        const updatedTasks = item.tasks.filter((task) => task.id !== taskId);
+        setItem({ ...item, tasks: updatedTasks });
+        toast.success('Task deleted successfully');
+      } else {
+        logger.error('Failed to delete task');
+        toast.error('Failed to delete task');
       }
+    } catch (error) {
+      logger.error('Error deleting task,', error);
+      toast.error('Error deleting task');
     }
   };
 

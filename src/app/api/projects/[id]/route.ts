@@ -116,11 +116,33 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
+    
+    // Check if project has items
+    const project = await prisma.project.findUnique({
+      where: { id },
+      include: {
+        items: true,
+      },
+    });
+
+    if (!project) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    }
+
+    if (project.items && project.items.length > 0) {
+      return NextResponse.json(
+        { error: 'Cannot delete project with items. Please delete all items first.' },
+        { status: 400 }
+      );
+    }
+
     await prisma.project.delete({
       where: { id },
     });
+    
     return NextResponse.json({ message: 'Project deleted successfully' });
-  } catch {
-    return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+  } catch (error) {
+    logger.dbError('Delete project', 'project', error);
+    return NextResponse.json({ error: 'Failed to delete project' }, { status: 500 });
   }
 }

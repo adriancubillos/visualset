@@ -4,12 +4,14 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import StatusBadge from '@/components/ui/StatusBadge';
-import ColorIndicator from '@/components/ui/ColorIndicator';
-import StatisticsCards from '@/components/ui/StatisticsCards';
+import { logger } from '@/utils/logger';
 import PageContainer from '@/components/layout/PageContainer';
+import ColorIndicator from '@/components/ui/ColorIndicator';
 import { PatternType } from '@/utils/entityColors';
 import { checkProjectCompletionReadiness } from '@/utils/projectValidation';
-import { logger } from '@/utils/logger';
+import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
+import StatisticsCards from '@/components/ui/StatisticsCards';
+import toast from 'react-hot-toast';
 
 interface Project {
   id: string;
@@ -47,6 +49,34 @@ export default function ProjectDetailPage() {
   const router = useRouter();
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const handleDelete = () => {
+    showConfirmDialog({
+      title: 'Delete Project',
+      message: 'Are you sure you want to delete this project? This action cannot be undone.',
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      variant: 'danger',
+      onConfirm: performDelete,
+    });
+  };
+
+  const performDelete = async () => {
+    try {
+      const response = await fetch(`/api/projects/${params.id}`, { method: 'DELETE' });
+      if (response.ok) {
+        toast.success('Project deleted successfully');
+        router.push('/projects');
+      } else {
+        const errorData = await response.json();
+        logger.apiError('Delete project', `/api/projects/${params.id}`, errorData.error);
+        toast.error('Failed to delete ' + errorData.error);
+      }
+    } catch (error) {
+      logger.error('Error deleting project', error);
+      toast.error('Error deleting project');
+    }
+  };
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -166,13 +196,7 @@ export default function ProjectDetailPage() {
               Edit Project
             </Link>
             <button
-              onClick={() => {
-                if (confirm('Are you sure you want to delete this project?')) {
-                  fetch(`/api/projects/${params.id}`, { method: 'DELETE' }).then((response) =>
-                    response.ok ? router.push('/projects') : logger.error('Failed to delete'),
-                  );
-                }
-              }}
+              onClick={handleDelete}
               className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700">
               Delete
             </button>

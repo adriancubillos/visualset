@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 import PageContainer from '@/components/layout/PageContainer';
 import DataTable from '@/components/ui/DataTable';
 import SearchFilter from '@/components/ui/SearchFilter';
@@ -10,8 +11,9 @@ import TableActions from '@/components/ui/TableActions';
 import { ProjectColorIndicator } from '@/components/ui/ColorIndicator';
 import StatisticsCards from '@/components/ui/StatisticsCards';
 import { PROJECT_STATUS } from '@/config/workshop-properties';
+import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
+
 import { logger } from '@/utils/logger';
-import toast from 'react-hot-toast';
 
 // Column type for DataTable
 type Column<T> = {
@@ -34,6 +36,10 @@ interface Project {
   pattern?: string | null;
   createdAt: string;
   updatedAt: string;
+  items?: Array<{
+    id: string;
+    status: string;
+  }>;
 }
 
 // Default column configuration
@@ -213,31 +219,41 @@ export default function ProjectsPage() {
   ];
 
   const handleRowClick = (project: Project) => {
-    // Navigate to project detail page
+    // Navigate to project details page
     window.location.href = `/projects/${project.id}`;
   };
 
-  const handleDelete = async (projectId: string, projectName?: string) => {
-    if (confirm(`Are you sure you want to delete project "${projectName || 'this project'}"?`)) {
-      try {
-        const response = await fetch(`/api/projects/${projectId}`, {
-          method: 'DELETE',
-        });
+  const handleDelete = (projectId: string, projectName?: string) => {
+    showConfirmDialog({
+      title: 'Delete Project',
+      message: `Are you sure you want to delete project "${projectName || 'this project'}"? This action cannot be undone.`,
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      variant: 'danger',
+      onConfirm: () => performDelete(projectId),
+    });
+  };
 
-        if (response.ok) {
-          // Remove project from local state to update UI immediately
-          const updatedProjects = projects.filter((p) => p.id !== projectId);
-          setProjects(updatedProjects);
-          setFilteredProjects(updatedProjects);
-        } else {
-          const errorData = await response.json();
-          logger.error('Failed to delete project,', errorData.error);
-          toast.error('Failed to delete project: ' + (errorData.error || 'Unknown error'));
-        }
-      } catch (error) {
-        logger.error('Error deleting project,', error);
-        toast.error('Error deleting project. Please try again.');
+  const performDelete = async (projectId: string) => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        // Remove project from local state to update UI immediately
+        const updatedProjects = projects.filter((p) => p.id !== projectId);
+        setProjects(updatedProjects);
+        setFilteredProjects(updatedProjects);
+        toast.success('Project deleted successfully');
+      } else {
+        const errorData = await response.json();
+        logger.error('Failed to delete project,', errorData.error);
+        toast.error('Failed to delete project: ' + (errorData.error || 'Unknown error'));
       }
+    } catch (error) {
+      logger.error('Error deleting project,', error);
+      toast.error('Error deleting project' + error);
     }
   };
 

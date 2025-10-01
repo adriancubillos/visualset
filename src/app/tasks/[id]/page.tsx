@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import PageContainer from '@/components/layout/PageContainer';
 import StatusBadge from '@/components/ui/StatusBadge';
+import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { logger } from '@/utils/logger';
 import TaskStatusQuickActions from '@/components/task/TaskStatusQuickActions';
 import toast from 'react-hot-toast';
@@ -104,26 +105,43 @@ export default function TaskDetailPage() {
         toast.error('Failed to update task status');
       }
     } catch (error) {
-      logger.error('Error updating task status,', error);
-      toast.error('Error updating task status. Please try again.');
+      logger.error('Error deleting task', error);
+      toast.error('Error deleting task. Please try again.');
     }
   };
 
-  const handleDelete = async () => {
-    if (confirm('Are you sure you want to delete this task?')) {
-      try {
-        const response = await fetch(`/api/tasks/${params.id}`, {
-          method: 'DELETE',
-        });
+  const handleDelete = () => {
+    showConfirmDialog({
+      title: 'Delete Task',
+      message: 'Are you sure you want to delete this task? This action cannot be undone.',
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      variant: 'danger',
+      onConfirm: performDelete,
+    });
+  };
 
-        if (response.ok) {
-          router.push('/tasks');
+  const performDelete = async () => {
+    try {
+      const response = await fetch(`/api/tasks/${params.id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        toast.success('Task deleted successfully');
+        // Navigate back to the item if it exists, otherwise go to tasks list
+        if (task?.item?.id) {
+          router.push(`/items/${task.item.id}`);
         } else {
-          logger.error('Failed to delete task');
+          router.push('/tasks');
         }
-      } catch (error) {
-        logger.error('Error deleting task,', error);
+      } else {
+        logger.error('Failed to delete task');
+        toast.error('Failed to delete task');
       }
+    } catch (error) {
+      logger.error('Error deleting task', error);
+      toast.error('Error deleting task');
     }
   };
 

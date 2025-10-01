@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 import PageContainer from '@/components/layout/PageContainer';
 import DataTable from '@/components/ui/DataTable';
 import SearchFilter from '@/components/ui/SearchFilter';
@@ -9,9 +10,9 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import TableActions from '@/components/ui/TableActions';
 import StatisticsCards from '@/components/ui/StatisticsCards';
 import { MachineColorIndicator } from '@/components/ui/ColorIndicator';
-import { MACHINE_TYPES, MACHINE_STATUS } from '@/config/workshop-properties';
+import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { logger } from '@/utils/logger';
-import toast from 'react-hot-toast';
+import { MACHINE_TYPES, MACHINE_STATUS } from '@/config/workshop-properties';
 
 // Column type for DataTable
 type Column<T> = {
@@ -145,6 +146,12 @@ export default function MachinesPage() {
   const [filteredMachines, setFilteredMachines] = useState<Machine[]>([]);
   const [loading, setLoading] = useState(true);
   const [columns, setColumns] = useState<Column<Machine>[]>(getInitialColumns);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState({
+    type: '',
+    status: '',
+    location: '',
+  });
 
   useEffect(() => {
     const fetchMachines = async () => {
@@ -249,33 +256,40 @@ export default function MachinesPage() {
     window.location.href = `/machines/${machine.id}`;
   };
 
-  const handleDelete = async (machineId: string, machineName?: string) => {
-    if (confirm(`Are you sure you want to delete machine "${machineName || 'this machine'}"?`)) {
-      try {
-        const response = await fetch(`/api/machines/${machineId}`, {
-          method: 'DELETE',
-        });
+  const handleDelete = (machineId: string, machineName?: string) => {
+    showConfirmDialog({
+      title: 'Delete Machine',
+      message: `Are you sure you want to delete machine "${machineName || 'this machine'}"? This action cannot be undone.`,
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      variant: 'danger',
+      onConfirm: () => performDelete(machineId, machineName),
+    });
+  };
 
-        if (response.ok) {
-          // Remove machine from local state to update UI immediately
-          const updatedMachines = machines.filter((m) => m.id !== machineId);
-          setMachines(updatedMachines);
-          setFilteredMachines(updatedMachines);
+  const performDelete = async (machineId: string, machineName?: string) => {
+    try {
+      const response = await fetch(`/api/machines/${machineId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setMachines(machines.filter((m) => m.id !== machineId));
+        setFilteredMachines(filteredMachines.filter((m) => m.id !== machineId));
+        toast.success('Machine deleted successfully');
+      } else {
+        const errorData = await response.json();
+        logger.error('Failed to delete machine,', errorData.error);
+
+        if (errorData.error?.includes('assigned tasks')) {
+          toast.error(`Cannot delete "${machineName}". This machine is currently assigned to one or more tasks. Please unassign or delete those tasks first.`, { duration: 6000 });
         } else {
-          const errorData = await response.json();
-          logger.apiError('Delete machine', `/api/machines/${machineId}`, errorData.error);
-
-          // Show user-friendly error message
-          if (errorData.error?.includes('assigned tasks')) {
-            toast.error(`Cannot delete "${machineName}". This machine is currently assigned to one or more tasks. Please unassign or delete those tasks first.`, { duration: 6000 });
-          } else {
-            toast.error('Failed to delete machine: ' + (errorData.error || 'Unknown error'));
-          }
+          toast.error('Failed to delete machine: ' + (errorData.error || 'Unknown error'));
         }
-      } catch (error) {
-        logger.error('Error deleting machine:', error);
-        toast.error('Error deleting machine. Please try again.');
       }
+    } catch (error) {
+      logger.error('Error deleting machine:', error);
+      toast.error('Error deleting machine');
     }
   };
 

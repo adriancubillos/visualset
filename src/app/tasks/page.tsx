@@ -2,14 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 import PageContainer from '@/components/layout/PageContainer';
 import DataTable from '@/components/ui/DataTable';
 import SearchFilter from '@/components/ui/SearchFilter';
 import StatusBadge from '@/components/ui/StatusBadge';
 import TableActions from '@/components/ui/TableActions';
+import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { logger } from '@/utils/logger';
 import StatisticsCards from '@/components/ui/StatisticsCards';
 import { TASK_STATUS } from '@/config/workshop-properties';
-import { logger } from '@/utils/logger';
 
 // Column type for DataTable
 type Column<T> = {
@@ -385,26 +387,35 @@ export default function TasksPage() {
     window.location.href = `/tasks/${task.id}`;
   };
 
-  const handleDelete = async (taskId: string, taskName?: string) => {
-    if (!confirm(`Are you sure you want to delete task "${taskName || 'this task'}"?`)) {
-      return;
-    }
+  const handleDelete = (taskId: string, taskName?: string) => {
+    showConfirmDialog({
+      title: 'Delete Task',
+      message: `Are you sure you want to delete task "${taskName || 'this task'}"? This action cannot be undone.`,
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      variant: 'danger',
+      onConfirm: () => performDelete(taskId),
+    });
+  };
 
+  const performDelete = async (taskId: string) => {
     try {
       const response = await fetch(`/api/tasks/${taskId}`, {
         method: 'DELETE',
       });
 
       if (response.ok) {
-        // Update local state
         const updatedTasks = tasks.filter((task) => task.id !== taskId);
         setTasks(updatedTasks);
         setFilteredTasks(updatedTasks);
+        toast.success('Task deleted successfully');
       } else {
         logger.apiError('Delete task', `/api/tasks/${taskId}`, 'Failed to delete');
+        toast.error('Failed to delete task');
       }
     } catch (error) {
       logger.error('Error deleting task', error);
+      toast.error('Error deleting task');
     }
   };
 
