@@ -29,7 +29,6 @@ function NewTaskPageContent() {
     startDateTime: defaultDateTime,
     endDateTime: defaultEndDateTime,
     durationMin: defaultDuration,
-    isPrimary: true,
   };
 
   const [formData, setFormData] = useState({
@@ -87,7 +86,6 @@ function NewTaskPageContent() {
         startDateTime: new Date(slot.startDateTime).toISOString(),
         endDateTime: slot.endDateTime ? new Date(slot.endDateTime).toISOString() : null,
         durationMin: slot.durationMin,
-        isPrimary: slot.isPrimary,
       }));
 
       const response = await fetch('/api/tasks', {

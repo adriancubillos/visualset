@@ -36,7 +36,6 @@ interface Task {
     startDateTime: string;
     endDateTime: string | null;
     durationMin: number;
-    isPrimary: boolean;
   }[];
 }
 
@@ -370,17 +369,10 @@ export default function TaskDetailPage() {
                   return (
                     <div
                       key={slot.id}
-                      className={`p-4 border rounded-lg ${
-                        slot.isPrimary ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-                      }`}>
+                      className="p-4 border rounded-lg border-gray-200">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
                           <span className="text-sm font-medium text-gray-900">Slot {index + 1}</span>
-                          {slot.isPrimary && (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                              Primary
-                            </span>
-                          )}
                         </div>
                         <div className="text-sm text-gray-500">{slot.durationMin} minutes</div>
                       </div>

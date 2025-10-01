@@ -11,7 +11,6 @@ import { enUS } from 'date-fns/locale'; // ✅ Named import
 import TaskModal from './task/TaskModal';
 import { getProjectColor, getOperatorColor, getMachineColor, getPatternStyles, type PatternType } from '@/utils/colors';
 import { handleTaskAssignmentUpdate, TaskAssignmentUpdate } from '@/utils/taskAssignment';
-import { displayConflictError } from '@/utils/taskErrorHandling';
 
 interface Task {
   id: string;
@@ -27,7 +26,6 @@ interface Task {
     startDateTime: string;
     endDateTime?: string | null;
     durationMin: number;
-    isPrimary: boolean;
   }[];
   createdAt: string;
   updatedAt: string;
@@ -61,7 +59,6 @@ interface CalendarEvent {
     // Multi-slot support
     originalTaskId?: string;
     slotIndex?: number;
-    isPrimarySlot?: boolean;
   };
 }
 
@@ -256,7 +253,6 @@ export default function ScheduleCalendar() {
               // Store original task ID and slot info for event handling
               originalTaskId: task.id,
               slotIndex: slotIndex,
-              isPrimarySlot: slot.isPrimary,
             },
           };
         });
@@ -267,17 +263,24 @@ export default function ScheduleCalendar() {
   }, [filteredTasks, getEventColor]);
   const handleEventDrop = useCallback(
     async ({ event, start }: DragDropEvent) => {
-      // Extract original task ID from event resource
+      // Extract original task ID and slot index from event
       const originalTaskId = event.resource?.originalTaskId || event.id.split('-')[0];
+      const slotIndex = event.resource?.slotIndex ?? parseInt(event.id.split('-')[1] || '0');
       const updatedTask = tasks.find((t) => t.id === originalTaskId);
-      if (!updatedTask) return;
 
-      // Get primary time slot or first time slot for duration
-      const primarySlot = updatedTask.timeSlots?.find((slot) => slot.isPrimary) || updatedTask.timeSlots?.[0];
-      const duration = primarySlot?.durationMin ?? 60; // fallback 60 minutes
+      if (!updatedTask || !updatedTask.timeSlots || slotIndex >= updatedTask.timeSlots.length) {
+        console.error('Invalid task or slot index for drag drop');
+        return;
+      }
 
-      // Convert the drag position to a proper UTC time string using timezone utilities
-      // The calendar gives us a local Date object from the drag operation
+      // Get the specific time slot that was dragged
+      const draggedSlot = updatedTask.timeSlots[slotIndex];
+      if (!draggedSlot) {
+        console.error('Could not find dragged slot');
+        return;
+      }
+
+      // Convert the drag position to a proper UTC time string
       const startDate = typeof start === 'string' ? new Date(start) : start;
 
       // Extract date and time components from the local drag position
@@ -287,25 +290,47 @@ export default function ScheduleCalendar() {
       const hours = startDate.getHours();
       const minutes = startDate.getMinutes();
 
-      // Format as strings for the timezone utility
+      // Format as strings and convert to UTC
       const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const timeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+      const localDateTime = new Date(`${dateStr}T${timeStr}:00`); // Local time
+      const utcStartTime = localDateTime.toISOString(); // Convert to UTC
 
-      // Convert local datetime to UTC for API storage
-      const localDateTime = new Date(`${dateStr}T${timeStr}:00`); // No Z suffix = local time
-      const utcTimeString = localDateTime.toISOString(); // Convert to UTC
+      // Calculate end time based on original duration
+      const endTime = new Date(localDateTime.getTime() + draggedSlot.durationMin * 60 * 1000);
+      const utcEndTime = endTime.toISOString();
+
+      // Create updated time slots array with only the dragged slot modified
+      const updatedTimeSlots = updatedTask.timeSlots.map((slot, index) => {
+        if (index === slotIndex) {
+          return {
+            ...slot,
+            startDateTime: utcStartTime,
+            endDateTime: utcEndTime,
+          };
+        }
+        return slot;
+      });
 
       try {
-        const res = await fetch('/api/schedule', {
-          method: 'POST',
+        // Use the task update endpoint to preserve all time slots
+        const res = await fetch(`/api/tasks/${updatedTask.id}`, {
+          method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            taskId: updatedTask.id,
-            scheduledAt: utcTimeString,
-            durationMin: duration,
-            machineId: updatedTask.machine?.id ?? null,
-            operatorId: updatedTask.operator?.id ?? null,
-            itemId: updatedTask.item?.id ?? null,
+            title: updatedTask.title,
+            description: updatedTask.description,
+            status: updatedTask.status,
+            quantity: 1, // Default value
+            completed_quantity: 0, // Default value
+            itemId: updatedTask.item?.id || null,
+            machineId: updatedTask.machine?.id || null,
+            operatorId: updatedTask.operator?.id || null,
+            timeSlots: updatedTimeSlots.map((slot) => ({
+              startDateTime: slot.startDateTime,
+              endDateTime: slot.endDateTime,
+              durationMin: slot.durationMin,
+            })),
           }),
         });
 
@@ -314,8 +339,8 @@ export default function ScheduleCalendar() {
         if (res.ok) {
           setTasks((prev) => prev.map((task) => (task.id === data.id ? { ...task, ...data } : task)));
         } else {
-          console.warn('Scheduling conflict detected during drag operation:', data.error);
-          displayConflictError(data);
+          console.warn('Error updating task during drag operation:', data.error);
+          alert('Error rescheduling task: ' + (data.error || 'Unknown error'));
         }
       } catch (err) {
         console.error(err);

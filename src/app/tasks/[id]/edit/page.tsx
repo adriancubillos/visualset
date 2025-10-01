@@ -55,7 +55,6 @@ export default function EditTaskPage() {
               startDateTime: string;
               endDateTime?: string;
               durationMin: number;
-              isPrimary: boolean;
             }) => {
               const startDate = new Date(slot.startDateTime);
               const dateStr = startDate.toISOString().slice(0, 10); // YYYY-MM-DD
@@ -82,7 +81,6 @@ export default function EditTaskPage() {
                 startDateTime: localStartDateTime,
                 endDateTime: endDateTime,
                 durationMin: slot.durationMin,
-                isPrimary: slot.isPrimary,
               };
             },
           ) || [];
@@ -160,7 +158,6 @@ export default function EditTaskPage() {
         startDateTime: new Date(slot.startDateTime).toISOString(),
         endDateTime: slot.endDateTime ? new Date(slot.endDateTime).toISOString() : null,
         durationMin: slot.durationMin,
-        isPrimary: slot.isPrimary,
       }));
 
       const response = await fetch(`/api/tasks/${params.id}`, {

@@ -41,7 +41,6 @@ interface Task {
     startDateTime: string;
     endDateTime: string | null;
     durationMin: number;
-    isPrimary: boolean;
   }[];
   createdAt: string;
   updatedAt: string;
@@ -152,9 +151,9 @@ const defaultColumns: Column<Task>[] = [
         return <span className="text-sm text-gray-500">Not scheduled</span>;
       }
 
-      // Find primary slot or use first slot
-      const primarySlot = timeSlots.find((slot) => slot.isPrimary) || timeSlots[0];
-      const date = new Date(primarySlot.startDateTime);
+      // Use first slot
+      const firstSlot = timeSlots[0];
+      const date = new Date(firstSlot.startDateTime);
 
       return (
         <div className="text-sm">

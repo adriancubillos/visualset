@@ -7,7 +7,6 @@ export interface TimeSlot {
   startDateTime: string;
   endDateTime?: string;
   durationMin: number;
-  isPrimary: boolean;
 }
 
 interface TimeSlotsManagerProps {
@@ -33,7 +32,6 @@ export default function TimeSlotsManager({ timeSlots, onChange, disabled = false
       startDateTime: defaultDateTime,
       endDateTime: endDateTime,
       durationMin: defaultDuration,
-      isPrimary: timeSlots.length === 0, // First slot is primary
     };
 
     onChange([...timeSlots, newSlot]);
@@ -41,12 +39,6 @@ export default function TimeSlotsManager({ timeSlots, onChange, disabled = false
 
   const removeTimeSlot = (index: number) => {
     const newSlots = timeSlots.filter((_, i) => i !== index);
-
-    // If we removed the primary slot and there are other slots, make the first one primary
-    if (timeSlots[index].isPrimary && newSlots.length > 0) {
-      newSlots[0].isPrimary = true;
-    }
-
     onChange(newSlots);
   };
 
@@ -64,15 +56,6 @@ export default function TimeSlotsManager({ timeSlots, onChange, disabled = false
             const endDateTime = new Date(new Date(startDateTime).getTime() + durationMin * 60000).toISOString();
             updatedSlot.endDateTime = endDateTime;
           }
-        }
-
-        // If this slot is being marked as primary, unmark others
-        if (updates.isPrimary) {
-          timeSlots.forEach((_, otherIndex) => {
-            if (otherIndex !== index) {
-              newSlots[otherIndex] = { ...newSlots[otherIndex], isPrimary: false };
-            }
-          });
         }
 
         return updatedSlot;
@@ -104,10 +87,6 @@ export default function TimeSlotsManager({ timeSlots, onChange, disabled = false
         });
       }
     }
-  };
-
-  const setPrimarySlot = (index: number) => {
-    updateTimeSlot(index, { isPrimary: true });
   };
 
   return (
@@ -157,28 +136,12 @@ export default function TimeSlotsManager({ timeSlots, onChange, disabled = false
           {timeSlots.map((slot, index) => (
             <div
               key={index}
-              className={`border rounded-lg p-4 ${
-                slot.isPrimary ? 'border-blue-300 bg-blue-50' : 'border-gray-200 bg-white'
-              }`}>
+              className="border rounded-lg p-4 border-gray-200 bg-white">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center space-x-2">
                   <span className="text-sm font-medium text-gray-700">Time Slot {index + 1}</span>
-                  {slot.isPrimary && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                      Primary
-                    </span>
-                  )}
                 </div>
                 <div className="flex items-center space-x-2">
-                  {!slot.isPrimary && (
-                    <button
-                      type="button"
-                      onClick={() => setPrimarySlot(index)}
-                      disabled={disabled}
-                      className="text-xs text-blue-600 hover:text-blue-800 disabled:opacity-50">
-                      Make Primary
-                    </button>
-                  )}
                   <button
                     type="button"
                     onClick={() => removeTimeSlot(index)}
@@ -292,7 +255,7 @@ export default function TimeSlotsManager({ timeSlots, onChange, disabled = false
             <strong>All time slots</strong> will be checked for scheduling conflicts.
           </p>
           <p className="mt-1">
-            The <strong>primary slot</strong> is used for main scheduling display. Each slot has its own duration.
+            Each slot has its own duration and will be displayed as separate events on the calendar.
           </p>
         </div>
       )}

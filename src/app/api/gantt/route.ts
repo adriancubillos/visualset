@@ -63,19 +63,19 @@ export async function GET() {
           name: item.name,
           status: item.status,
           tasks: item.tasks.map((task) => {
-            // Get primary time slot or first time slot for start/end dates
-            const primarySlot = task.timeSlots.find((slot) => slot.isPrimary) || task.timeSlots[0];
+            // Get first time slot for start/end dates
+            const firstSlot = task.timeSlots[0];
 
             return {
               id: task.id,
               title: task.title,
-              startDate: primarySlot ? primarySlot.startDateTime : null,
-              endDate: primarySlot
-                ? primarySlot.endDateTime ||
-                  new Date(primarySlot.startDateTime.getTime() + primarySlot.durationMin * 60 * 1000)
+              startDate: firstSlot ? firstSlot.startDateTime : null,
+              endDate: firstSlot
+                ? firstSlot.endDateTime ||
+                  new Date(firstSlot.startDateTime.getTime() + firstSlot.durationMin * 60 * 1000)
                 : null,
               status: task.status,
-              durationMin: primarySlot ? primarySlot.durationMin : 0,
+              durationMin: firstSlot ? firstSlot.durationMin : 0,
               operator: task.operator
                 ? {
                     id: task.operator.id,

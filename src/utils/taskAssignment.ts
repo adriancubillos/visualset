@@ -4,7 +4,6 @@ export interface TimeSlot {
   startDateTime: string;
   endDateTime?: string;
   durationMin: number;
-  isPrimary: boolean;
 }
 
 export interface TaskAssignmentUpdate {
@@ -22,7 +21,6 @@ export interface Task {
     startDateTime: string;
     endDateTime?: string | null;
     durationMin: number;
-    isPrimary: boolean;
   }[];
   project: { id: string; name: string; color?: string | null } | null;
   item: { id: string; name: string } | null;
@@ -52,7 +50,6 @@ export const handleTaskAssignmentUpdate = async (
           startDateTime: new Date(slot.startDateTime).toISOString(),
           endDateTime: slot.endDateTime ? new Date(slot.endDateTime).toISOString() : undefined,
           durationMin: slot.durationMin,
-          isPrimary: slot.isPrimary,
         })),
       }),
     });

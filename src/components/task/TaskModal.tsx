@@ -38,7 +38,6 @@ export default function TaskModal({ isOpen, onClose, task, onSave, items, machin
               startDateTime: string;
               endDateTime?: string | null;
               durationMin: number;
-              isPrimary: boolean;
             }) => {
               // Convert UTC datetime to local datetime string for TimeSlotsManager
               // The datetime-local input expects format: YYYY-MM-DDTHH:MM in local time
@@ -66,7 +65,6 @@ export default function TaskModal({ isOpen, onClose, task, onSave, items, machin
                 startDateTime: localStartDateTime,
                 endDateTime,
                 durationMin: actualDurationMin, // Use calculated duration instead of stored value
-                isPrimary: slot.isPrimary,
               };
             },
           ),
@@ -79,7 +77,6 @@ export default function TaskModal({ isOpen, onClose, task, onSave, items, machin
           {
             startDateTime: defaultDateTime,
             durationMin: 60,
-            isPrimary: true,
           },
         ]);
       }

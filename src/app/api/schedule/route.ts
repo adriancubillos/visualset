@@ -109,7 +109,6 @@ export async function POST(req: Request) {
             startDateTime: startTime,
             endDateTime: endTime,
             durationMin,
-            isPrimary: true,
           },
         },
       },

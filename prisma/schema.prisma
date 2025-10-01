@@ -84,7 +84,6 @@ model TaskTimeSlot {
   taskId        String
   startDateTime DateTime
   endDateTime   DateTime?
-  isPrimary     Boolean   @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   durationMin   Int       @default(60)

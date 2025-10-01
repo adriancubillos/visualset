@@ -10,7 +10,6 @@ interface TimeSlotInput {
   startDateTime: string;
   endDateTime?: string;
   durationMin?: number;
-  isPrimary?: boolean;
 }
 
 // GET /api/tasks/[id]
@@ -120,7 +119,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
       // Create new time slots
       if (timeSlots.length > 0) {
-        const slotsToCreate = timeSlots.map((slot: TimeSlotInput, index: number) => {
+        const slotsToCreate = timeSlots.map((slot: TimeSlotInput) => {
           const slotDuration = slot.durationMin || 60; // Default to 60 minutes if not specified
           return {
             taskId: id,
@@ -129,7 +128,6 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
               ? new Date(slot.endDateTime)
               : new Date(new Date(slot.startDateTime).getTime() + slotDuration * 60000),
             durationMin: slotDuration,
-            isPrimary: index === 0 || slot.isPrimary === true, // First slot is primary by default
           };
         });
 
