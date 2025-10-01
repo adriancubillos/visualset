@@ -49,6 +49,7 @@ interface CalendarEvent {
     machine?: string;
     project?: string;
     duration: number;
+    operatorName?: string;
     operatorColor?: string;
     operatorPattern?: string;
     machineColor?: string;
@@ -250,6 +251,7 @@ export default function ScheduleCalendar() {
               machine: task.machine?.name,
               project: task.project?.name,
               duration: slot.durationMin,
+              operatorName: task.operator?.name,
               operatorColor: operatorColor?.hex || '#6b7280',
               operatorPattern: operatorColor?.pattern || 'solid',
               machineColor: machineColor?.hex || '#6b7280',
@@ -569,16 +571,33 @@ export default function ScheduleCalendar() {
                       setIsLongPress(false);
                     }
                   }}>
-                  {/* Split background: left half operator, right half machine */}
-                  <div className="absolute inset-0 flex">
+                  {/* Split background: top half operator, bottom half machine */}
+                  <div className="absolute inset-0 flex flex-col">
                     <div
-                      className="flex-1"
-                      style={operatorStyle}
-                    />
+                      className="flex-1 relative"
+                      style={operatorStyle}>
+                      {/* Operator initials in top left */}
+                      {event.resource?.operatorName && (
+                        <div className="absolute top-0.5 left-0.5 text-[10px] font-bold text-white bg-black bg-opacity-40 px-1 rounded">
+                          {event.resource.operatorName
+                            .split(' ')
+                            .map((n: string) => n[0])
+                            .join('')
+                            .toUpperCase()
+                            .slice(0, 3)}
+                        </div>
+                      )}
+                    </div>
                     <div
-                      className="flex-1"
-                      style={machineStyle}
-                    />
+                      className="flex-1 relative"
+                      style={machineStyle}>
+                      {/* Machine name in bottom left */}
+                      {event.resource?.machine && (
+                        <div className="absolute bottom-0.5 left-0.5 text-[10px] font-bold text-white bg-black bg-opacity-40 px-1 rounded truncate max-w-[90%]">
+                          {event.resource.machine}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Content overlay */}

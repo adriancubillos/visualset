@@ -11,12 +11,15 @@
 ✅ FIXED: extender hora en calendario si es posible o algun zoom o vwer mas amplioas las horas.
 ✅ FIXED: quitar scroll interno del calendario
 
+
+Work in progress:
+change color of task in calendar instead of left/right do top/bottom
+
 Pending: 
 add measure field for the item
 add image field to the item
 add image field to the project
 quantity, image, measure and x/y tasks for item list columns
-change color of task in calendar instead of left/right do top/bottom
 
 
 
