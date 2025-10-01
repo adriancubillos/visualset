@@ -33,6 +33,7 @@ export default function TaskModal({ isOpen, onClose, task, selectedSlotIndex, on
   const [quantity, setQuantity] = useState<number>(1);
   const [completedQuantity, setCompletedQuantity] = useState<number>(0);
   const [status, setStatus] = useState<string>('PENDING');
+  const [isTimeSlotsExpanded, setIsTimeSlotsExpanded] = useState<boolean>(false);
 
   // Handle Escape key to close modal
   useEffect(() => {
@@ -128,18 +129,19 @@ export default function TaskModal({ isOpen, onClose, task, selectedSlotIndex, on
 
         {/* Machine and Operator in same row */}
         <div className="grid grid-cols-2 gap-4 mb-4">
-          <Select
-            label="Machine"
-            value={machineId}
-            onChange={setMachineId}
-            options={sortByName(machines)}
-            placeholder="-- None --"
-          />
+
           <Select
             label="Operator"
             value={operatorId}
             onChange={setOperatorId}
             options={sortByName(operators)}
+            placeholder="-- None --"
+          />
+          <Select
+            label="Machine"
+            value={machineId}
+            onChange={setMachineId}
+            options={sortByName(machines)}
             placeholder="-- None --"
           />
         </div>
@@ -162,13 +164,35 @@ export default function TaskModal({ isOpen, onClose, task, selectedSlotIndex, on
           />
         </div>
 
-        {/* Time Slots */}
+        {/* Time Slots - Collapsible */}
         <div className="mb-6">
-          <TimeSlotsManager
-            timeSlots={timeSlots}
-            onChange={setTimeSlots}
-            selectedSlotIndex={selectedSlotIndex ?? undefined}
-          />
+          <button
+            type="button"
+            onClick={() => setIsTimeSlotsExpanded(!isTimeSlotsExpanded)}
+            className="w-full flex items-center justify-between bg-gray-50 hover:bg-gray-100 rounded-lg p-4 border border-gray-200 transition-all duration-200 mb-3">
+            <h4 className="text-sm font-semibold text-gray-700">Schedule Time Slots</h4>
+            <svg
+              className={`w-5 h-5 text-gray-600 transition-transform duration-300 ${isTimeSlotsExpanded ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </button>
+          <div
+            className={`transition-all duration-300 ease-in-out overflow-hidden ${isTimeSlotsExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
+              }`}>
+            <TimeSlotsManager
+              timeSlots={timeSlots}
+              onChange={setTimeSlots}
+              selectedSlotIndex={selectedSlotIndex ?? undefined}
+            />
+          </div>
         </div>
 
         <div className="flex justify-end gap-3">
