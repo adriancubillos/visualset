@@ -10,6 +10,7 @@ import TableActions from '@/components/ui/TableActions';
 import StatisticsCards from '@/components/ui/StatisticsCards';
 import { MachineColorIndicator } from '@/components/ui/ColorIndicator';
 import { MACHINE_TYPES, MACHINE_STATUS } from '@/config/workshop-properties';
+import { logger } from '@/utils/logger';
 
 // Column type for DataTable
 type Column<T> = {
@@ -261,8 +262,8 @@ export default function MachinesPage() {
           setFilteredMachines(updatedMachines);
         } else {
           const errorData = await response.json();
-          console.error('Failed to delete machine:', errorData.error);
-          
+          logger.apiError('Delete machine', `/api/machines/${machineId}`, errorData.error);
+
           // Show user-friendly error message
           if (errorData.error?.includes('assigned tasks')) {
             alert(`Cannot delete "${machineName}"\n\nThis machine is currently assigned to one or more tasks. Please unassign or delete those tasks first.`);
@@ -271,7 +272,7 @@ export default function MachinesPage() {
           }
         }
       } catch (error) {
-        console.error('Error deleting machine:', error);
+        logger.error('Error deleting machine:', error);
         alert('Error deleting machine. Please try again.');
       }
     }

@@ -10,6 +10,7 @@ import TableActions from '@/components/ui/TableActions';
 import { OperatorColorIndicator } from '@/components/ui/ColorIndicator';
 import StatisticsCards from '@/components/ui/StatisticsCards';
 import { AVAILABLE_SKILLS, OPERATOR_STATUS, OPERATOR_SHIFTS } from '@/config/workshop-properties';
+import { logger } from '@/utils/logger';
 
 // Column type for DataTable
 type Column<T> = {
@@ -147,7 +148,7 @@ const getInitialColumns = (): Column<Operator>[] => {
 
     return orderedColumns;
   } catch (error) {
-    console.error('Error loading column order:', error);
+    logger.error('Error loading column order', error);
     return defaultColumns;
   }
 };
@@ -167,10 +168,10 @@ export default function OperatorsPage() {
           setOperators(data);
           setFilteredOperators(data);
         } else {
-          console.error('Failed to fetch operators');
+          logger.apiError('Fetch operators', '/api/operators', 'Failed to fetch');
         }
       } catch (error) {
-        console.error('Error fetching operators:', error);
+        logger.error('Error fetching operators', error);
       } finally {
         setLoading(false);
       }
@@ -311,11 +312,11 @@ export default function OperatorsPage() {
         setFilteredOperators(updatedOperators);
       } else {
         const errorData = await response.json();
-        console.error('Failed to update operator status:', errorData.error);
+        logger.apiError('Update operator status', `/api/operators/${operatorId}`, errorData.error);
         alert('Failed to update operator status: ' + (errorData.error || 'Unknown error'));
       }
     } catch (error) {
-      console.error('Error updating operator status:', error);
+      logger.error('Error updating operator status', error);
       alert('Error updating operator status. Please try again.');
     }
   };

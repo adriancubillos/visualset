@@ -13,6 +13,7 @@ import { getProjectColor, getOperatorColor, getMachineColor, getPatternStyles, t
 import { handleTaskAssignmentUpdate, TaskAssignmentUpdate } from '@/utils/taskAssignment';
 import FilterSelect from './ui/FilterSelect';
 import { sortByName } from '@/utils/sorting';
+import { logger } from '@/utils/logger';
 
 interface Task {
   id: string;
@@ -127,12 +128,12 @@ export default function ScheduleCalendar() {
     fetch('/api/machines')
       .then((res) => res.json())
       .then(setMachines)
-      .catch(console.error);
+      .catch((error) => logger.apiError('Fetch machines', '/api/machines', error));
 
     fetch('/api/operators')
       .then((res) => res.json())
       .then(setOperators)
-      .catch(console.error);
+      .catch((error) => logger.apiError('Fetch operators', '/api/operators', error));
 
     fetch('/api/projects')
       .then((res) => res.json())
@@ -144,7 +145,7 @@ export default function ScheduleCalendar() {
         );
         setItems(allItems);
       })
-      .catch(console.error);
+      .catch((error) => logger.apiError('Fetch projects', '/api/projects', error));
   }, []);
 
   useEffect(() => {
@@ -153,7 +154,7 @@ export default function ScheduleCalendar() {
       .then((data) => {
         setTasks(data);
       })
-      .catch(console.error);
+      .catch((error) => logger.apiError('Fetch schedule', '/api/schedule', error));
   }, []);
 
   // Cleanup touch timer on unmount

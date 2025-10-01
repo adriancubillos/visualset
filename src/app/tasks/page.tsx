@@ -9,6 +9,7 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import TableActions from '@/components/ui/TableActions';
 import StatisticsCards from '@/components/ui/StatisticsCards';
 import { TASK_STATUS } from '@/config/workshop-properties';
+import { logger } from '@/utils/logger';
 
 // Column type for DataTable
 type Column<T> = {
@@ -197,7 +198,7 @@ const getInitialColumns = (): Column<Task>[] => {
 
     return orderedColumns;
   } catch (error) {
-    console.error('Error loading column order:', error);
+    logger.error('Error loading column order', error);
     return defaultColumns;
   }
 };
@@ -227,7 +228,7 @@ export default function TasksPage() {
           setTasks(tasksData);
           setFilteredTasks(tasksData);
         } else {
-          console.error('Failed to fetch tasks - Status:', tasksResponse.status, 'URL:', tasksResponse.url);
+          logger.apiError('Fetch tasks', '/api/tasks', `Status: ${tasksResponse.status}`);
         }
 
         if (projectsResponse.ok) {
@@ -239,24 +240,24 @@ export default function TasksPage() {
           );
           setItems(allItems);
         } else {
-          console.error('Failed to fetch projects - Status:', projectsResponse.status, 'URL:', projectsResponse.url);
+          logger.apiError('Fetch projects', '/api/projects', `Status: ${projectsResponse.status}`);
         }
 
         if (machinesResponse.ok) {
           const machinesData = await machinesResponse.json();
           setMachines(machinesData.map((m: { id: string; name: string }) => ({ id: m.id, name: m.name })));
         } else {
-          console.error('Failed to fetch machines');
+          logger.apiError('Fetch machines', '/api/machines', 'Failed to fetch');
         }
 
         if (operatorsResponse.ok) {
           const operatorsData = await operatorsResponse.json();
           setOperators(operatorsData.map((o: { id: string; name: string }) => ({ id: o.id, name: o.name })));
         } else {
-          console.error('Failed to fetch operators');
+          logger.apiError('Fetch operators', '/api/operators', 'Failed to fetch');
         }
       } catch (error) {
-        console.error('Error fetching data:', error);
+        logger.error('Error fetching data', error);
       } finally {
         setLoading(false);
       }
@@ -400,10 +401,10 @@ export default function TasksPage() {
         setTasks(updatedTasks);
         setFilteredTasks(updatedTasks);
       } else {
-        console.error('Failed to delete task');
+        logger.apiError('Delete task', `/api/tasks/${taskId}`, 'Failed to delete');
       }
     } catch (error) {
-      console.error('Error deleting task:', error);
+      logger.error('Error deleting task', error);
     }
   };
 
