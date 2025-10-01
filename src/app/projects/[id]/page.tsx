@@ -260,7 +260,7 @@ export default function ProjectDetailPage() {
           <div className="flex justify-between items-center">
             <h2 className="text-lg font-semibold text-gray-900">Project Items</h2>
             <Link
-              href={`/items/new?project=${project.id}`}
+              href={`/items/new?project=${project.id}&returnUrl=/projects/${project.id}`}
               className="text-sm text-blue-600 hover:text-blue-800 font-medium">
               Add Item
             </Link>

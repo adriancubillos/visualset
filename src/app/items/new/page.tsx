@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { logger } from '@/utils/logger';
 
@@ -12,18 +13,23 @@ interface Project {
   status: string;
 }
 
-export default function NewItemPage() {
+function NewItemPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const projectIdFromUrl = searchParams.get('project');
+  const returnUrl = searchParams.get('returnUrl');
+  
   const [projects, setProjects] = useState<Project[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     status: 'ACTIVE',
     quantity: 1,
-    projectId: '',
+    projectId: projectIdFromUrl || '',
   });
   const [loading, setLoading] = useState(false);
   const [projectsLoading, setProjectsLoading] = useState(true);
+  const isProjectLocked = !!projectIdFromUrl; // Lock project selection if coming from project detail
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -61,7 +67,13 @@ export default function NewItemPage() {
       });
 
       if (response.ok) {
-        router.push('/items');
+        // Navigate back to the project detail page if returnUrl is provided
+        if (returnUrl) {
+          router.push(returnUrl);
+        } else {
+          // Always navigate to the project detail page of the selected project
+          router.push(`/projects/${formData.projectId}`);
+        }
       } else {
         const errorData = await response.json();
         logger.apiError('Create item', '/api/items', errorData.error);
@@ -107,8 +119,10 @@ export default function NewItemPage() {
               required
               value={formData.projectId}
               onChange={handleChange}
-              disabled={projectsLoading}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+              disabled={projectsLoading || isProjectLocked}
+              className={`mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                isProjectLocked ? 'bg-gray-100 cursor-not-allowed' : ''
+              }`}>
               <option value="">{projectsLoading ? 'Loading projects...' : 'Select a project'}</option>
               {projects.map((project) => (
                 <option
@@ -118,6 +132,9 @@ export default function NewItemPage() {
                 </option>
               ))}
             </select>
+            {isProjectLocked && (
+              <p className="mt-2 text-sm text-gray-500">Project is pre-selected and cannot be changed.</p>
+            )}
             {projects.length === 0 && !projectsLoading && (
               <p className="mt-2 text-sm text-red-600">No active projects found. Please create a project first.</p>
             )}
@@ -219,5 +236,13 @@ export default function NewItemPage() {
         </form>
       </div>
     </PageContainer>
+  );
+}
+
+export default function NewItemPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <NewItemPageContent />
+    </Suspense>
   );
 }

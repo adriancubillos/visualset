@@ -1,5 +1,24 @@
 # CHANGES October 1 2025
 
+
+add medida ene el item
+al adicionar item lo amndo a itmes debio dejarlo adicionar otro item
+de tarea si ya estoy en proyecto 
+cantidad imagen y medida columans y x/y tareas parta el item
+calendario el tolltip esta mostrando una hora extra cuando se para de mover e impide ver el tooltoip
+en modal mostrar el nombere de la tarea
+toltip se queda pegado en calendar
+tarea en calendar quitarle la hora
+cambiar  colores tarea por arriba/abajo en lugar de izquierda/derecha
+extender hora en calendario si es posible o algun zoom o vwer mas amplioas las horas.
+quitar scroll interno del calendario
+
+
+
+
+
+
+
 Next Steps
 To fully utilize the improvements:
 
