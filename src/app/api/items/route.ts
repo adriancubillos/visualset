@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { logger } from '@/utils/logger';
 
 const prisma = new PrismaClient();
 
@@ -26,7 +27,7 @@ export async function GET() {
     });
     return NextResponse.json(items);
   } catch (error) {
-    console.error('Error fetching items:', error);
+    logger.dbError('Fetch items', 'item', error);
     return NextResponse.json({ error: 'Failed to fetch items' }, { status: 500 });
   }
 }
@@ -61,7 +62,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json(item);
   } catch (error) {
-    console.error('Error creating item:', error);
+    logger.dbError('Create item', 'item', error);
     return NextResponse.json({ error: 'Failed to create item' }, { status: 500 });
   }
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { logger } from '@/utils/logger';
 
 const prisma = new PrismaClient();
 
@@ -17,7 +18,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
     return NextResponse.json(machine);
   } catch (error) {
-    console.error('Error fetching machine:', error);
+    logger.dbError('Fetch machine', 'machine', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -42,7 +43,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     return NextResponse.json(machine);
   } catch (error) {
-    console.error('Error updating machine:', error);
+    logger.dbError('Update machine', 'machine', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -66,7 +67,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
     return NextResponse.json({ message: 'Machine deleted successfully' });
   } catch (error) {
-    console.error('Error deleting machine:', error);
+    logger.dbError('Delete machine', 'machine', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

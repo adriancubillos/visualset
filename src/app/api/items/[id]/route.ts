@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { logger } from '@/utils/logger';
 
 const prisma = new PrismaClient();
 
@@ -45,7 +46,7 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
 
     return NextResponse.json(item);
   } catch (error) {
-    console.error('Error fetching item:', error);
+    logger.dbError('Fetch item', 'item', error);
     return NextResponse.json({ error: 'Failed to fetch item' }, { status: 500 });
   }
 }
@@ -121,7 +122,7 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
 
     return NextResponse.json(item);
   } catch (error) {
-    console.error('Error updating item:', error);
+    logger.dbError('Update item', 'item', error);
     return NextResponse.json({ error: 'Failed to update item' }, { status: 500 });
   }
 }
@@ -159,7 +160,7 @@ export async function DELETE(req: Request, context: { params: Promise<{ id: stri
 
     return NextResponse.json({ message: 'Item deleted successfully' });
   } catch (error) {
-    console.error('Error deleting item:', error);
+    logger.dbError('Delete item', 'item', error);
     return NextResponse.json({ error: 'Failed to delete item' }, { status: 500 });
   }
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { logger } from '@/utils/logger';
 
 const prisma = new PrismaClient();
 
@@ -23,7 +24,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     //BUG fix
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
-    console.error(error);
+    logger.dbError('Delete schedule', 'task', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

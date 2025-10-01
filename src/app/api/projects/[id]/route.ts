@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { logger } from '@/utils/logger';
 
 const prisma = new PrismaClient();
 
@@ -106,7 +107,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     });
     return NextResponse.json(project);
   } catch (error) {
-    console.error('Error updating project:', error);
+    logger.dbError('Update project', 'project', error);
     return NextResponse.json({ error: 'Failed to update project' }, { status: 500 });
   }
 }

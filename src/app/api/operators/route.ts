@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { logger } from '@/utils/logger';
 
 const prisma = new PrismaClient();
 
@@ -27,7 +28,7 @@ export async function POST(req: Request) {
     });
     return NextResponse.json(operator);
   } catch (error) {
-    console.error('Error creating operator:', error);
+    logger.dbError('Create operator', 'operator', error);
     return NextResponse.json({ error: 'Failed to create operator' }, { status: 500 });
   }
 }

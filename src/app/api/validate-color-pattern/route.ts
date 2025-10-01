@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { logger } from '@/utils/logger';
 
 const prisma = new PrismaClient();
 
@@ -66,7 +67,7 @@ export async function POST(req: Request) {
       isValid: true,
     });
   } catch (error) {
-    console.error('Error validating color pattern:', error);
+    logger.error('Error validating color pattern', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

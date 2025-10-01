@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { logger } from '@/utils/logger';
 
 const prisma = new PrismaClient();
 
@@ -17,7 +18,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
     return NextResponse.json(operator);
   } catch (error) {
-    console.error('Error fetching operator:', error);
+    logger.dbError('Fetch operator', 'operator', error);
     return NextResponse.json({ error: 'Failed to fetch operator' }, { status: 500 });
   }
 }
@@ -42,7 +43,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     });
     return NextResponse.json(operator);
   } catch (error) {
-    console.error('Error updating operator:', error);
+    logger.dbError('Update operator', 'operator', error);
     return NextResponse.json({ error: 'Failed to update operator' }, { status: 500 });
   }
 }
@@ -64,7 +65,7 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
     await prisma.operator.delete({ where: { id } });
     return NextResponse.json({ message: 'Operator deleted successfully' });
   } catch (error) {
-    console.error('Error deleting operator:', error);
+    logger.dbError('Delete operator', 'operator', error);
     return NextResponse.json(
       {
         error: 'Failed to delete operator',

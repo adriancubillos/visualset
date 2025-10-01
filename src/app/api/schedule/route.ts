@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { logger } from '@/utils/logger';
 import { mapTaskToResponse } from '@/types/api';
 import { checkSchedulingConflicts, createConflictErrorResponse } from '@/utils/conflictDetection';
 
@@ -53,7 +54,7 @@ export async function GET(req: Request) {
     //BUG fix this
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
-    console.error(error);
+    logger.dbError('Fetch schedule', 'task', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -125,7 +126,7 @@ export async function POST(req: Request) {
     //BUG fix
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
-    console.error(error);
+    logger.dbError('Update schedule', 'task', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
