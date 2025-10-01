@@ -50,8 +50,32 @@ export async function POST(req: Request) {
     }
 
     // Validate time slots and check for conflicts
+    // First, check for conflicts within the same task's time slots
+    for (let i = 0; i < timeSlots.length; i++) {
+      for (let j = i + 1; j < timeSlots.length; j++) {
+        const slotA = timeSlots[i];
+        const slotB = timeSlots[j];
+        
+        if (slotA.startDateTime && slotB.startDateTime) {
+          const startA = new Date(slotA.startDateTime);
+          const endA = new Date(startA.getTime() + (slotA.durationMin || 60) * 60 * 1000);
+          const startB = new Date(slotB.startDateTime);
+          const endB = new Date(startB.getTime() + (slotB.durationMin || 60) * 60 * 1000);
+          
+          // Check if time slots overlap
+          if (startA < endB && endA > startB) {
+            return NextResponse.json(
+              { error: 'Time slots within the same task cannot overlap' },
+              { status: 400 }
+            );
+          }
+        }
+      }
+    }
+    
+    // Then check for conflicts with other tasks
     for (const slot of timeSlots) {
-      if (slot.startDateTime && body.machineId && body.operatorId) {
+      if (slot.startDateTime && (body.machineId || body.operatorId)) {
         const conflictResult = await checkSchedulingConflicts({
           scheduledAt: slot.startDateTime,
           durationMin: slot.durationMin || 60, // Use slot duration or default to 60

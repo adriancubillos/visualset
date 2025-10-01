@@ -8,6 +8,7 @@ export interface ConflictCheckParams {
   machineId?: string | null;
   operatorId?: string | null;
   excludeTaskId?: string; // For task editing - exclude current task
+  excludeTimeSlotId?: string; // For time slot editing - exclude specific time slot
 }
 
 export interface ConflictResult {
@@ -43,6 +44,7 @@ export async function checkSchedulingConflicts({
   machineId,
   operatorId,
   excludeTaskId,
+  excludeTimeSlotId,
 }: ConflictCheckParams): Promise<ConflictResult> {
   // Parse the scheduledAt string as UTC (it should already be in UTC format from the APIs)
   const taskStartTime = new Date(scheduledAt);
@@ -52,6 +54,7 @@ export async function checkSchedulingConflicts({
   if (machineId) {
     const machineConflicts = await prisma.taskTimeSlot.findMany({
       where: {
+        ...(excludeTimeSlotId && { id: { not: excludeTimeSlotId } }),
         task: {
           ...(excludeTaskId && { id: { not: excludeTaskId } }),
           machineId,
@@ -111,6 +114,7 @@ export async function checkSchedulingConflicts({
   if (operatorId) {
     const operatorConflicts = await prisma.taskTimeSlot.findMany({
       where: {
+        ...(excludeTimeSlotId && { id: { not: excludeTimeSlotId } }),
         task: {
           ...(excludeTaskId && { id: { not: excludeTaskId } }),
           operatorId,
