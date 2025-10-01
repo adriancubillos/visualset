@@ -106,14 +106,16 @@ export function getEntityColor(
 
   const hash = generateEntityHash(entity.id, typeOffsets[entityType]);
   const colorIndex = hash % COLOR_PALETTE.length;
-  const patternIndex = Math.floor(hash / COLOR_PALETTE.length) % Object.keys(PATTERN_TYPES).length;
+  // TODO remove if not nedded
+  // const patternIndex = Math.floor(hash / COLOR_PALETTE.length) % Object.keys(PATTERN_TYPES).length;
 
   const defaultColor = COLOR_PALETTE[colorIndex];
-  const defaultPattern = Object.keys(PATTERN_TYPES)[patternIndex] as PatternType;
+  //TODO remove if not nedded
+  // const defaultPattern = Object.keys(PATTERN_TYPES)[patternIndex] as PatternType;
 
   // Use entity's custom color/pattern if available
-  const finalColor = entity.color || defaultColor.hex;
-  const finalPattern = (entity.pattern as PatternType) || defaultPattern;
+  const finalColor = entity.color || "#000000";
+  const finalPattern = (entity.pattern as PatternType);
 
   const result: EntityColorResult = {
     hex: finalColor,
