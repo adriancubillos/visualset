@@ -10,10 +10,10 @@
 ✅ FIXED: tarea en calendar quitarle la hora
 ✅ FIXED: extender hora en calendario si es posible o algun zoom o vwer mas amplioas las horas.
 ✅ FIXED: quitar scroll interno del calendario
+✅ FIXED: change color of task in calendar instead of left/right do top/bottom
 
 
 Work in progress:
-change color of task in calendar instead of left/right do top/bottom
 
 Pending: 
 add measure field for the item

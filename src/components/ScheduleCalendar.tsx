@@ -122,6 +122,9 @@ export default function ScheduleCalendar() {
   const [selectedOperator, setSelectedOperator] = useState<string>('all');
   const [selectedProject, setSelectedProject] = useState<string>('all');
   const [selectedItem, setSelectedItem] = useState<string>('all');
+  
+  // Row height control (30-minute slot height in pixels)
+  const [rowHeight, setRowHeight] = useState<number>(60);
 
   const [machines, setMachines] = useState<{ id: string; name: string }[]>([]);
   const [operators, setOperators] = useState<{ id: string; name: string }[]>([]);
@@ -430,21 +433,41 @@ export default function ScheduleCalendar() {
 
       {/* Modern Filters */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-        <h3 className="text-lg font-semibold text-slate-700 mb-4 flex items-center gap-2">
-          <svg
-            className="w-5 h-5 text-blue-500"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold text-slate-700 flex items-center gap-2">
+            <svg
+              className="w-5 h-5 text-blue-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+              />
+            </svg>
+            Filters
+          </h3>
+          
+          {/* Row Height Control */}
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-medium text-slate-700">Row Height:</label>
+            <input
+              type="range"
+              min="40"
+              max="120"
+              step="10"
+              value={rowHeight}
+              onChange={(e) => setRowHeight(Number(e.target.value))}
+              className="w-32 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+              style={{
+                background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((rowHeight - 40) / 80) * 100}%, #e2e8f0 ${((rowHeight - 40) / 80) * 100}%, #e2e8f0 100%)`
+              }}
             />
-          </svg>
-          Filters
-        </h3>
+            <span className="text-sm text-slate-600 min-w-[45px]">{rowHeight}px</span>
+          </div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <FilterSelect
             label="Project"
@@ -478,6 +501,14 @@ export default function ScheduleCalendar() {
       </div>
 
       <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+        <style>{`
+          .rbc-time-slot {
+            min-height: ${rowHeight}px !important;
+          }
+          .rbc-timeslot-group {
+            min-height: ${rowHeight * 2}px !important;
+          }
+        `}</style>
         <DnDCalendar
           localizer={localizer}
           events={events}
