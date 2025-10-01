@@ -261,7 +261,7 @@ export default function ProjectDetailPage() {
             <h2 className="text-lg font-semibold text-gray-900">Project Items</h2>
             <Link
               href={`/items/new?project=${project.id}&returnUrl=/projects/${project.id}`}
-              className="text-sm text-blue-600 hover:text-blue-800 font-medium">
+              className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
               Add Item
             </Link>
           </div>

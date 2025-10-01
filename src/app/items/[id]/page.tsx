@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 import StatusBadge from '@/components/ui/StatusBadge';
 import DataTable from '@/components/ui/DataTable';
 import TableActions from '@/components/ui/TableActions';
@@ -49,8 +50,65 @@ interface Item {
 
 export default function ItemDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const [item, setItem] = useState<Item | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const handleDelete = async () => {
+    // Show custom confirmation toast
+    toast((t) => (
+      <div className="flex flex-col gap-3">
+        <div>
+          <p className="font-semibold text-gray-900">Delete Item</p>
+          <p className="text-sm text-gray-600 mt-1">
+            Are you sure you want to delete this item? This action cannot be undone.
+          </p>
+        </div>
+        <div className="flex gap-2 justify-end">
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            Cancel
+          </button>
+          <button
+            onClick={async () => {
+              toast.dismiss(t.id);
+              await performDelete();
+            }}
+            className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+            Delete
+          </button>
+        </div>
+      </div>
+    ), {
+      duration: Infinity,
+      position: 'top-center',
+      style: {
+        maxWidth: '500px',
+      },
+    });
+  };
+
+  const performDelete = async () => {
+    try {
+      const response = await fetch(`/api/items/${params.id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        toast.success('Item deleted successfully');
+        // Navigate back to the project detail page
+        router.push(`/projects/${item?.project.id}`);
+      } else {
+        const errorData = await response.json();
+        logger.apiError('Delete item', `/api/items/${params.id}`, errorData.error);
+        toast.error('Failed to delete item. \n ' + errorData.error);
+      }
+    } catch (error) {
+      logger.error('Error deleting item', error);
+      toast.error('An error occurred while deleting the item.');
+    }
+  };
 
   useEffect(() => {
     const fetchItem = async () => {
@@ -118,13 +176,12 @@ export default function ItemDetailPage() {
       header: 'Priority',
       render: (value: string) => (
         <span
-          className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-            value === 'HIGH'
-              ? 'bg-red-100 text-red-800'
-              : value === 'MEDIUM'
+          className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${value === 'HIGH'
+            ? 'bg-red-100 text-red-800'
+            : value === 'MEDIUM'
               ? 'bg-yellow-100 text-yellow-800'
               : 'bg-green-100 text-green-800'
-          }`}>
+            }`}>
           {value}
         </span>
       ),
@@ -203,11 +260,18 @@ export default function ItemDetailPage() {
         title: item.name,
         description: item.description,
         actions: (
-          <Link
-            href={`/items/${item.id}/edit`}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-            Edit Item
-          </Link>
+          <div className="flex space-x-3">
+            <Link
+              href={`/items/${item.id}/edit`}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              Edit Item
+            </Link>
+            <button
+              onClick={handleDelete}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+              Delete
+            </button>
+          </div>
         ),
       }}
       breadcrumbs={[
@@ -340,13 +404,12 @@ export default function ItemDetailPage() {
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div
-                        className={`h-2 rounded-full transition-all duration-300 ${
-                          completionStatus.completionPercentage === 100
-                            ? 'bg-green-500'
-                            : completionStatus.completionPercentage > 50
+                        className={`h-2 rounded-full transition-all duration-300 ${completionStatus.completionPercentage === 100
+                          ? 'bg-green-500'
+                          : completionStatus.completionPercentage > 50
                             ? 'bg-blue-500'
                             : 'bg-yellow-500'
-                        }`}
+                          }`}
                         style={{ width: `${completionStatus.completionPercentage}%` }}></div>
                     </div>
                   </div>
@@ -362,7 +425,7 @@ export default function ItemDetailPage() {
         <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
           <h2 className="text-lg font-medium text-gray-900">Tasks</h2>
           <Link
-            href={`/tasks/new?itemId=${item.id}`}
+            href={`/tasks/new?project=${item.project.id}&item=${item.id}&returnUrl=/items/${item.id}`}
             className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
             Add Task
           </Link>

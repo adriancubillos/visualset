@@ -16,9 +16,17 @@ import toast from 'react-hot-toast';
 function NewTaskPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const projectIdFromUrl = searchParams.get('project');
+  const itemIdFromUrl = searchParams.get('item');
+  const returnUrl = searchParams.get('returnUrl');
+  
   const { projects, items, machines, operators, loading: dataLoading } = useTaskFormData();
 
   const sortedOperators = useMemo(() => [...operators].sort((a, b) => a.name.localeCompare(b.name)), [operators]);
+
+  // Lock project and item if coming from item detail page
+  const isProjectLocked = !!projectIdFromUrl;
+  const isItemLocked = !!itemIdFromUrl;
 
   // Initialize with current date and time using browser timezone
   const currentDate = new Date();
@@ -41,8 +49,8 @@ function NewTaskPageContent() {
     priority: 'MEDIUM',
     quantity: 1,
     completed_quantity: 0,
-    projectId: searchParams.get('project') || '',
-    itemId: '',
+    projectId: projectIdFromUrl || '',
+    itemId: itemIdFromUrl || '',
     machineId: searchParams.get('machine') || '',
     operatorId: searchParams.get('operator') || '',
   });
@@ -109,7 +117,22 @@ function NewTaskPageContent() {
         }),
       });
 
-      await handleTaskResponse(response, () => router.push('/tasks'), 'create task');
+      await handleTaskResponse(
+        response,
+        () => {
+          // Navigate based on context
+          if (returnUrl) {
+            router.push(returnUrl);
+          } else if (itemIdFromUrl) {
+            router.push(`/items/${itemIdFromUrl}`);
+          } else if (projectIdFromUrl) {
+            router.push(`/projects/${projectIdFromUrl}`);
+          } else {
+            router.push('/tasks');
+          }
+        },
+        'create task'
+      );
     } catch (error) {
       logger.error('Error creating task', error);
       toast.error('Error creating task. Please try again.');
@@ -177,6 +200,8 @@ function NewTaskPageContent() {
             onProjectChange={handleProjectChange}
             onItemChange={handleItemChange}
             required={true}
+            projectLocked={isProjectLocked}
+            itemLocked={isItemLocked}
           />
 
           {/* Machine Assignment */}

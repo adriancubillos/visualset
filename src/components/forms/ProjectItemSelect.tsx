@@ -15,6 +15,8 @@ interface ProjectItemSelectProps {
   required?: boolean;
   disabled?: boolean;
   className?: string;
+  projectLocked?: boolean;
+  itemLocked?: boolean;
 }
 
 export default function ProjectItemSelect({
@@ -27,6 +29,8 @@ export default function ProjectItemSelect({
   required = false,
   disabled = false,
   className = '',
+  projectLocked = false,
+  itemLocked = false,
 }: ProjectItemSelectProps) {
   const handleProjectChange = (newProjectId: string | null) => {
     onProjectChange(newProjectId || '');
@@ -52,7 +56,11 @@ export default function ProjectItemSelect({
           onChange={handleProjectChange}
           options={sortByName(projects)}
           placeholder={required ? 'Select a Project' : 'No Project'}
+          disabled={disabled || projectLocked}
         />
+        {projectLocked && (
+          <p className="mt-2 text-sm text-gray-500">Project is pre-selected and cannot be changed.</p>
+        )}
         <input type="hidden" id="projectId" name="projectId" value={projectId} />
       </div>
 
@@ -64,7 +72,11 @@ export default function ProjectItemSelect({
           onChange={handleItemChange}
           options={sortByName(getFilteredItems())}
           placeholder={required ? 'Select an Item' : 'No Item'}
+          disabled={disabled || itemLocked}
         />
+        {itemLocked && (
+          <p className="mt-2 text-sm text-gray-500">Item is pre-selected and cannot be changed.</p>
+        )}
         <input type="hidden" id="itemId" name="itemId" value={itemId} />
       </div>
     </div>
