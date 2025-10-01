@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import StatusBadge from '@/components/ui/StatusBadge';
 import StatisticsCards from '@/components/ui/StatisticsCards';
+import PageContainer from '@/components/layout/PageContainer';
 import { logger } from '@/utils/logger';
 
 interface DashboardStats {
@@ -160,12 +161,11 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="mt-2 text-gray-600">Overview of your workshop operations</p>
-      </div>
+    <PageContainer
+      header={{
+        title: 'Dashboard',
+        description: 'Overview of your workshop operations',
+      }}>
 
       {/* Stats Grid */}
       <StatisticsCards
@@ -265,6 +265,6 @@ export default function Dashboard() {
           </div>
         </Link>
       </div>
-    </div>
+    </PageContainer>
   );
 }

@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import PageContainer from '@/components/layout/PageContainer';
 import { checkItemCompletionReadiness, getItemCompletionMessage } from '@/utils/itemValidation';
 import { ITEM_STATUS } from '@/config/workshop-properties';
 import { logger } from '@/utils/logger';
@@ -171,19 +173,58 @@ export default function EditItemPage() {
 
   if (initialLoading) {
     return (
-      <div className="flex justify-center items-center min-h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
+      <PageContainer
+        variant="form"
+        maxWidth="2xl"
+        header={{
+          title: 'Edit Item',
+          description: 'Update item information',
+        }}>
+        <div className="flex justify-center items-center min-h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Edit Item</h1>
-        <p className="mt-2 text-gray-600">Update item information</p>
-      </div>
+    <PageContainer
+      variant="form"
+      maxWidth="2xl"
+      header={{
+        title: 'Edit Item',
+        description: 'Update item information',
+      }}>
+      {/* Breadcrumb Navigation */}
+      <nav
+        className="flex mb-6"
+        aria-label="Breadcrumb">
+        <ol className="flex items-center space-x-4">
+          <li>
+            <Link
+              href="/items"
+              className="text-gray-500 hover:text-gray-700">
+              Items
+            </Link>
+          </li>
+          <li>
+            <span className="text-gray-400">/</span>
+          </li>
+          <li>
+            <Link
+              href={`/items/${formData.id}`}
+              className="text-gray-500 hover:text-gray-700">
+              {formData.name}
+            </Link>
+          </li>
+          <li>
+            <span className="text-gray-400">/</span>
+          </li>
+          <li>
+            <span className="text-gray-900 font-medium">Edit</span>
+          </li>
+        </ol>
+      </nav>
 
       {/* Global Error Message */}
       {statusValidationError && (
@@ -429,6 +470,6 @@ export default function EditItemPage() {
           </div>
         </form>
       </div>
-    </div>
+    </PageContainer>
   );
 }

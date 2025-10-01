@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import PageContainer from '@/components/layout/PageContainer';
 import { TASK_PRIORITY, TASK_STATUS } from '@/config/workshop-properties';
 import { useTaskFormData } from '@/hooks/useTaskFormData';
 import { TaskResponseDTO } from '@/types/api';
@@ -192,10 +193,14 @@ export default function EditTaskPage() {
 
   if (loading) {
     return (
-      <div className="max-w-2xl mx-auto">
+      <PageContainer
+        variant="form"
+        maxWidth="2xl"
+        header={{
+          title: 'Edit Task',
+          description: 'Update task information',
+        }}>
         <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2 mb-8"></div>
           <div className="bg-white shadow rounded-lg p-6">
             <div className="space-y-6">
               <div className="h-4 bg-gray-200 rounded w-1/4"></div>
@@ -205,7 +210,7 @@ export default function EditTaskPage() {
             </div>
           </div>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
@@ -223,41 +228,43 @@ export default function EditTaskPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      {/* Header */}
-      <div className="mb-8">
-        <nav
-          className="flex mb-4"
-          aria-label="Breadcrumb">
-          <ol className="flex items-center space-x-4">
-            <li>
-              <Link
-                href="/tasks"
-                className="text-gray-500 hover:text-gray-700">
-                Tasks
-              </Link>
-            </li>
-            <li>
-              <span className="text-gray-400">/</span>
-            </li>
-            <li>
-              <Link
-                href={`/tasks/${task.id}`}
-                className="text-gray-500 hover:text-gray-700">
-                {task.title}
-              </Link>
-            </li>
-            <li>
-              <span className="text-gray-400">/</span>
-            </li>
-            <li>
-              <span className="text-gray-900 font-medium">Edit</span>
-            </li>
-          </ol>
-        </nav>
-        <h1 className="text-3xl font-bold text-gray-900">Edit Task</h1>
-        <p className="mt-2 text-gray-600">Update task information</p>
-      </div>
+    <PageContainer
+      variant="form"
+      maxWidth="2xl"
+      header={{
+        title: 'Edit Task',
+        description: 'Update task information',
+      }}>
+      {/* Breadcrumb Navigation */}
+      <nav
+        className="flex mb-6"
+        aria-label="Breadcrumb">
+        <ol className="flex items-center space-x-4">
+          <li>
+            <Link
+              href="/tasks"
+              className="text-gray-500 hover:text-gray-700">
+              Tasks
+            </Link>
+          </li>
+          <li>
+            <span className="text-gray-400">/</span>
+          </li>
+          <li>
+            <Link
+              href={`/tasks/${task.id}`}
+              className="text-gray-500 hover:text-gray-700">
+              {task.title}
+            </Link>
+          </li>
+          <li>
+            <span className="text-gray-400">/</span>
+          </li>
+          <li>
+            <span className="text-gray-900 font-medium">Edit</span>
+          </li>
+        </ol>
+      </nav>
 
       {/* Form */}
       <div className="bg-white shadow rounded-lg">
@@ -442,6 +449,6 @@ export default function EditTaskPage() {
           </div>
         </form>
       </div>
-    </div>
+    </PageContainer>
   );
 }

@@ -2,6 +2,7 @@
 
 import { Suspense, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import PageContainer from '@/components/layout/PageContainer';
 import { TASK_PRIORITY, TASK_STATUS } from '@/config/workshop-properties';
 import { useTaskFormData } from '@/hooks/useTaskFormData';
 import ProjectItemSelect from '@/components/forms/ProjectItemSelect';
@@ -52,13 +53,17 @@ function NewTaskPageContent() {
   // Show loading state while fetching dropdown data
   if (dataLoading) {
     return (
-      <div className="max-w-2xl mx-auto">
+      <PageContainer
+        variant="form"
+        maxWidth="2xl"
+        header={{
+          title: 'Create New Task',
+          description: 'Schedule a new task in the workshop',
+        }}>
         <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2 mb-8"></div>
           <div className="bg-gray-200 h-96 rounded-lg"></div>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
@@ -114,13 +119,13 @@ function NewTaskPageContent() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Create New Task</h1>
-        <p className="mt-2 text-gray-600">Schedule a new task in the workshop</p>
-      </div>
-
+    <PageContainer
+      variant="form"
+      maxWidth="2xl"
+      header={{
+        title: 'Create New Task',
+        description: 'Schedule a new task in the workshop',
+      }}>
       {/* Form */}
       <div className="bg-white shadow rounded-lg">
         <form
@@ -296,7 +301,7 @@ function NewTaskPageContent() {
           </div>
         </form>
       </div>
-    </div>
+    </PageContainer>
   );
 }
 

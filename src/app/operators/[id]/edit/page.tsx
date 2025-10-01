@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import PageContainer from '@/components/layout/PageContainer';
 import { AVAILABLE_SKILLS, OPERATOR_STATUS, OPERATOR_SHIFTS } from '@/config/workshop-properties';
 import VisualIdentifier from '@/components/ui/VisualIdentifier';
 import { PatternType } from '@/utils/entityColors';
@@ -134,10 +135,14 @@ export default function EditOperatorPage() {
 
   if (loading) {
     return (
-      <div className="max-w-2xl mx-auto">
+      <PageContainer
+        variant="form"
+        maxWidth="2xl"
+        header={{
+          title: 'Edit Operator',
+          description: 'Update operator information',
+        }}>
         <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2 mb-8"></div>
           <div className="bg-white shadow rounded-lg p-6">
             <div className="space-y-6">
               <div className="h-4 bg-gray-200 rounded w-1/4"></div>
@@ -147,7 +152,7 @@ export default function EditOperatorPage() {
             </div>
           </div>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
@@ -165,41 +170,43 @@ export default function EditOperatorPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      {/* Header */}
-      <div className="mb-8">
-        <nav
-          className="flex mb-4"
-          aria-label="Breadcrumb">
-          <ol className="flex items-center space-x-4">
-            <li>
-              <Link
-                href="/operators"
-                className="text-gray-500 hover:text-gray-700">
-                Operators
-              </Link>
-            </li>
-            <li>
-              <span className="text-gray-400">/</span>
-            </li>
-            <li>
-              <Link
-                href={`/operators/${operator.id}`}
-                className="text-gray-500 hover:text-gray-700">
-                {operator.name}
-              </Link>
-            </li>
-            <li>
-              <span className="text-gray-400">/</span>
-            </li>
-            <li>
-              <span className="text-gray-900 font-medium">Edit</span>
-            </li>
-          </ol>
-        </nav>
-        <h1 className="text-3xl font-bold text-gray-900">Edit Operator</h1>
-        <p className="mt-2 text-gray-600">Update operator information</p>
-      </div>
+    <PageContainer
+      variant="form"
+      maxWidth="2xl"
+      header={{
+        title: 'Edit Operator',
+        description: 'Update operator information',
+      }}>
+      {/* Breadcrumb Navigation */}
+      <nav
+        className="flex mb-6"
+        aria-label="Breadcrumb">
+        <ol className="flex items-center space-x-4">
+          <li>
+            <Link
+              href="/operators"
+              className="text-gray-500 hover:text-gray-700">
+              Operators
+            </Link>
+          </li>
+          <li>
+            <span className="text-gray-400">/</span>
+          </li>
+          <li>
+            <Link
+              href={`/operators/${operator.id}`}
+              className="text-gray-500 hover:text-gray-700">
+              {operator.name}
+            </Link>
+          </li>
+          <li>
+            <span className="text-gray-400">/</span>
+          </li>
+          <li>
+            <span className="text-gray-900 font-medium">Edit</span>
+          </li>
+        </ol>
+      </nav>
 
       {/* Form */}
       <div className="bg-white shadow rounded-lg">
@@ -372,6 +379,6 @@ export default function EditOperatorPage() {
           </div>
         </form>
       </div>
-    </div>
+    </PageContainer>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import PageContainer from '@/components/layout/PageContainer';
 import { AVAILABLE_SKILLS, OPERATOR_STATUS, OPERATOR_SHIFTS } from '@/config/workshop-properties';
 import VisualIdentifier from '@/components/ui/VisualIdentifier';
 import { PatternType } from '@/utils/entityColors';
@@ -68,13 +69,13 @@ export default function NewOperatorPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Add New Operator</h1>
-        <p className="mt-2 text-gray-600">Register a new operator in the workshop</p>
-      </div>
-
+    <PageContainer
+      variant="form"
+      maxWidth="2xl"
+      header={{
+        title: 'Add New Operator',
+        description: 'Register a new operator in the workshop',
+      }}>
       {/* Form */}
       <div className="bg-white shadow rounded-lg">
         <form
@@ -250,6 +251,6 @@ export default function NewOperatorPage() {
           </div>
         </form>
       </div>
-    </div>
+    </PageContainer>
   );
 }

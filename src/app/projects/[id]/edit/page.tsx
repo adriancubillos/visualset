@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ColorPicker from '@/components/ui/ColorPicker';
+import PageContainer from '@/components/layout/PageContainer';
 import { PROJECT_STATUS } from '@/config/workshop-properties';
 import { checkProjectCompletionReadiness, getProjectCompletionMessage } from '@/utils/projectValidation';
 import { logger } from '@/utils/logger';
@@ -145,10 +146,14 @@ export default function EditProjectPage() {
 
   if (loading) {
     return (
-      <div className="max-w-2xl mx-auto">
+      <PageContainer
+        variant="form"
+        maxWidth="2xl"
+        header={{
+          title: 'Edit Project',
+          description: 'Update project information',
+        }}>
         <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2 mb-8"></div>
           <div className="bg-white shadow rounded-lg p-6">
             <div className="space-y-6">
               <div className="h-4 bg-gray-200 rounded w-1/4"></div>
@@ -158,7 +163,7 @@ export default function EditProjectPage() {
             </div>
           </div>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
@@ -176,41 +181,43 @@ export default function EditProjectPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      {/* Header */}
-      <div className="mb-8">
-        <nav
-          className="flex mb-4"
-          aria-label="Breadcrumb">
-          <ol className="flex items-center space-x-4">
-            <li>
-              <Link
-                href="/projects"
-                className="text-gray-500 hover:text-gray-700">
-                Projects
-              </Link>
-            </li>
-            <li>
-              <span className="text-gray-400">/</span>
-            </li>
-            <li>
-              <Link
-                href={`/projects/${project.id}`}
-                className="text-gray-500 hover:text-gray-700">
-                {project.name}
-              </Link>
-            </li>
-            <li>
-              <span className="text-gray-400">/</span>
-            </li>
-            <li>
-              <span className="text-gray-900 font-medium">Edit</span>
-            </li>
-          </ol>
-        </nav>
-        <h1 className="text-3xl font-bold text-gray-900">Edit Project</h1>
-        <p className="mt-2 text-gray-600">Update project information</p>
-      </div>
+    <PageContainer
+      variant="form"
+      maxWidth="2xl"
+      header={{
+        title: 'Edit Project',
+        description: 'Update project information',
+      }}>
+      {/* Breadcrumb Navigation */}
+      <nav
+        className="flex mb-6"
+        aria-label="Breadcrumb">
+        <ol className="flex items-center space-x-4">
+          <li>
+            <Link
+              href="/projects"
+              className="text-gray-500 hover:text-gray-700">
+              Projects
+            </Link>
+          </li>
+          <li>
+            <span className="text-gray-400">/</span>
+          </li>
+          <li>
+            <Link
+              href={`/projects/${project.id}`}
+              className="text-gray-500 hover:text-gray-700">
+              {project.name}
+            </Link>
+          </li>
+          <li>
+            <span className="text-gray-400">/</span>
+          </li>
+          <li>
+            <span className="text-gray-900 font-medium">Edit</span>
+          </li>
+        </ol>
+      </nav>
 
       {/* Global Error Message */}
       {statusValidationError && (
@@ -421,6 +428,6 @@ export default function EditProjectPage() {
           </div>
         </form>
       </div>
-    </div>
+    </PageContainer>
   );
 }

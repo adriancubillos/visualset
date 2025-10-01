@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ColorPicker from '@/components/ui/ColorPicker';
+import PageContainer from '@/components/layout/PageContainer';
 import { PROJECT_STATUS } from '@/config/workshop-properties';
 import { logger } from '@/utils/logger';
 
@@ -92,12 +93,13 @@ export default function NewProjectPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Create New Project</h1>
-        <p className="mt-2 text-gray-600">Add a new project to your portfolio</p>
-      </div>
+    <PageContainer
+      variant="form"
+      maxWidth="2xl"
+      header={{
+        title: 'Create New Project',
+        description: 'Add a new project to your portfolio',
+      }}>
 
       {/* Form */}
       <div className="bg-white shadow rounded-lg">
@@ -192,6 +194,6 @@ export default function NewProjectPage() {
           </div>
         </form>
       </div>
-    </div>
+    </PageContainer>
   );
 }

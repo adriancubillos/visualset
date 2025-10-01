@@ -6,6 +6,7 @@ import Link from 'next/link';
 import StatusBadge from '@/components/ui/StatusBadge';
 import DataTable from '@/components/ui/DataTable';
 import TableActions from '@/components/ui/TableActions';
+import PageContainer from '@/components/layout/PageContainer';
 import { checkItemCompletionReadiness } from '@/utils/itemValidation';
 import { logger } from '@/utils/logger';
 
@@ -196,36 +197,39 @@ export default function ItemDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <nav
-            className="flex mb-4"
-            aria-label="Breadcrumb">
-            <ol className="flex items-center space-x-2">
-              <li>
-                <Link
-                  href="/items"
-                  className="text-blue-600 hover:text-blue-800">
-                  Items
-                </Link>
-              </li>
-              <li className="text-gray-500">/</li>
-              <li className="text-gray-900 font-medium">{item.name}</li>
-            </ol>
-          </nav>
-          <h1 className="text-3xl font-bold text-gray-900">{item.name}</h1>
-          {item.description && <p className="mt-2 text-gray-600">{item.description}</p>}
-        </div>
-        <div className="flex space-x-3">
+    <PageContainer
+      variant="detail"
+      header={{
+        title: item.name,
+        description: item.description,
+        actions: (
           <Link
             href={`/items/${item.id}/edit`}
             className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
             Edit Item
           </Link>
-        </div>
-      </div>
+        ),
+      }}>
+      {/* Breadcrumb Navigation */}
+      <nav
+        className="flex mb-6"
+        aria-label="Breadcrumb">
+        <ol className="flex items-center space-x-4">
+          <li>
+            <Link
+              href="/items"
+              className="text-gray-500 hover:text-gray-700">
+              Items
+            </Link>
+          </li>
+          <li>
+            <span className="text-gray-400">/</span>
+          </li>
+          <li>
+            <span className="text-gray-900 font-medium">{item.name}</span>
+          </li>
+        </ol>
+      </nav>
 
       {/* Item Info Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -418,6 +422,6 @@ export default function ItemDetailPage() {
           </div>
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }
