@@ -13,6 +13,8 @@ export interface TaskAssignmentUpdate {
   machineId: string | null;
   operatorId: string | null;
   timeSlots: TimeSlot[];
+  quantity: number;
+  completed_quantity: number;
 }
 
 export interface Task {
@@ -48,6 +50,8 @@ export const handleTaskAssignmentUpdate = async (
         itemId: update.itemId,
         machineId: update.machineId,
         operatorId: update.operatorId,
+        quantity: update.quantity,
+        completed_quantity: update.completed_quantity,
         timeSlots: update.timeSlots.map((slot) => ({
           startDateTime: new Date(slot.startDateTime).toISOString(),
           endDateTime: slot.endDateTime ? new Date(slot.endDateTime).toISOString() : undefined,

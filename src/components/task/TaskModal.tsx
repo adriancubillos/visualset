@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import TimeSlotsManager, { TimeSlot } from '@/components/forms/TimeSlotsManager';
 import { sortByName } from '@/utils/sorting';
 import Select from '@/components/ui/Select';
+import QuantityProgress from '@/components/forms/QuantityProgress';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -14,6 +15,8 @@ interface TaskModalProps {
     machineId: string | null;
     operatorId: string | null;
     timeSlots: TimeSlot[];
+    quantity: number;
+    completed_quantity: number;
   }) => void;
   items: { id: string; name: string; project?: { name: string } }[];
   machines: { id: string; name: string }[];
@@ -25,6 +28,8 @@ export default function TaskModal({ isOpen, onClose, task, selectedSlotIndex, on
   const [machineId, setMachineId] = useState<string | null>(null);
   const [operatorId, setOperatorId] = useState<string | null>(null);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
+  const [quantity, setQuantity] = useState<number>(1);
+  const [completedQuantity, setCompletedQuantity] = useState<number>(0);
 
   // Reset state whenever modal opens or task changes
   useEffect(() => {
@@ -32,6 +37,8 @@ export default function TaskModal({ isOpen, onClose, task, selectedSlotIndex, on
       setItemId(task.item?.id ?? null);
       setMachineId(task.machine?.id ?? null);
       setOperatorId(task.operator?.id ?? null);
+      setQuantity(task.quantity ?? 1);
+      setCompletedQuantity(task.completed_quantity ?? 0);
 
       // Convert task timeSlots to TimeSlot format, or create a default one if none exist
       if (task.timeSlots && task.timeSlots.length > 0) {
@@ -125,6 +132,16 @@ export default function TaskModal({ isOpen, onClose, task, selectedSlotIndex, on
           />
         </div>
 
+        {/* Quantity & Progress */}
+        <div className="mb-6">
+          <QuantityProgress
+            quantity={quantity}
+            completedQuantity={completedQuantity}
+            onQuantityChange={setQuantity}
+            onCompletedQuantityChange={setCompletedQuantity}
+          />
+        </div>
+
         {/* Time Slots */}
         <div className="mb-6">
           <TimeSlotsManager
@@ -147,6 +164,8 @@ export default function TaskModal({ isOpen, onClose, task, selectedSlotIndex, on
                 machineId,
                 operatorId,
                 timeSlots,
+                quantity,
+                completed_quantity: completedQuantity,
               });
             }}
             className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium shadow-sm">
