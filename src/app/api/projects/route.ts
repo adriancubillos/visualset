@@ -49,6 +49,7 @@ export async function POST(req: Request) {
         description: body.description,
         status: body.status ?? 'ACTIVE',
         color: body.color || null,
+        imageUrl: body.imageUrl || null,
         startDate: body.startDate ? new Date(body.startDate) : null,
         endDate: body.endDate ? new Date(body.endDate) : null,
       },

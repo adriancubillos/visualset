@@ -43,6 +43,8 @@ export async function POST(req: Request) {
         description: body.description || null,
         status: body.status || 'ACTIVE',
         quantity: body.quantity || 1,
+        measure: body.measure || null,
+        imageUrl: body.imageUrl || null,
         projectId: body.projectId,
       },
       include: {

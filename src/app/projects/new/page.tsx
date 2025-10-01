@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ColorPicker from '@/components/ui/ColorPicker';
+import ImageUpload from '@/components/forms/ImageUpload';
 import PageContainer from '@/components/layout/PageContainer';
 import { PROJECT_STATUS } from '@/config/workshop-properties';
 import { logger } from '@/utils/logger';
@@ -14,6 +15,7 @@ export default function NewProjectPage() {
     description: '',
     status: 'ACTIVE',
     color: '',
+    imageUrl: null as string | null,
   });
   const [loading, setLoading] = useState(false);
   const [usedColors, setUsedColors] = useState<string[]>([]);
@@ -173,6 +175,14 @@ export default function NewProjectPage() {
             onColorChange={handleColorChange}
             usedColors={usedColors}
             error={colorError}
+          />
+
+          {/* Image Upload */}
+          <ImageUpload
+            label="Project Image"
+            currentImageUrl={formData.imageUrl}
+            onImageUploaded={(url) => setFormData({ ...formData, imageUrl: url })}
+            onImageRemoved={() => setFormData({ ...formData, imageUrl: null })}
           />
 
           {/* Actions */}

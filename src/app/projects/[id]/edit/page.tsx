@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ColorPicker from '@/components/ui/ColorPicker';
+import ImageUpload from '@/components/forms/ImageUpload';
 import PageContainer from '@/components/layout/PageContainer';
 import { PROJECT_STATUS } from '@/config/workshop-properties';
 import { checkProjectCompletionReadiness, getProjectCompletionMessage } from '@/utils/projectValidation';
@@ -21,6 +22,7 @@ interface Project {
   description: string;
   status: string;
   color?: string;
+  imageUrl?: string | null;
   items?: Item[];
   createdAt: string;
   updatedAt: string;
@@ -35,6 +37,7 @@ export default function EditProjectPage() {
     description: '',
     status: 'ACTIVE',
     color: '',
+    imageUrl: null as string | null,
     items: [] as Item[],
   });
   const [usedColors, setUsedColors] = useState<string[]>([]);
@@ -71,6 +74,7 @@ export default function EditProjectPage() {
           description: projectData.description || '',
           status: projectData.status,
           color: projectData.color || '',
+          imageUrl: projectData.imageUrl || null,
           items: projectData.items || [],
         });
         setLoading(false);
@@ -383,6 +387,14 @@ export default function EditProjectPage() {
               setColorError('');
             }}
             error={colorError}
+          />
+
+          {/* Image Upload */}
+          <ImageUpload
+            label="Project Image"
+            currentImageUrl={formData.imageUrl}
+            onImageUploaded={(url) => setFormData({ ...formData, imageUrl: url })}
+            onImageRemoved={() => setFormData({ ...formData, imageUrl: null })}
           />
 
           {/* Actions */}

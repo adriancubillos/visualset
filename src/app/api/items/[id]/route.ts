@@ -103,6 +103,8 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
         description: body.description || null,
         status: body.status,
         quantity: body.quantity || 1,
+        measure: body.measure || null,
+        imageUrl: body.imageUrl || null,
         projectId: body.projectId,
       },
       include: {

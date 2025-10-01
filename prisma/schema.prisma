@@ -17,6 +17,7 @@ model Project {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   color       String?
+  imageUrl    String?       // URL to project image in Vercel Blob
   items       Item[]
 }
 
@@ -57,6 +58,8 @@ model Item {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   quantity    Int        @default(1)
+  measure     String?    // Measurements (e.g., "10cm x 5cm x 2cm")
+  imageUrl    String?    // URL to item image in Vercel Blob
   project     Project    @relation(fields: [projectId], references: [id])
   tasks       Task[]
 }

@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
 import PageContainer from '@/components/layout/PageContainer';
+import ImageUpload from '@/components/forms/ImageUpload';
 import { checkItemCompletionReadiness, getItemCompletionMessage } from '@/utils/itemValidation';
 import { ITEM_STATUS } from '@/config/workshop-properties';
 import { logger } from '@/utils/logger';
@@ -27,6 +27,8 @@ interface Item {
   description: string;
   status: string;
   quantity: number;
+  measure?: string;
+  imageUrl?: string | null;
   projectId: string;
   tasks?: Task[];
 }
@@ -41,6 +43,8 @@ export default function EditItemPage() {
     description: '',
     status: 'ACTIVE',
     quantity: 1,
+    measure: '',
+    imageUrl: null,
     projectId: '',
     tasks: [],
   });
@@ -68,6 +72,8 @@ export default function EditItemPage() {
             description: itemData.description || '',
             status: itemData.status,
             quantity: itemData.quantity || 1,
+            measure: itemData.measure || '',
+            imageUrl: itemData.imageUrl || null,
             projectId: itemData.project.id,
             tasks: itemData.tasks || [],
           });
@@ -320,6 +326,33 @@ export default function EditItemPage() {
             />
             <p className="mt-1 text-sm text-gray-500">Total number of this item to be produced</p>
           </div>
+
+          {/* Measurements */}
+          <div>
+            <label
+              htmlFor="measure"
+              className="block text-sm font-medium text-gray-700">
+              Measurements
+            </label>
+            <input
+              type="text"
+              id="measure"
+              name="measure"
+              value={formData.measure || ''}
+              onChange={handleChange}
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              placeholder="e.g., 10cm x 5cm x 2cm"
+            />
+            <p className="mt-1 text-sm text-gray-500">Physical dimensions of the item (optional)</p>
+          </div>
+
+          {/* Image Upload */}
+          <ImageUpload
+            label="Item Image"
+            currentImageUrl={formData.imageUrl || null}
+            onImageUploaded={(url) => setFormData({ ...formData, imageUrl: url })}
+            onImageRemoved={() => setFormData({ ...formData, imageUrl: null })}
+          />
 
           {/* Status */}
           <div>

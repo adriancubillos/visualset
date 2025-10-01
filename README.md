@@ -11,14 +11,19 @@
 ✅ FIXED: extender hora en calendario si es posible o algun zoom o vwer mas amplioas las horas.
 ✅ FIXED: quitar scroll interno del calendario
 ✅ FIXED: change color of task in calendar instead of left/right do top/bottom
+✅ FIXED: calendar row height control
 
 
 Work in progress:
-
-Pending: 
 add measure field for the item
 add image field to the item
 add image field to the project
+
+Set up Vercel Blob storage with upload API routes?
+Update the Prisma schema to add measure and imageUrl fields?
+Create image upload components for items and projects?
+
+Pending: 
 quantity, image, measure and x/y tasks for item list columns
 
 
@@ -55,6 +60,15 @@ remove console logs
 ✅ FIXED: Project completion validation - projects can only be marked as completed when all items are completed
 
 # visualset
+
+# Vercel Blob Storage
+
+Why Vercel Blob?
+✅ Seamless Next.js integration
+✅ Simple API - upload in 3 lines of code
+✅ Automatic CDN - fast global delivery
+✅ Free tier - 500MB storage, 5GB bandwidth
+✅ No infrastructure management
 
 # Ngork
 
