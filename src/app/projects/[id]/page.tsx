@@ -6,6 +6,7 @@ import Link from 'next/link';
 import StatusBadge from '@/components/ui/StatusBadge';
 import ColorIndicator from '@/components/ui/ColorIndicator';
 import StatisticsCards from '@/components/ui/StatisticsCards';
+import PageContainer from '@/components/layout/PageContainer';
 import { PatternType } from '@/utils/entityColors';
 import { checkProjectCompletionReadiness } from '@/utils/projectValidation';
 import { logger } from '@/utils/logger';
@@ -125,11 +126,11 @@ export default function ProjectDetailPage() {
       label: 'Machines Used',
       value: project.items
         ? new Set(
-            project.items
-              .flatMap((item) => item.tasks || [])
-              .filter((task) => task.machine)
-              .map((task) => task.machine!.id),
-          ).size
+          project.items
+            .flatMap((item) => item.tasks || [])
+            .filter((task) => task.machine)
+            .map((task) => task.machine!.id),
+        ).size
         : 0,
       color: 'purple' as const,
     },
@@ -137,11 +138,11 @@ export default function ProjectDetailPage() {
       label: 'Operators Assigned',
       value: project.items
         ? new Set(
-            project.items
-              .flatMap((item) => item.tasks || [])
-              .filter((task) => task.operator)
-              .map((task) => task.operator!.id),
-          ).size
+          project.items
+            .flatMap((item) => item.tasks || [])
+            .filter((task) => task.operator)
+            .map((task) => task.operator!.id),
+        ).size
         : 0,
       color: 'orange' as const,
     },
@@ -153,69 +154,12 @@ export default function ProjectDetailPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-start mb-8">
-        <div className="flex items-center space-x-4">
-          <ColorIndicator
-            entity={{
-              id: project.id,
-              color: project.color,
-              pattern: project.pattern as PatternType,
-            }}
-            entityType="project"
-            size="lg"
-          />
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">{project.name}</h1>
-            <p className="text-gray-600 mt-1">{project.description}</p>
-            <div className="flex space-x-6 mt-2 text-sm text-gray-500">
-              <span>Created: {new Date(project.createdAt).toLocaleDateString()}</span>
-              <span>Last Updated: {new Date(project.updatedAt).toLocaleDateString()}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center space-x-4">
-          <div className="text-right">
-            <StatusBadge
-              status={project.status}
-              variant={getStatusVariant(project.status)}
-            />
-
-            {/* Project Completion Readiness Indicator */}
-            {(() => {
-              if (!project.items) return null;
-
-              const completionStatus = checkProjectCompletionReadiness(
-                project.items.map((item) => ({
-                  id: item.id,
-                  name: item.name,
-                  status: item.status,
-                })),
-              );
-
-              if (project.status === 'COMPLETED') {
-                return <div className="mt-2 text-xs text-green-600 font-medium">✓ Project Completed</div>;
-              }
-
-              if (completionStatus.canComplete) {
-                return <div className="mt-2 text-xs text-green-600 font-medium">✓ Ready for completion</div>;
-              }
-
-              if (completionStatus.totalItems === 0) {
-                return <div className="mt-2 text-xs text-yellow-600 font-medium">⚠ No items added</div>;
-              }
-
-              return (
-                <div className="mt-2 text-xs text-red-600 font-medium">
-                  ✗ {completionStatus.incompleteItems.length} item
-                  {completionStatus.incompleteItems.length !== 1 ? 's' : ''} remaining
-                </div>
-              );
-            })()}
-          </div>
-          <div className="flex space-x-2">
+    <PageContainer
+      header={{
+        title: project.name,
+        description: project.description,
+        actions: (
+          <div className="flex space-x-3">
             <Link
               href={`/projects/${project.id}/edit`}
               className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
@@ -233,10 +177,93 @@ export default function ProjectDetailPage() {
               Delete
             </button>
           </div>
+        ),
+      }}
+      variant="detail">
+
+      <div className="flex items-center space-x-4">
+        <ColorIndicator
+          entity={{
+            id: project.id,
+            color: project.color,
+            pattern: project.pattern as PatternType,
+          }}
+          entityType="project"
+          size="lg"
+        />
+        <div>
+          <div className="flex space-x-6 mt-2 text-sm text-gray-500">
+            <span>Created: {new Date(project.createdAt).toLocaleDateString()}</span>
+            <span>Last Updated: {new Date(project.updatedAt).toLocaleDateString()}</span>
+          </div>
         </div>
       </div>
 
-      {/* Statistics Cards - Moved to top for consistency */}
+
+      {/* Breadcrumb Navigation */}
+      <nav
+        className="flex mb-6"
+        aria-label="Breadcrumb">
+        <ol className="flex items-center space-x-4">
+          <li>
+            <Link
+              href="/projects"
+              className="text-gray-500 hover:text-gray-700">
+              Projects
+            </Link>
+          </li>
+          <li>
+            <span className="text-gray-400">/</span>
+          </li>
+          <li>
+            <span className="text-gray-900 font-medium">{project.name}</span>
+          </li>
+        </ol>
+      </nav>
+
+
+      {/* Status and Info */}
+      <div className="mb-6 flex items-center space-x-4">
+        <StatusBadge
+          status={project.status}
+          variant={getStatusVariant(project.status)}
+        />
+
+        {/* Project Completion Readiness Indicator */}
+        {(() => {
+          if (!project.items) return null;
+
+          const completionStatus = checkProjectCompletionReadiness(
+            project.items.map((item) => ({
+              id: item.id,
+              name: item.name,
+              status: item.status,
+            })),
+          );
+
+          if (project.status === 'COMPLETED') {
+            return <div className="mt-2 text-xs text-green-600 font-medium">✓ Project Completed</div>;
+          }
+
+          if (completionStatus.canComplete) {
+            return <div className="mt-2 text-xs text-green-600 font-medium">✓ Ready for completion</div>;
+          }
+
+          if (completionStatus.totalItems === 0) {
+            return <div className="mt-2 text-xs text-yellow-600 font-medium">⚠ No items added</div>;
+          }
+
+          return (
+            <div className="mt-2 text-xs text-red-600 font-medium">
+              ✗ {completionStatus.incompleteItems.length} item
+              {completionStatus.incompleteItems.length !== 1 ? 's' : ''} remaining
+            </div>
+          );
+        })()}
+      </div>
+
+
+      {/* Statistics Cards */}
       <div className="mb-8">
         <StatisticsCards
           stats={statisticsCards}
@@ -302,15 +329,13 @@ export default function ProjectDetailPage() {
                       {/* Progress bar */}
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div
-                          className={`h-2 rounded-full transition-all duration-300 ${
-                            item.tasks.filter((t) => t.status === 'COMPLETED').length / item.tasks.length === 1
-                              ? 'bg-green-500'
-                              : 'bg-blue-500'
-                          }`}
+                          className={`h-2 rounded-full transition-all duration-300 ${item.tasks.filter((t) => t.status === 'COMPLETED').length / item.tasks.length === 1
+                            ? 'bg-green-500'
+                            : 'bg-blue-500'
+                            }`}
                           style={{
-                            width: `${
-                              (item.tasks.filter((t) => t.status === 'COMPLETED').length / item.tasks.length) * 100
-                            }%`,
+                            width: `${(item.tasks.filter((t) => t.status === 'COMPLETED').length / item.tasks.length) * 100
+                              }%`,
                           }}
                         />
                       </div>
@@ -329,16 +354,16 @@ export default function ProjectDetailPage() {
                         {item.tasks.filter(
                           (t) => !['PENDING', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED'].includes(t.status),
                         ).length > 0 && (
-                          <div className="flex items-center text-xs text-red-700 bg-red-50 px-2 py-1 rounded">
-                            <span className="mr-1">🚨</span>
-                            {
-                              item.tasks.filter(
-                                (t) => !['PENDING', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED'].includes(t.status),
-                              ).length
-                            }{' '}
-                            task(s) need attention
-                          </div>
-                        )}
+                            <div className="flex items-center text-xs text-red-700 bg-red-50 px-2 py-1 rounded">
+                              <span className="mr-1">🚨</span>
+                              {
+                                item.tasks.filter(
+                                  (t) => !['PENDING', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED'].includes(t.status),
+                                ).length
+                              }{' '}
+                              task(s) need attention
+                            </div>
+                          )}
                       </div>
                     </div>
                   ) : (
@@ -364,6 +389,6 @@ export default function ProjectDetailPage() {
           )}
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }
