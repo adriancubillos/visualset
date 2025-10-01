@@ -202,7 +202,7 @@ export default function ProjectsPage() {
   const filterOptions = [
     {
       key: 'status',
-      label: 'Filter by Status',
+      label: 'All Statuses',
       options: PROJECT_STATUS.map((status) => ({
         value: status.value,
         label: status.label,

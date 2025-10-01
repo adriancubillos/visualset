@@ -326,7 +326,7 @@ export default function TasksPage() {
   const filterOptions = [
     {
       key: 'status',
-      label: 'Filter by Status',
+      label: 'All Statuses',
       options: TASK_STATUS.slice()
         .sort((a, b) => a.label.localeCompare(b.label))
         .map((status) => ({
@@ -336,7 +336,7 @@ export default function TasksPage() {
     },
     {
       key: 'project',
-      label: 'Filter by Project',
+      label: 'All Projects',
       options: projects
         .slice()
         .sort((a, b) => a.name.localeCompare(b.name))
@@ -347,7 +347,7 @@ export default function TasksPage() {
     },
     {
       key: 'item',
-      label: 'Filter by Item',
+      label: 'All Items',
       options: items
         .slice()
         .sort((a, b) => a.name.localeCompare(b.name))
@@ -358,7 +358,7 @@ export default function TasksPage() {
     },
     {
       key: 'machine',
-      label: 'Filter by Machine',
+      label: 'All Machines',
       options: machines
         .slice()
         .sort((a, b) => a.name.localeCompare(b.name))
@@ -369,7 +369,7 @@ export default function TasksPage() {
     },
     {
       key: 'operator',
-      label: 'Filter by Operator',
+      label: 'All Operators',
       options: operators
         .slice()
         .sort((a, b) => a.name.localeCompare(b.name))

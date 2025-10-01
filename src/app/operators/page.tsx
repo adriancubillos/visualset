@@ -230,7 +230,7 @@ export default function OperatorsPage() {
   const filterOptions = [
     {
       key: 'status',
-      label: 'Filter by Status',
+      label: 'All Statuses',
       options: OPERATOR_STATUS.map((status) => ({
         value: status.value,
         label: status.label,
@@ -238,7 +238,7 @@ export default function OperatorsPage() {
     },
     {
       key: 'shift',
-      label: 'Filter by Shift',
+      label: 'All Shifts',
       options: OPERATOR_SHIFTS.map((shift) => ({
         value: shift.value,
         label: shift.label,
@@ -246,7 +246,7 @@ export default function OperatorsPage() {
     },
     {
       key: 'skill',
-      label: 'Filter by Skill',
+      label: 'All Skills',
       options: AVAILABLE_SKILLS.map((skill) => ({
         value: skill.value,
         label: skill.label,

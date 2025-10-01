@@ -105,6 +105,7 @@ export default function SearchFilter({
                 onChange={(value) => handleFilterChange(filter.key, value)}
                 options={filter.options.map(opt => ({ id: opt.value, name: opt.label }))}
                 allLabel={filter.label}
+                compact={true}
               />
             </div>
           ))}

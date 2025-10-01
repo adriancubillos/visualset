@@ -214,7 +214,7 @@ export default function ItemsPage() {
   const filters = [
     {
       key: 'project',
-      label: 'Filter by Project',
+      label: 'All Projects',
       options: projects
         .slice()
         .sort((a, b) => a.name.localeCompare(b.name))
@@ -225,7 +225,7 @@ export default function ItemsPage() {
     },
     {
       key: 'status',
-      label: 'Filter by Status',
+      label: 'All Statuses',
       options: statusOptions,
     },
   ];

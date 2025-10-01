@@ -216,7 +216,7 @@ export default function MachinesPage() {
   const filterOptions = [
     {
       key: 'status',
-      label: 'Filter by Status',
+      label: 'All Statuses',
       options: MACHINE_STATUS.map((status) => ({
         value: status.value,
         label: status.label,
@@ -224,7 +224,7 @@ export default function MachinesPage() {
     },
     {
       key: 'type',
-      label: 'Filter by Type',
+      label: 'All Types',
       options: MACHINE_TYPES.map((type) => ({
         value: type.value,
         label: type.label,
@@ -232,7 +232,7 @@ export default function MachinesPage() {
     },
     {
       key: 'location',
-      label: 'Filter by Location',
+      label: 'All Locations',
       options: Array.from(new Set(machines.map((machine) => machine.location)))
         .filter((location) => location) // Remove empty locations
         .sort()

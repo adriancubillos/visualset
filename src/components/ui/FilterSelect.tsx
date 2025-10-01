@@ -16,6 +16,7 @@ interface FilterSelectProps {
   allLabel?: string;
   label?: string;
   className?: string;
+  compact?: boolean; // For use in SearchFilter - no label, different styling
 }
 
 export default function FilterSelect({
@@ -25,15 +26,21 @@ export default function FilterSelect({
   allLabel = 'All',
   label,
   className = '',
+  compact = false,
 }: FilterSelectProps) {
   const selectedOption = value === 'all' ? null : options.find((opt) => opt.id === value);
 
+  // Styling based on compact mode
+  const buttonClasses = compact
+    ? "relative w-full border-2 border-gray-200 rounded-lg p-3 text-left text-gray-700 bg-gray-50 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:bg-white transition-colors cursor-pointer"
+    : "relative w-full border-2 border-slate-200 rounded-lg p-3 text-left text-slate-700 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition-colors cursor-pointer";
+
   return (
     <div className={className}>
-      {label && <label className="block text-sm font-medium text-slate-700 mb-2">{label}</label>}
+      {label && !compact && <label className="block text-sm font-medium text-slate-700 mb-2">{label}</label>}
       <Listbox value={value} onChange={onChange}>
         <div className="relative">
-          <ListboxButton className="relative w-full border-2 border-slate-200 rounded-lg p-3 text-left text-slate-700 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition-colors cursor-pointer">
+          <ListboxButton className={buttonClasses}>
             <span className="block truncate">{selectedOption ? selectedOption.name : allLabel}</span>
             <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
               <svg
