@@ -5,11 +5,10 @@
   "scripts": {
     "dev": "next dev",
     "dev:turbo": "next dev --turbopack",
-    "build": "prisma generate && prisma migrate deploy && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest",
-    "postinstall": "prisma generate"
+    "test": "vitest"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.8",
