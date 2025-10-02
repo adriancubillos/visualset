@@ -31,7 +31,14 @@ export function useSimpleFilters({ defaultFilters = {} }: UseSimpleFiltersOption
 
   // Debug logging
   if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-    console.log(`[${pathname}] Search:`, search, 'Filters:', filters, 'SearchParams:', Object.fromEntries(searchParams.entries()));
+    console.log(
+      `[${pathname}] Search:`,
+      search,
+      'Filters:',
+      filters,
+      'SearchParams:',
+      Object.fromEntries(searchParams.entries()),
+    );
   }
 
   // Update URL (which automatically updates component)
@@ -48,7 +55,7 @@ export function useSimpleFilters({ defaultFilters = {} }: UseSimpleFiltersOption
 
       const queryString = params.toString();
       const newUrl = queryString ? `${pathname}?${queryString}` : pathname;
-      
+
       // Use push instead of replace to create history entries
       router.replace(newUrl, { scroll: false });
     },
