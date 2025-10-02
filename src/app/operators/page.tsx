@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import PageContainer from '@/components/layout/PageContainer';
@@ -14,6 +14,7 @@ import { logger } from '@/utils/logger';
 import StatisticsCards from '@/components/ui/StatisticsCards';
 import { AVAILABLE_SKILLS, OPERATOR_STATUS, OPERATOR_SHIFTS } from '@/config/workshop-properties';
 import { Column } from '@/types/table';
+import { useSimpleFilters } from '@/hooks/useSimpleFilters';
 
 interface Operator {
   id: string;
@@ -149,44 +150,29 @@ const getInitialColumns = (): Column<Operator>[] => {
 
 export default function OperatorsPage() {
   const [operators, setOperators] = useState<Operator[]>([]);
-  const [filteredOperators, setFilteredOperators] = useState<Operator[]>([]);
   const [loading, setLoading] = useState(true);
   const [columns, setColumns] = useState<Column<Operator>[]>(getInitialColumns);
 
-  useEffect(() => {
-    const fetchOperators = async () => {
-      try {
-        const response = await fetch('/api/operators');
-        if (response.ok) {
-          const data = await response.json();
-          setOperators(data);
-          setFilteredOperators(data);
-        } else {
-          logger.apiError('Fetch operators', '/api/operators', 'Failed to fetch');
-        }
-      } catch (error) {
-        logger.error('Error fetching operators', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Use URL-first filter persistence
+  const { search, filters, updateSearch, updateFilters } = useSimpleFilters({
+    defaultFilters: { status: '', shift: '', skill: '' },
+  });
 
-    fetchOperators();
-  }, []);
-
-  const handleSearch = (query: string) => {
-    const filtered = operators.filter(
-      (operator) =>
-        operator.name.toLowerCase().includes(query.toLowerCase()) ||
-        operator.email.toLowerCase().includes(query.toLowerCase()) ||
-        operator.skills.some((skill) => skill.toLowerCase().includes(query.toLowerCase())),
-    );
-    setFilteredOperators(filtered);
-  };
-
-  const handleFilterChange = (filters: Record<string, string>) => {
+  // Filter operators based on search and filters
+  const filteredOperators = useMemo(() => {
     let filtered = operators;
 
+    // Apply search filter
+    if (search.trim()) {
+      filtered = filtered.filter(
+        (operator) =>
+          operator.name.toLowerCase().includes(search.toLowerCase()) ||
+          operator.email?.toLowerCase().includes(search.toLowerCase()) ||
+          operator.skills.some((skill) => skill.toLowerCase().includes(search.toLowerCase())),
+      );
+    }
+
+    // Apply filters
     if (filters.status) {
       filtered = filtered.filter((operator) => operator.status === filters.status);
     }
@@ -199,8 +185,28 @@ export default function OperatorsPage() {
       filtered = filtered.filter((operator) => operator.skills.includes(filters.skill));
     }
 
-    setFilteredOperators(filtered);
-  };
+    return filtered;
+  }, [operators, search, filters]);
+
+  useEffect(() => {
+    const fetchOperators = async () => {
+      try {
+        const response = await fetch('/api/operators');
+        if (response.ok) {
+          const data = await response.json();
+          setOperators(data);
+        } else {
+          logger.apiError('Fetch operators', '/api/operators', 'Failed to fetch');
+        }
+      } catch (error) {
+        logger.error('Error fetching operators', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOperators();
+  }, []);
 
   // Column management functions
   const handleColumnReorder = (reorderedColumns: Column<Operator>[]) => {
@@ -256,7 +262,9 @@ export default function OperatorsPage() {
   const handleDelete = (operatorId: string, operatorName?: string) => {
     showConfirmDialog({
       title: 'Delete Operator',
-      message: `Are you sure you want to delete operator "${operatorName || 'this operator'}"? This action cannot be undone.`,
+      message: `Are you sure you want to delete operator "${
+        operatorName || 'this operator'
+      }"? This action cannot be undone.`,
       confirmLabel: 'Delete',
       cancelLabel: 'Cancel',
       variant: 'danger',
@@ -273,14 +281,16 @@ export default function OperatorsPage() {
       if (response.ok) {
         const updatedOperators = operators.filter((op) => op.id !== operatorId);
         setOperators(updatedOperators);
-        setFilteredOperators(updatedOperators);
         toast.success('Operator deleted successfully');
       } else {
         const errorData = await response.json();
         logger.error('Failed to delete operator,', errorData.error);
 
         if (errorData.error?.includes('assigned tasks')) {
-          toast.error(`Cannot delete "${operatorName}". This operator is currently assigned to one or more tasks. Please unassign or delete those tasks first.`, { duration: 6000 });
+          toast.error(
+            `Cannot delete "${operatorName}". This operator is currently assigned to one or more tasks. Please unassign or delete those tasks first.`,
+            { duration: 6000 },
+          );
         } else {
           toast.error('Failed to delete operator: ' + (errorData.error || 'Unknown error'));
         }
@@ -338,9 +348,11 @@ export default function OperatorsPage() {
       {/* Search and Filters */}
       <SearchFilter
         placeholder="Search operators..."
-        onSearch={handleSearch}
+        initialSearch={search}
+        onSearch={updateSearch}
+        initialFilters={filters}
         filters={filterOptions}
-        onFilterChange={handleFilterChange}
+        onFilterChange={updateFilters}
       />
 
       {/* Operators Table */}

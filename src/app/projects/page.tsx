@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import PageContainer from '@/components/layout/PageContainer';
@@ -15,6 +15,7 @@ import { PROJECT_STATUS } from '@/config/workshop-properties';
 import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { logger } from '@/utils/logger';
 import { Column } from '@/types/table';
+import { useSimpleFilters } from '@/hooks/useSimpleFilters';
 
 interface Project {
   id: string;
@@ -67,9 +68,7 @@ const defaultColumns: Column<Project>[] = [
   {
     key: 'orderNumber',
     header: 'Order #',
-    render: (value: string | null | undefined) => (
-      <span className="text-sm text-gray-600">{value || '-'}</span>
-    ),
+    render: (value: string | null | undefined) => <span className="text-sm text-gray-600">{value || '-'}</span>,
   },
   {
     key: 'description',
@@ -154,9 +153,35 @@ const getInitialColumns = (): Column<Project>[] => {
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [columns, setColumns] = useState<Column<Project>[]>(getInitialColumns);
+
+  // Use simple URL-first filter persistence
+  const { search, filters, updateSearch, updateFilters, clearAll, hasActiveFilters } = useSimpleFilters({
+    defaultFilters: { status: '' },
+  });
+
+  // Filter projects based on search and filters
+  const filteredProjects = useMemo(() => {
+    let filtered = projects;
+
+    // Apply search filter
+    if (search.trim()) {
+      filtered = filtered.filter(
+        (project) =>
+          project.name.toLowerCase().includes(search.toLowerCase()) ||
+          project.description.toLowerCase().includes(search.toLowerCase()) ||
+          (project.orderNumber && project.orderNumber.toLowerCase().includes(search.toLowerCase())),
+      );
+    }
+
+    // Apply status filter
+    if (filters.status) {
+      filtered = filtered.filter((project) => project.status === filters.status);
+    }
+
+    return filtered;
+  }, [projects, search, filters]);
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -165,7 +190,6 @@ export default function ProjectsPage() {
         if (response.ok) {
           const data = await response.json();
           setProjects(data);
-          setFilteredProjects(data);
         } else {
           logger.error('Failed to fetch projects');
         }
@@ -178,25 +202,6 @@ export default function ProjectsPage() {
 
     fetchProjects();
   }, []);
-
-  const handleSearch = (query: string) => {
-    const filtered = projects.filter(
-      (project) =>
-        project.name.toLowerCase().includes(query.toLowerCase()) ||
-        project.description.toLowerCase().includes(query.toLowerCase()),
-    );
-    setFilteredProjects(filtered);
-  };
-
-  const handleFilterChange = (filters: Record<string, string>) => {
-    let filtered = projects;
-
-    if (filters.status) {
-      filtered = filtered.filter((project) => project.status === filters.status);
-    }
-
-    setFilteredProjects(filtered);
-  };
 
   // Column management functions
   const handleColumnReorder = (reorderedColumns: Column<Project>[]) => {
@@ -237,7 +242,9 @@ export default function ProjectsPage() {
   const handleDelete = (projectId: string, projectName?: string) => {
     showConfirmDialog({
       title: 'Delete Project',
-      message: `Are you sure you want to delete project "${projectName || 'this project'}"? This action cannot be undone.`,
+      message: `Are you sure you want to delete project "${
+        projectName || 'this project'
+      }"? This action cannot be undone.`,
       confirmLabel: 'Delete',
       cancelLabel: 'Cancel',
       variant: 'danger',
@@ -255,7 +262,6 @@ export default function ProjectsPage() {
         // Remove project from local state to update UI immediately
         const updatedProjects = projects.filter((p) => p.id !== projectId);
         setProjects(updatedProjects);
-        setFilteredProjects(updatedProjects);
         toast.success('Project deleted successfully');
       } else {
         const errorData = await response.json();
@@ -317,12 +323,25 @@ export default function ProjectsPage() {
       />
 
       {/* Search and Filters */}
-      <SearchFilter
-        placeholder="Search projects..."
-        onSearch={handleSearch}
-        filters={filterOptions}
-        onFilterChange={handleFilterChange}
-      />
+      <div className="flex flex-col lg:flex-row gap-4 items-end">
+        <div className="flex-1">
+          <SearchFilter
+            placeholder="Search projects..."
+            initialSearch={search}
+            initialFilters={filters}
+            onSearch={updateSearch}
+            filters={filterOptions}
+            onFilterChange={updateFilters}
+          />
+        </div>
+        {hasActiveFilters && (
+          <button
+            onClick={clearAll}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            Clear Filters
+          </button>
+        )}
+      </div>
 
       {/* Projects Table */}
       <DataTable

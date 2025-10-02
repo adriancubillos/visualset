@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import PageContainer from '@/components/layout/PageContainer';
@@ -13,6 +13,7 @@ import { logger } from '@/utils/logger';
 import StatisticsCards from '@/components/ui/StatisticsCards';
 import { TASK_STATUS } from '@/config/workshop-properties';
 import { Column } from '@/types/table';
+import { useSimpleFilters } from '@/hooks/useSimpleFilters';
 
 interface Task {
   id: string;
@@ -198,13 +199,56 @@ const getInitialColumns = (): Column<Task>[] => {
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
   const [items, setItems] = useState<{ id: string; name: string }[]>([]);
   const [machines, setMachines] = useState<{ id: string; name: string }[]>([]);
   const [operators, setOperators] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [columns, setColumns] = useState<Column<Task>[]>(getInitialColumns);
+
+  // Use URL-first filter persistence
+  const { search, filters, updateSearch, updateFilters, clearAll, hasActiveFilters } = useSimpleFilters({
+    defaultFilters: { status: '', project: '', item: '', machine: '', operator: '' },
+  });
+
+  // Filter tasks based on search and filters
+  const filteredTasks = useMemo(() => {
+    let filtered = tasks;
+
+    // Apply search filter
+    if (search.trim()) {
+      filtered = filtered.filter(
+        (task) =>
+          task.title.toLowerCase().includes(search.toLowerCase()) ||
+          task.description?.toLowerCase().includes(search.toLowerCase()) ||
+          task.item?.name.toLowerCase().includes(search.toLowerCase()) ||
+          task.item?.project.name.toLowerCase().includes(search.toLowerCase()),
+      );
+    }
+
+    // Apply filters
+    if (filters.status) {
+      filtered = filtered.filter((task) => task.status === filters.status);
+    }
+
+    if (filters.project) {
+      filtered = filtered.filter((task) => task.item?.project.id === filters.project);
+    }
+
+    if (filters.item) {
+      filtered = filtered.filter((task) => task.item?.id === filters.item);
+    }
+
+    if (filters.machine) {
+      filtered = filtered.filter((task) => task.machine?.id === filters.machine);
+    }
+
+    if (filters.operator) {
+      filtered = filtered.filter((task) => task.operator?.id === filters.operator);
+    }
+
+    return filtered;
+  }, [tasks, search, filters]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -219,7 +263,6 @@ export default function TasksPage() {
         if (tasksResponse.ok) {
           const tasksData = await tasksResponse.json();
           setTasks(tasksData);
-          setFilteredTasks(tasksData);
         } else {
           logger.apiError('Fetch tasks', '/api/tasks', `Status: ${tasksResponse.status}`);
         }
@@ -228,8 +271,9 @@ export default function TasksPage() {
           const projectsData = await projectsResponse.json();
           setProjects(projectsData.map((p: { id: string; name: string }) => ({ id: p.id, name: p.name })));
           // Extract items from projects
-          const allItems = projectsData.flatMap((p: { id: string; name: string; items?: { id: string; name: string }[] }) =>
-            (p.items || []).map((item: { id: string; name: string }) => ({ id: item.id, name: item.name })),
+          const allItems = projectsData.flatMap(
+            (p: { id: string; name: string; items?: { id: string; name: string }[] }) =>
+              (p.items || []).map((item: { id: string; name: string }) => ({ id: item.id, name: item.name })),
           );
           setItems(allItems);
         } else {
@@ -258,44 +302,6 @@ export default function TasksPage() {
 
     fetchData();
   }, []);
-
-  const handleSearch = (query: string) => {
-    const filtered = tasks.filter(
-      (task) =>
-        task.title.toLowerCase().includes(query.toLowerCase()) ||
-        task.description.toLowerCase().includes(query.toLowerCase()) ||
-        task.item?.project?.name.toLowerCase().includes(query.toLowerCase()) ||
-        task.machine?.name.toLowerCase().includes(query.toLowerCase()) ||
-        task.operator?.name.toLowerCase().includes(query.toLowerCase()),
-    );
-    setFilteredTasks(filtered);
-  };
-
-  const handleFilterChange = (filters: Record<string, string>) => {
-    let filtered = tasks;
-
-    if (filters.status) {
-      filtered = filtered.filter((task) => task.status === filters.status);
-    }
-
-    if (filters.project) {
-      filtered = filtered.filter((task) => task.item?.project.id === filters.project);
-    }
-
-    if (filters.item) {
-      filtered = filtered.filter((task) => task.item?.id === filters.item);
-    }
-
-    if (filters.machine) {
-      filtered = filtered.filter((task) => task.machine?.id === filters.machine);
-    }
-
-    if (filters.operator) {
-      filtered = filtered.filter((task) => task.operator?.id === filters.operator);
-    }
-
-    setFilteredTasks(filtered);
-  };
 
   // Column management functions
   const handleColumnReorder = (reorderedColumns: Column<Task>[]) => {
@@ -398,7 +404,6 @@ export default function TasksPage() {
       if (response.ok) {
         const updatedTasks = tasks.filter((task) => task.id !== taskId);
         setTasks(updatedTasks);
-        setFilteredTasks(updatedTasks);
         toast.success('Task deleted successfully');
       } else {
         logger.apiError('Delete task', `/api/tasks/${taskId}`, 'Failed to delete');
@@ -472,10 +477,22 @@ export default function TasksPage() {
       {/* Search and Filters */}
       <SearchFilter
         placeholder="Search tasks..."
-        onSearch={handleSearch}
+        initialSearch={search}
+        initialFilters={filters}
+        onSearch={updateSearch}
         filters={filterOptions}
-        onFilterChange={handleFilterChange}
+        onFilterChange={updateFilters}
       />
+
+      {hasActiveFilters && (
+        <div className="mb-4">
+          <button
+            onClick={clearAll}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            Clear Filters
+          </button>
+        </div>
+      )}
 
       {/* Tasks Table */}
       <DataTable

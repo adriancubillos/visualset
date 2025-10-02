@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import PageContainer from '@/components/layout/PageContainer';
@@ -13,6 +13,7 @@ import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { logger } from '@/utils/logger';
 import StatisticsCards from '@/components/ui/StatisticsCards';
 import { Column } from '@/types/table';
+import { useSimpleFilters } from '@/hooks/useSimpleFilters';
 
 interface Item {
   id: string;
@@ -39,18 +40,46 @@ interface Item {
 
 export default function ItemsPage() {
   const [items, setItems] = useState<Item[]>([]);
-  const [filteredItems, setFilteredItems] = useState<Item[]>([]);
   const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Use URL-first filter persistence
+  const { search, filters, updateSearch, updateFilters, clearAll, hasActiveFilters } = useSimpleFilters({
+    defaultFilters: { project: '', status: '' },
+  });
+
+  // Filter items based on search and filters
+  const filteredItems = useMemo(() => {
+    let filtered = items;
+
+    // Apply search filter
+    if (search.trim()) {
+      filtered = filtered.filter(
+        (item) =>
+          item.name.toLowerCase().includes(search.toLowerCase()) ||
+          item.description?.toLowerCase().includes(search.toLowerCase()) ||
+          item.project.name.toLowerCase().includes(search.toLowerCase()),
+      );
+    }
+
+    // Apply filters
+    if (filters.project) {
+      filtered = filtered.filter((item) => item.project.id === filters.project);
+    }
+
+    if (filters.status) {
+      filtered = filtered.filter((item) => item.status === filters.status);
+    }
+
+    return filtered;
+  }, [items, search, filters]);
 
   // Default column configuration
   const defaultColumns: Column<Item>[] = [
     {
       key: 'quantity' as keyof Item,
       header: 'Quantity',
-      render: (value: number | undefined) => (
-        <span className="text-sm text-gray-900">{value || '-'}</span>
-      ),
+      render: (value: number | undefined) => <span className="text-sm text-gray-900">{value || '-'}</span>,
     },
     {
       key: 'name' as keyof Item,
@@ -70,9 +99,7 @@ export default function ItemsPage() {
     {
       key: 'measure' as keyof Item,
       header: 'Measure',
-      render: (value: string | undefined) => (
-        <span className="text-sm text-gray-600">{value || '-'}</span>
-      ),
+      render: (value: string | undefined) => <span className="text-sm text-gray-600">{value || '-'}</span>,
     },
     {
       key: 'imageUrl' as keyof Item,
@@ -89,10 +116,12 @@ export default function ItemsPage() {
       key: '_count' as keyof Item,
       header: 'Tasks',
       render: (value: Item['_count'], item: Item) => {
-        const completedTasks = item.tasks?.filter(t => t.status === 'COMPLETED').length || 0;
+        const completedTasks = item.tasks?.filter((t) => t.status === 'COMPLETED').length || 0;
         const totalTasks = item._count.tasks;
         return (
-          <span className="text-sm text-gray-600">{completedTasks}/{totalTasks}</span>
+          <span className="text-sm text-gray-600">
+            {completedTasks}/{totalTasks}
+          </span>
         );
       },
     },
@@ -117,9 +146,7 @@ export default function ItemsPage() {
       key: 'updatedAt' as keyof Item,
       header: 'Last Updated',
       sortable: true,
-      render: (value: string) => (
-        <span className="text-sm text-gray-500">{new Date(value).toLocaleDateString()}</span>
-      ),
+      render: (value: string) => <span className="text-sm text-gray-500">{new Date(value).toLocaleDateString()}</span>,
     },
   ];
 
@@ -159,7 +186,6 @@ export default function ItemsPage() {
         if (itemsResponse.ok) {
           const itemsData = await itemsResponse.json();
           setItems(itemsData);
-          setFilteredItems(itemsData);
         } else {
           logger.error('Failed to fetch items');
         }
@@ -179,30 +205,6 @@ export default function ItemsPage() {
 
     fetchData();
   }, []);
-
-  const handleSearch = (query: string) => {
-    const filtered = items.filter(
-      (item) =>
-        item.name.toLowerCase().includes(query.toLowerCase()) ||
-        item.description?.toLowerCase().includes(query.toLowerCase()) ||
-        item.project.name.toLowerCase().includes(query.toLowerCase()),
-    );
-    setFilteredItems(filtered);
-  };
-
-  const handleFilterChange = (filters: Record<string, string>) => {
-    let filtered = items;
-
-    if (filters.project) {
-      filtered = filtered.filter((item) => item.project.id === filters.project);
-    }
-
-    if (filters.status) {
-      filtered = filtered.filter((item) => item.status === filters.status);
-    }
-
-    setFilteredItems(filtered);
-  };
 
   const handleDelete = (id: string, itemName?: string) => {
     showConfirmDialog({
@@ -224,7 +226,6 @@ export default function ItemsPage() {
       if (response.ok) {
         const updatedItems = items.filter((item) => item.id !== id);
         setItems(updatedItems);
-        setFilteredItems(updatedItems.filter((item) => filteredItems.some((filtered) => filtered.id === item.id)));
         toast.success('Item deleted successfully');
       } else {
         const errorData = await response.json();
@@ -254,7 +255,7 @@ export default function ItemsPage() {
     { value: 'ON_HOLD', label: 'On Hold' },
   ];
 
-  const filters = [
+  const filterOptions = [
     {
       key: 'project',
       label: 'All Projects',
@@ -303,10 +304,22 @@ export default function ItemsPage() {
       {/* Search and Filters */}
       <SearchFilter
         placeholder="Search items by name, description, or project..."
-        onSearch={handleSearch}
-        filters={filters}
-        onFilterChange={handleFilterChange}
+        initialSearch={search}
+        initialFilters={filters}
+        onSearch={updateSearch}
+        filters={filterOptions}
+        onFilterChange={updateFilters}
       />
+
+      {hasActiveFilters && (
+        <div className="mb-4">
+          <button
+            onClick={clearAll}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            Clear Filters
+          </button>
+        </div>
+      )}
 
       {/* Items Table */}
       <div className="bg-white shadow rounded-lg">

@@ -17,13 +17,10 @@
 ✅ FIXED: add image field to the project
 ✅ FIXED: Display iamge in table
 ✅ FIXED: quantity, image, measure and x/y tasks for item list columns
+✅ FIXED: Add a number to the project (order number)
+✅ FIXED: keep filters on pages so if a navigate away or reload the filters stay
 
 Work in progress:
-Add a number to the project (order number)
-
-
-Pending:
-keep filters on pages
 Crear plantillas de tareas, (Plano general y visual//Archivos impreison y corte//cuenta de materiales//compra de materiales//impreison//corte//carpinteria//pintura//planos estructuras//Ornamentacio//cableado iluminación//Ensamble//Empaque//Laminado//transporte//instalacion)
 
 # Extra DB for Production

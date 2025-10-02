@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import PageContainer from '@/components/layout/PageContainer';
@@ -14,6 +14,7 @@ import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { logger } from '@/utils/logger';
 import { MACHINE_TYPES, MACHINE_STATUS } from '@/config/workshop-properties';
 import { Column } from '@/types/table';
+import { useSimpleFilters } from '@/hooks/useSimpleFilters';
 
 interface Machine {
   id: string;
@@ -133,15 +134,42 @@ const getInitialColumns = (): Column<Machine>[] => {
 
 export default function MachinesPage() {
   const [machines, setMachines] = useState<Machine[]>([]);
-  const [filteredMachines, setFilteredMachines] = useState<Machine[]>([]);
   const [loading, setLoading] = useState(true);
   const [columns, setColumns] = useState<Column<Machine>[]>(getInitialColumns);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filters, setFilters] = useState({
-    type: '',
-    status: '',
-    location: '',
+
+  // Use URL-first filter persistence
+  const { search, filters, updateSearch, updateFilters, clearAll, hasActiveFilters } = useSimpleFilters({
+    defaultFilters: { type: '', status: '', location: '' },
   });
+
+  // Filter machines based on search and filters
+  const filteredMachines = useMemo(() => {
+    let filtered = machines;
+
+    // Apply search filter
+    if (search.trim()) {
+      filtered = filtered.filter(
+        (machine) =>
+          machine.name.toLowerCase().includes(search.toLowerCase()) ||
+          machine.location?.toLowerCase().includes(search.toLowerCase()),
+      );
+    }
+
+    // Apply filters
+    if (filters.type) {
+      filtered = filtered.filter((machine) => machine.type === filters.type);
+    }
+
+    if (filters.status) {
+      filtered = filtered.filter((machine) => machine.status === filters.status);
+    }
+
+    if (filters.location) {
+      filtered = filtered.filter((machine) => machine.location === filters.location);
+    }
+
+    return filtered;
+  }, [machines, search, filters]);
 
   useEffect(() => {
     const fetchMachines = async () => {
@@ -150,7 +178,6 @@ export default function MachinesPage() {
         if (response.ok) {
           const data = await response.json();
           setMachines(data);
-          setFilteredMachines(data);
         } else {
           logger.error('Failed to fetch machines');
         }
@@ -163,34 +190,6 @@ export default function MachinesPage() {
 
     fetchMachines();
   }, []);
-
-  const handleSearch = (query: string) => {
-    const filtered = machines.filter(
-      (machine) =>
-        machine.name.toLowerCase().includes(query.toLowerCase()) ||
-        machine.type.toLowerCase().includes(query.toLowerCase()) ||
-        machine.location.toLowerCase().includes(query.toLowerCase()),
-    );
-    setFilteredMachines(filtered);
-  };
-
-  const handleFilterChange = (filters: Record<string, string>) => {
-    let filtered = machines;
-
-    if (filters.status) {
-      filtered = filtered.filter((machine) => machine.status === filters.status);
-    }
-
-    if (filters.type) {
-      filtered = filtered.filter((machine) => machine.type === filters.type);
-    }
-
-    if (filters.location) {
-      filtered = filtered.filter((machine) => machine.location === filters.location);
-    }
-
-    setFilteredMachines(filtered);
-  };
 
   // Column management functions
   const handleColumnReorder = (reorderedColumns: Column<Machine>[]) => {
@@ -249,7 +248,9 @@ export default function MachinesPage() {
   const handleDelete = (machineId: string, machineName?: string) => {
     showConfirmDialog({
       title: 'Delete Machine',
-      message: `Are you sure you want to delete machine "${machineName || 'this machine'}"? This action cannot be undone.`,
+      message: `Are you sure you want to delete machine "${
+        machineName || 'this machine'
+      }"? This action cannot be undone.`,
       confirmLabel: 'Delete',
       cancelLabel: 'Cancel',
       variant: 'danger',
@@ -264,15 +265,18 @@ export default function MachinesPage() {
       });
 
       if (response.ok) {
-        setMachines(machines.filter((m) => m.id !== machineId));
-        setFilteredMachines(filteredMachines.filter((m) => m.id !== machineId));
+        const updatedMachines = machines.filter((machine) => machine.id !== machineId);
+        setMachines(updatedMachines);
         toast.success('Machine deleted successfully');
       } else {
         const errorData = await response.json();
         logger.error('Failed to delete machine,', errorData.error);
 
         if (errorData.error?.includes('assigned tasks')) {
-          toast.error(`Cannot delete "${machineName}". This machine is currently assigned to one or more tasks. Please unassign or delete those tasks first.`, { duration: 6000 });
+          toast.error(
+            `Cannot delete "${machineName}". This machine is currently assigned to one or more tasks. Please unassign or delete those tasks first.`,
+            { duration: 6000 },
+          );
         } else {
           toast.error('Failed to delete machine: ' + (errorData.error || 'Unknown error'));
         }
@@ -332,10 +336,22 @@ export default function MachinesPage() {
       {/* Search and Filters */}
       <SearchFilter
         placeholder="Search machines..."
-        onSearch={handleSearch}
+        initialSearch={search}
+        initialFilters={filters}
+        onSearch={updateSearch}
         filters={filterOptions}
-        onFilterChange={handleFilterChange}
+        onFilterChange={updateFilters}
       />
+
+      {hasActiveFilters && (
+        <div className="mb-4">
+          <button
+            onClick={clearAll}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            Clear Filters
+          </button>
+        </div>
+      )}
 
       {/* Machines Table */}
       <DataTable
