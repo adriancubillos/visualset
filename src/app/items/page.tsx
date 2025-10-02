@@ -47,7 +47,6 @@ function ItemsPageContent({
   updateSearch,
   updateFilters,
   clearAll,
-  hasActiveFilters,
 }: ReturnType<typeof import('@/hooks/useSimpleFilters').useSimpleFilters>) {
   const [items, setItems] = useState<Item[]>([]);
   const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
@@ -314,17 +313,8 @@ function ItemsPageContent({
         onSearch={updateSearch}
         filters={filterOptions}
         onFilterChange={updateFilters}
+        clearAll={clearAll}
       />
-
-      {hasActiveFilters && (
-        <div className="mb-4">
-          <button
-            onClick={clearAll}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-            Clear Filters
-          </button>
-        </div>
-      )}
 
       {/* Items Table */}
       <div className="bg-white shadow rounded-lg">

@@ -44,6 +44,15 @@ export function useSimpleFilters({ defaultFilters = {} }: UseSimpleFiltersOption
       const queryString = params.toString();
       const newUrl = queryString ? `${pathname}?${queryString}` : pathname;
 
+      // Save current filter state to sessionStorage
+      if (typeof window !== 'undefined') {
+        if (queryString) {
+          sessionStorage.setItem(`filters_${pathname}`, queryString);
+        } else {
+          sessionStorage.removeItem(`filters_${pathname}`);
+        }
+      }
+
       // Use push instead of replace to create history entries
       router.replace(newUrl, { scroll: false });
     },
@@ -65,6 +74,10 @@ export function useSimpleFilters({ defaultFilters = {} }: UseSimpleFiltersOption
   );
 
   const clearAll = useCallback(() => {
+    // Clear sessionStorage to prevent restoration
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem(`filters_${pathname}`);
+    }
     router.replace(pathname, { scroll: false });
   }, [router, pathname]);
 

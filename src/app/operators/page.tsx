@@ -156,6 +156,7 @@ function OperatorsPageContent({
   filters,
   updateSearch,
   updateFilters,
+  clearAll,
 }: ReturnType<typeof import('@/hooks/useSimpleFilters').useSimpleFilters>) {
   const [operators, setOperators] = useState<Operator[]>([]);
   const [loading, setLoading] = useState(true);
@@ -356,6 +357,7 @@ function OperatorsPageContent({
         onSearch={updateSearch}
         filters={filterOptions}
         onFilterChange={updateFilters}
+        clearAll={clearAll}
       />
 
       {/* Operators Table */}

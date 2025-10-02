@@ -13,6 +13,7 @@ interface SearchFilterProps {
     options: Array<{ value: string; label: string }>;
   }>;
   onFilterChange?: (filters: Record<string, string>) => void;
+  clearAll?: () => void;
 }
 
 export default function SearchFilter({
@@ -22,6 +23,7 @@ export default function SearchFilter({
   onSearch,
   filters = [],
   onFilterChange,
+  clearAll,
 }: SearchFilterProps) {
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onSearch(e.target.value);
@@ -38,6 +40,9 @@ export default function SearchFilter({
     }
     onFilterChange(newFilters);
   };
+
+  const hasActiveFilters =
+    Object.entries(filterValues).some(([, value]) => value && value !== 'all') || Boolean(searchValue);
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm border mb-6">
@@ -108,6 +113,14 @@ export default function SearchFilter({
                 </span>
               );
             })}
+            {clearAll && hasActiveFilters && (
+              <button
+                type="button"
+                onClick={clearAll}
+                className="text-sm text-gray-700 hover:text-black cursor-pointer underline focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1 transition-colors duration-150">
+                Clear all
+              </button>
+            )}
           </div>
         </div>
       )}
