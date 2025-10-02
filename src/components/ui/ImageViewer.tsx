@@ -64,7 +64,6 @@ export default function ImageViewer({
                     alt={alt}
                     width={size === 'small' ? 64 : size === 'medium' ? 128 : size === 'large' ? 256 : 512}
                     height={size === 'small' ? 64 : size === 'medium' ? 128 : size === 'large' ? 256 : 512}
-                    sizes={size === 'small' ? '64px' : size === 'medium' ? '128px' : size === 'large' ? '256px' : '512px'}
                     className="object-contain w-full h-auto"
                 />
             </div>
@@ -72,15 +71,15 @@ export default function ImageViewer({
             {/* Modal */}
             {showModal && isModalOpen && (
                 <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4"
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 p-4"
                     onClick={() => setIsModalOpen(false)}>
                     <div
-                        className="relative max-w-4xl max-h-[90vh] w-full h-full"
+                        className="relative max-w-5xl max-h-[85vh]"
                         onClick={(e) => e.stopPropagation()}>
                         {/* Close button */}
                         <button
                             onClick={() => setIsModalOpen(false)}
-                            className="absolute -top-10 right-0 text-white hover:text-gray-300 transition-colors"
+                            className="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors z-10"
                             title="Close (ESC)">
                             <svg
                                 className="w-8 h-8"
@@ -95,16 +94,12 @@ export default function ImageViewer({
                                 />
                             </svg>
                         </button>
-
-                        {/* Image */}
-                        <div className="relative w-full h-full bg-white rounded-lg overflow-hidden">
-                            <Image
+                        {/* Image Container */}
+                        <div className="relative rounded-lg overflow-hidden shadow-2xl">
+                            <img
                                 src={imageUrl}
                                 alt={alt}
-                                fill
-                                className="object-contain"
-                                sizes="(max-width: 1024px) 100vw, 1024px"
-                                priority
+                                className="max-h-[85vh] max-w-full w-auto h-auto object-contain"
                             />
                         </div>
                     </div>
