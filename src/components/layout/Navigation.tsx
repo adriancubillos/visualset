@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { useMemo } from 'react';
 
 const navigationItems = [
   { name: 'Dashboard', href: '/', icon: '📊' },
@@ -15,6 +16,31 @@ const navigationItems = [
 
 export default function Navigation() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // Store current page's search params for restoration
+  const currentSearchString = useMemo(() => {
+    return searchParams.toString();
+  }, [searchParams]);
+
+  // Store filter state in sessionStorage when navigating away
+  const handleNavigation = (href: string) => {
+    if (typeof window !== 'undefined' && currentSearchString) {
+      // Store the current page's search params
+      sessionStorage.setItem(`filters_${pathname}`, currentSearchString);
+    }
+  };
+
+  // Get stored search params for the target page
+  const getHrefWithStoredParams = (href: string) => {
+    if (typeof window !== 'undefined') {
+      const storedParams = sessionStorage.getItem(`filters_${href}`);
+      if (storedParams) {
+        return `${href}?${storedParams}`;
+      }
+    }
+    return href;
+  };
 
   return (
     <nav className="bg-white shadow-sm border-b relative z-40">
@@ -31,7 +57,8 @@ export default function Navigation() {
                 return (
                   <Link
                     key={item.name}
-                    href={item.href}
+                    href={getHrefWithStoredParams(item.href)}
+                    onClick={() => handleNavigation(item.href)}
                     className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
                       isActive
                         ? 'border-blue-500 text-gray-900'

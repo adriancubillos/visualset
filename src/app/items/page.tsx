@@ -13,7 +13,7 @@ import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { logger } from '@/utils/logger';
 import StatisticsCards from '@/components/ui/StatisticsCards';
 import { Column } from '@/types/table';
-import { useSimpleFilters } from '@/hooks/useSimpleFilters';
+import FilterProvider from '@/components/layout/FilterProvider';
 
 interface Item {
   id: string;
@@ -38,15 +38,20 @@ interface Item {
   updatedAt: string;
 }
 
-export default function ItemsPage() {
+// Force dynamic rendering since we use useSearchParams
+export const dynamic = 'force-dynamic';
+
+function ItemsPageContent({
+  search,
+  filters,
+  updateSearch,
+  updateFilters,
+  clearAll,
+  hasActiveFilters,
+}: ReturnType<typeof import('@/hooks/useSimpleFilters').useSimpleFilters>) {
   const [items, setItems] = useState<Item[]>([]);
   const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Use URL-first filter persistence
-  const { search, filters, updateSearch, updateFilters, clearAll, hasActiveFilters } = useSimpleFilters({
-    defaultFilters: { project: '', status: '' },
-  });
 
   // Filter items based on search and filters
   const filteredItems = useMemo(() => {
@@ -304,8 +309,8 @@ export default function ItemsPage() {
       {/* Search and Filters */}
       <SearchFilter
         placeholder="Search items by name, description, or project..."
-        initialSearch={search}
-        initialFilters={filters}
+        searchValue={search}
+        filterValues={filters}
         onSearch={updateSearch}
         filters={filterOptions}
         onFilterChange={updateFilters}
@@ -342,5 +347,13 @@ export default function ItemsPage() {
         />
       </div>
     </PageContainer>
+  );
+}
+
+export default function ItemsPage() {
+  return (
+    <FilterProvider defaultFilters={{ project: '', status: '' }}>
+      {(filterProps) => <ItemsPageContent {...filterProps} />}
+    </FilterProvider>
   );
 }

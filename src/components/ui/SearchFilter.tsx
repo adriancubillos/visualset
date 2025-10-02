@@ -4,8 +4,8 @@ import FilterSelect from './FilterSelect';
 
 interface SearchFilterProps {
   placeholder?: string;
-  initialSearch?: string;
-  initialFilters?: Record<string, string>;
+  searchValue?: string;
+  filterValues?: Record<string, string>;
   onSearch: (query: string) => void;
   filters?: Array<{
     key: string;
@@ -17,8 +17,8 @@ interface SearchFilterProps {
 
 export default function SearchFilter({
   placeholder = 'Search...',
-  initialSearch = '',
-  initialFilters = {},
+  searchValue = '',
+  filterValues = {},
   onSearch,
   filters = [],
   onFilterChange,
@@ -30,9 +30,9 @@ export default function SearchFilter({
   const handleFilterChange = (key: string, value: string) => {
     if (!onFilterChange) return;
 
-    const newFilters = { ...initialFilters };
+    const newFilters = { ...filterValues };
     if (value === '' || value === 'all') {
-      delete newFilters[key];
+      newFilters[key] = '';
     } else {
       newFilters[key] = value;
     }
@@ -62,7 +62,7 @@ export default function SearchFilter({
               type="text"
               className="block w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-lg text-sm leading-5 bg-gray-50 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-colors duration-200"
               placeholder={placeholder}
-              value={initialSearch}
+              value={searchValue}
               onChange={handleSearchChange}
             />
           </div>
@@ -74,7 +74,7 @@ export default function SearchFilter({
               key={filter.key}
               className="min-w-0 flex-1 sm:flex-none sm:min-w-48 lg:min-w-52">
               <FilterSelect
-                value={initialFilters[filter.key] || 'all'}
+                value={filterValues[filter.key] || 'all'}
                 onChange={(value) => handleFilterChange(filter.key, value)}
                 options={filter.options.map((opt) => ({ id: opt.value, name: opt.label }))}
                 allLabel={filter.label}
@@ -85,10 +85,10 @@ export default function SearchFilter({
         </div>
       </div>
 
-      {Object.keys(initialFilters).length > 0 && (
+      {Object.keys(filterValues).length > 0 && (
         <div className="mt-4 pt-4 border-t border-gray-100">
           <div className="flex flex-wrap gap-2">
-            {Object.entries(initialFilters).map(([key, value]) => {
+            {Object.entries(filterValues).map(([key, value]) => {
               const filter = filters.find((f) => f.key === key);
               const option = filter?.options.find((o) => o.value === value);
               if (!value || value === 'all') return null;

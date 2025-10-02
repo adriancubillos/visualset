@@ -14,7 +14,7 @@ import { logger } from '@/utils/logger';
 import StatisticsCards from '@/components/ui/StatisticsCards';
 import { AVAILABLE_SKILLS, OPERATOR_STATUS, OPERATOR_SHIFTS } from '@/config/workshop-properties';
 import { Column } from '@/types/table';
-import { useSimpleFilters } from '@/hooks/useSimpleFilters';
+import FilterProvider from '@/components/layout/FilterProvider';
 
 interface Operator {
   id: string;
@@ -148,15 +148,18 @@ const getInitialColumns = (): Column<Operator>[] => {
   }
 };
 
-export default function OperatorsPage() {
+// Force dynamic rendering since we use useSearchParams
+export const dynamic = 'force-dynamic';
+
+function OperatorsPageContent({
+  search,
+  filters,
+  updateSearch,
+  updateFilters,
+}: ReturnType<typeof import('@/hooks/useSimpleFilters').useSimpleFilters>) {
   const [operators, setOperators] = useState<Operator[]>([]);
   const [loading, setLoading] = useState(true);
   const [columns, setColumns] = useState<Column<Operator>[]>(getInitialColumns);
-
-  // Use URL-first filter persistence
-  const { search, filters, updateSearch, updateFilters } = useSimpleFilters({
-    defaultFilters: { status: '', shift: '', skill: '' },
-  });
 
   // Filter operators based on search and filters
   const filteredOperators = useMemo(() => {
@@ -348,9 +351,9 @@ export default function OperatorsPage() {
       {/* Search and Filters */}
       <SearchFilter
         placeholder="Search operators..."
-        initialSearch={search}
+        searchValue={search}
+        filterValues={filters}
         onSearch={updateSearch}
-        initialFilters={filters}
         filters={filterOptions}
         onFilterChange={updateFilters}
       />
@@ -368,5 +371,13 @@ export default function OperatorsPage() {
         showResetColumns={true}
       />
     </PageContainer>
+  );
+}
+
+export default function OperatorsPage() {
+  return (
+    <FilterProvider defaultFilters={{ status: '', shift: '', skill: '' }}>
+      {(filterProps) => <OperatorsPageContent {...filterProps} />}
+    </FilterProvider>
   );
 }

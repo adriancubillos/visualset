@@ -13,7 +13,7 @@ import { logger } from '@/utils/logger';
 import StatisticsCards from '@/components/ui/StatisticsCards';
 import { TASK_STATUS } from '@/config/workshop-properties';
 import { Column } from '@/types/table';
-import { useSimpleFilters } from '@/hooks/useSimpleFilters';
+import FilterProvider from '@/components/layout/FilterProvider';
 
 interface Task {
   id: string;
@@ -197,7 +197,17 @@ const getInitialColumns = (): Column<Task>[] => {
   }
 };
 
-export default function TasksPage() {
+// Force dynamic rendering since we use useSearchParams
+export const dynamic = 'force-dynamic';
+
+function TasksPageContent({
+  search,
+  filters,
+  updateSearch,
+  updateFilters,
+  clearAll,
+  hasActiveFilters,
+}: ReturnType<typeof import('@/hooks/useSimpleFilters').useSimpleFilters>) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
   const [items, setItems] = useState<{ id: string; name: string }[]>([]);
@@ -205,11 +215,6 @@ export default function TasksPage() {
   const [operators, setOperators] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [columns, setColumns] = useState<Column<Task>[]>(getInitialColumns);
-
-  // Use URL-first filter persistence
-  const { search, filters, updateSearch, updateFilters, clearAll, hasActiveFilters } = useSimpleFilters({
-    defaultFilters: { status: '', project: '', item: '', machine: '', operator: '' },
-  });
 
   // Filter tasks based on search and filters
   const filteredTasks = useMemo(() => {
@@ -477,8 +482,8 @@ export default function TasksPage() {
       {/* Search and Filters */}
       <SearchFilter
         placeholder="Search tasks..."
-        initialSearch={search}
-        initialFilters={filters}
+        searchValue={search}
+        filterValues={filters}
         onSearch={updateSearch}
         filters={filterOptions}
         onFilterChange={updateFilters}
@@ -507,5 +512,13 @@ export default function TasksPage() {
         showResetColumns={true}
       />
     </PageContainer>
+  );
+}
+
+export default function TasksPage() {
+  return (
+    <FilterProvider defaultFilters={{ status: '', project: '', item: '', machine: '', operator: '' }}>
+      {(filterProps) => <TasksPageContent {...filterProps} />}
+    </FilterProvider>
   );
 }

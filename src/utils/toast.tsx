@@ -75,7 +75,7 @@ export const showPromise = <T,>(
  */
 export const confirmAction = (message: string): Promise<boolean> => {
   return new Promise((resolve) => {
-    const toastId = toast(
+    toast(
       (t) => (
         <div className="flex flex-col gap-3">
           <p className="font-medium">{message}</p>

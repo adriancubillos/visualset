@@ -14,7 +14,7 @@ import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { logger } from '@/utils/logger';
 import { MACHINE_TYPES, MACHINE_STATUS } from '@/config/workshop-properties';
 import { Column } from '@/types/table';
-import { useSimpleFilters } from '@/hooks/useSimpleFilters';
+import FilterProvider from '@/components/layout/FilterProvider';
 
 interface Machine {
   id: string;
@@ -132,15 +132,20 @@ const getInitialColumns = (): Column<Machine>[] => {
   }
 };
 
-export default function MachinesPage() {
+// Force dynamic rendering since we use useSearchParams
+export const dynamic = 'force-dynamic';
+
+function MachinesPageContent({
+  search,
+  filters,
+  updateSearch,
+  updateFilters,
+  clearAll,
+  hasActiveFilters,
+}: ReturnType<typeof import('@/hooks/useSimpleFilters').useSimpleFilters>) {
   const [machines, setMachines] = useState<Machine[]>([]);
   const [loading, setLoading] = useState(true);
   const [columns, setColumns] = useState<Column<Machine>[]>(getInitialColumns);
-
-  // Use URL-first filter persistence
-  const { search, filters, updateSearch, updateFilters, clearAll, hasActiveFilters } = useSimpleFilters({
-    defaultFilters: { type: '', status: '', location: '' },
-  });
 
   // Filter machines based on search and filters
   const filteredMachines = useMemo(() => {
@@ -336,8 +341,8 @@ export default function MachinesPage() {
       {/* Search and Filters */}
       <SearchFilter
         placeholder="Search machines..."
-        initialSearch={search}
-        initialFilters={filters}
+        searchValue={search}
+        filterValues={filters}
         onSearch={updateSearch}
         filters={filterOptions}
         onFilterChange={updateFilters}
@@ -366,5 +371,13 @@ export default function MachinesPage() {
         showResetColumns={true}
       />
     </PageContainer>
+  );
+}
+
+export default function MachinesPage() {
+  return (
+    <FilterProvider defaultFilters={{ type: '', status: '', location: '' }}>
+      {(filterProps) => <MachinesPageContent {...filterProps} />}
+    </FilterProvider>
   );
 }

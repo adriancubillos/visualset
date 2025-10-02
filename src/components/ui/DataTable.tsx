@@ -44,7 +44,7 @@ export default function DataTable<T extends { id: string }>({
   const [dragOverColumnId, setDragOverColumnId] = useState<string | null>(null);
   const [isResizing, setIsResizing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  
+
   // TanStack Table state
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnOrder, setColumnOrder] = useState<ColumnOrderState>(() => {
@@ -80,9 +80,7 @@ export default function DataTable<T extends { id: string }>({
         size: 120,
         minSize: 120,
         maxSize: 120,
-        cell: (info) => (
-          <div className="flex justify-center">{actions(info.row.original)}</div>
-        ),
+        cell: (info) => <div className="flex justify-center">{actions(info.row.original)}</div>,
       });
     }
 
@@ -95,7 +93,7 @@ export default function DataTable<T extends { id: string }>({
       size: col.width ? parseInt(col.width) : undefined,
       minSize: col.minWidth ? parseInt(col.minWidth) : 60,
       // Remove maxSize to allow unlimited resizing
-      cell: (info: any) => {
+      cell: (info: import('@tanstack/react-table').CellContext<T, unknown>) => {
         const value = info.getValue();
         const item = info.row.original;
         const alignment = col.align || 'center';
@@ -173,7 +171,7 @@ export default function DataTable<T extends { id: string }>({
 
   const handleDrop = (e: React.DragEvent, dropColumnId: string) => {
     e.preventDefault();
-    
+
     // Don't allow dropping on actions column
     if (!draggedColumnId || draggedColumnId === dropColumnId || dropColumnId === 'actions') {
       setDraggedColumnId(null);
@@ -196,7 +194,7 @@ export default function DataTable<T extends { id: string }>({
     // Notify parent if callback provided
     if (onColumnReorder) {
       const reorderedColumns = newOrder
-        .map(id => initialColumns.find(col => (col.id || String(col.key)) === id))
+        .map((id) => initialColumns.find((col) => (col.id || String(col.key)) === id))
         .filter((col): col is Column<T> => col !== undefined);
       onColumnReorder(reorderedColumns);
     }
@@ -261,7 +259,9 @@ export default function DataTable<T extends { id: string }>({
             <div className="h-4 bg-gray-200 rounded w-1/4"></div>
           </div>
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="px-6 py-4 border-b border-gray-200">
+            <div
+              key={i}
+              className="px-6 py-4 border-b border-gray-200">
               <div className="flex space-x-4">
                 <div className="h-4 bg-gray-200 rounded w-1/4"></div>
                 <div className="h-4 bg-gray-200 rounded w-1/3"></div>
@@ -282,7 +282,11 @@ export default function DataTable<T extends { id: string }>({
       {showScrollHint && (
         <div className="bg-blue-50 border-b border-blue-200 px-4 py-2">
           <div className="flex items-center text-sm text-blue-700">
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              className="w-4 h-4 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -295,7 +299,10 @@ export default function DataTable<T extends { id: string }>({
         </div>
       )}
 
-      <div ref={tableContainerRef} className="overflow-auto scrollbar-visible relative" style={containerStyle}>
+      <div
+        ref={tableContainerRef}
+        className="overflow-auto scrollbar-visible relative"
+        style={containerStyle}>
         {/* Reset Columns Button */}
         {showResetColumns && (
           <div className="sticky top-0 z-30 bg-gray-50 px-4 py-2 border-b-0 left-0 right-0 block">
@@ -304,7 +311,11 @@ export default function DataTable<T extends { id: string }>({
                 onClick={handleResetColumns}
                 className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-50 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-colors"
                 title="Reset column order and widths to default">
-                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg
+                  className="w-3 h-3 mr-1"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -318,10 +329,12 @@ export default function DataTable<T extends { id: string }>({
           </div>
         )}
 
-        <table className="min-w-full" style={{ width: table.getCenterTotalSize(), borderCollapse: 'separate', borderSpacing: 0 }}>
+        <table
+          className="min-w-full"
+          style={{ width: table.getCenterTotalSize(), borderCollapse: 'separate', borderSpacing: 0 }}>
           <thead
             className={`${stickyHeader ? 'sticky z-20' : ''}`}
-            style={{ 
+            style={{
               top: showResetColumns ? '40px' : '0px',
             }}>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -329,65 +342,63 @@ export default function DataTable<T extends { id: string }>({
                 {headerGroup.headers.map((header) => {
                   const isDragging = draggedColumnId === header.id;
                   const isDragOver = dragOverColumnId === header.id;
-                  
+
                   return (
-                  <th
-                    key={header.id}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, header.id)}
-                    onDragOver={(e) => handleDragOver(e, header.id)}
-                    onDragLeave={handleDragLeave}
-                    onDrop={(e) => handleDrop(e, header.id)}
-                    onDragEnd={handleDragEnd}
-                    className={`relative px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider transition-all duration-200 cursor-pointer hover:bg-gray-100 bg-gray-50 ${
-                      isDragging ? 'opacity-50 bg-blue-100' : ''
-                    } ${
-                      isDragOver && !isDragging ? 'bg-blue-50 border-l-4 border-l-blue-400' : ''
-                    }`}
-                    style={{
-                      width: header.getSize(),
-                      borderTop: '1px solid #d1d5db',
-                      borderRight: '1px solid #d1d5db',
-                      borderBottom: '1px solid #d1d5db',
-                    }}
-                    onClick={(e) => {
-                      // Only allow sorting if not dragging or resizing
-                      if (!isDragging && !isResizing) {
-                        const handler = header.column.getToggleSortingHandler();
-                        handler?.(e);
-                      }
-                    }}>
-                    <div className="flex items-center space-x-1 justify-center">
-                      {/* Drag handle indicator */}
-                      <svg
-                        className="w-3 h-3 text-gray-400 cursor-grab active:cursor-grabbing flex-shrink-0"
-                        fill="currentColor"
-                        viewBox="0 0 20 20">
-                        <path d="M7 2a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM7 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM7 14a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM17 2a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM17 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM17 14a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" />
-                      </svg>
-                      <span className="truncate min-w-0">
-                        {flexRender(header.column.columnDef.header, header.getContext())}
-                      </span>
-                      {/* Sort indicator */}
-                      {{
-                        asc: <span className="text-gray-400 flex-shrink-0">↑</span>,
-                        desc: <span className="text-gray-400 flex-shrink-0">↓</span>,
-                      }[header.column.getIsSorted() as string] ?? null}
-                    </div>
-                    {/* Resize handle */}
-                    {header.column.getCanResize() && (
-                      <div
-                        onMouseDown={(e) => {
-                          e.stopPropagation();
-                          setIsResizing(true);
-                          header.getResizeHandler()(e);
-                        }}
-                        onTouchStart={header.getResizeHandler()}
-                        className="absolute top-0 right-0 w-4 h-full cursor-col-resize hover:bg-blue-400 active:bg-blue-500 z-10 -mr-2"
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    )}
-                  </th>
+                    <th
+                      key={header.id}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, header.id)}
+                      onDragOver={(e) => handleDragOver(e, header.id)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, header.id)}
+                      onDragEnd={handleDragEnd}
+                      className={`relative px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider transition-all duration-200 cursor-pointer hover:bg-gray-100 bg-gray-50 ${
+                        isDragging ? 'opacity-50 bg-blue-100' : ''
+                      } ${isDragOver && !isDragging ? 'bg-blue-50 border-l-4 border-l-blue-400' : ''}`}
+                      style={{
+                        width: header.getSize(),
+                        borderTop: '1px solid #d1d5db',
+                        borderRight: '1px solid #d1d5db',
+                        borderBottom: '1px solid #d1d5db',
+                      }}
+                      onClick={(e) => {
+                        // Only allow sorting if not dragging or resizing
+                        if (!isDragging && !isResizing) {
+                          const handler = header.column.getToggleSortingHandler();
+                          handler?.(e);
+                        }
+                      }}>
+                      <div className="flex items-center space-x-1 justify-center">
+                        {/* Drag handle indicator */}
+                        <svg
+                          className="w-3 h-3 text-gray-400 cursor-grab active:cursor-grabbing flex-shrink-0"
+                          fill="currentColor"
+                          viewBox="0 0 20 20">
+                          <path d="M7 2a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM7 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM7 14a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM17 2a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM17 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM17 14a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" />
+                        </svg>
+                        <span className="truncate min-w-0">
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                        </span>
+                        {/* Sort indicator */}
+                        {{
+                          asc: <span className="text-gray-400 flex-shrink-0">↑</span>,
+                          desc: <span className="text-gray-400 flex-shrink-0">↓</span>,
+                        }[header.column.getIsSorted() as string] ?? null}
+                      </div>
+                      {/* Resize handle */}
+                      {header.column.getCanResize() && (
+                        <div
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                            setIsResizing(true);
+                            header.getResizeHandler()(e);
+                          }}
+                          onTouchStart={header.getResizeHandler()}
+                          className="absolute top-0 right-0 w-4 h-full cursor-col-resize hover:bg-blue-400 active:bg-blue-500 z-10 -mr-2"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      )}
+                    </th>
                   );
                 })}
               </tr>

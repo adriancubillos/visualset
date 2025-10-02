@@ -15,7 +15,7 @@ import { PROJECT_STATUS } from '@/config/workshop-properties';
 import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { logger } from '@/utils/logger';
 import { Column } from '@/types/table';
-import { useSimpleFilters } from '@/hooks/useSimpleFilters';
+import FilterProvider from '@/components/layout/FilterProvider';
 
 interface Project {
   id: string;
@@ -151,15 +151,20 @@ const getInitialColumns = (): Column<Project>[] => {
   }
 };
 
-export default function ProjectsPage() {
+// Force dynamic rendering since we use useSearchParams
+export const dynamic = 'force-dynamic';
+
+function ProjectsPageContent({
+  search,
+  filters,
+  updateSearch,
+  updateFilters,
+  clearAll,
+  hasActiveFilters,
+}: ReturnType<typeof import('@/hooks/useSimpleFilters').useSimpleFilters>) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [columns, setColumns] = useState<Column<Project>[]>(getInitialColumns);
-
-  // Use simple URL-first filter persistence
-  const { search, filters, updateSearch, updateFilters, clearAll, hasActiveFilters } = useSimpleFilters({
-    defaultFilters: { status: '' },
-  });
 
   // Filter projects based on search and filters
   const filteredProjects = useMemo(() => {
@@ -327,8 +332,8 @@ export default function ProjectsPage() {
         <div className="flex-1">
           <SearchFilter
             placeholder="Search projects..."
-            initialSearch={search}
-            initialFilters={filters}
+            searchValue={search}
+            filterValues={filters}
             onSearch={updateSearch}
             filters={filterOptions}
             onFilterChange={updateFilters}
@@ -356,5 +361,13 @@ export default function ProjectsPage() {
         showResetColumns={true}
       />
     </PageContainer>
+  );
+}
+
+export default function ProjectsPage() {
+  return (
+    <FilterProvider defaultFilters={{ status: '' }}>
+      {(filterProps) => <ProjectsPageContent {...filterProps} />}
+    </FilterProvider>
   );
 }

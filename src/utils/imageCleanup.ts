@@ -6,7 +6,7 @@ interface CleanupImageOnCancelParams {
   currentImageUrl: string | null;
   entityId: string;
   entityType: 'item' | 'project';
-  formData: Record<string, any>;
+  formData: Record<string, unknown>;
 }
 
 /**
@@ -34,7 +34,7 @@ export async function cleanupImageOnCancel({
     // update the database to remove the broken reference
     if (originalImageUrl && !currentImageUrl) {
       const endpoint = entityType === 'item' ? `/api/items/${entityId}` : `/api/projects/${entityId}`;
-      
+
       await fetch(endpoint, {
         method: 'PUT',
         headers: {

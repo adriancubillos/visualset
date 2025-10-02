@@ -1,5 +1,5 @@
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 
 interface UseSimpleFiltersOptions {
   defaultFilters?: Record<string, string>;
@@ -10,6 +10,18 @@ export function useSimpleFilters({ defaultFilters = {} }: UseSimpleFiltersOption
   const router = useRouter();
   const pathname = usePathname();
 
+  // Check if we should restore filter state from sessionStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !searchParams.toString()) {
+      const storedParams = sessionStorage.getItem(`filters_${pathname}`);
+      if (storedParams) {
+        const newUrl = `${pathname}?${storedParams}`;
+        router.replace(newUrl, { scroll: false });
+        return;
+      }
+    }
+  }, [pathname, searchParams, router]);
+
   // Get current state directly from URL (single source of truth)
   const search = searchParams.get('search') || '';
   const filters = Object.keys(defaultFilters).reduce((acc, key) => {
@@ -17,11 +29,17 @@ export function useSimpleFilters({ defaultFilters = {} }: UseSimpleFiltersOption
     return acc;
   }, {} as Record<string, string>);
 
+  // Debug logging
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+    console.log(`[${pathname}] Search:`, search, 'Filters:', filters, 'SearchParams:', Object.fromEntries(searchParams.entries()));
+  }
+
   // Update URL (which automatically updates component)
   const updateUrl = useCallback(
     (newParams: Record<string, string>) => {
       const params = new URLSearchParams();
 
+      // Add all provided params
       Object.entries(newParams).forEach(([key, value]) => {
         if (value && value !== 'all' && value !== '') {
           params.set(key, value);
@@ -30,6 +48,8 @@ export function useSimpleFilters({ defaultFilters = {} }: UseSimpleFiltersOption
 
       const queryString = params.toString();
       const newUrl = queryString ? `${pathname}?${queryString}` : pathname;
+      
+      // Use push instead of replace to create history entries
       router.replace(newUrl, { scroll: false });
     },
     [router, pathname],
