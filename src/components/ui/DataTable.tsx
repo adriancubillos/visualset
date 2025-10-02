@@ -8,6 +8,7 @@ interface Column<T> {
   sortable?: boolean;
   width?: string; // e.g., "150px", "20%", "auto"
   minWidth?: string; // e.g., "100px"
+  maxWidth?: string; // e.g., "300px" - prevents columns from being too wide
   id?: string; // Unique identifier for the column (optional, defaults to key)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   render?: (value: any, item: T) => React.ReactNode;
@@ -227,27 +228,26 @@ export default function DataTable<T extends { id: string }>({
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDrop(e, columnIndex)}
                   onDragEnd={handleDragEnd}
-                  className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider transition-all duration-200 ${
-                    column.sortable ? 'cursor-pointer hover:bg-gray-100' : ''
-                  } ${draggedColumnIndex === columnIndex ? 'opacity-50 bg-blue-100' : ''} ${
-                    dragOverColumnIndex === columnIndex && draggedColumnIndex !== columnIndex
+                  className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider transition-all duration-200 ${column.sortable ? 'cursor-pointer hover:bg-gray-100' : ''
+                    } ${draggedColumnIndex === columnIndex ? 'opacity-50 bg-blue-100' : ''} ${dragOverColumnIndex === columnIndex && draggedColumnIndex !== columnIndex
                       ? 'bg-blue-50 border-l-4 border-l-blue-400'
                       : ''
-                  }`}
+                    }`}
                   style={{
                     width: column.width,
                     minWidth: column.minWidth || '120px',
+                    maxWidth: column.maxWidth || '250px',
                   }}
                   onClick={() => column.sortable && handleSort(column.key)}>
                   <div className="flex items-center space-x-1">
                     {/* Drag handle indicator */}
                     <svg
-                      className="w-3 h-3 text-gray-400 cursor-grab active:cursor-grabbing"
+                      className="w-3 h-3 text-gray-400 cursor-grab active:cursor-grabbing flex-shrink-0"
                       fill="currentColor"
                       viewBox="0 0 20 20">
                       <path d="M7 2a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM7 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM7 14a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM17 2a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM17 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM17 14a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" />
                     </svg>
-                    <span className="truncate">{column.header}</span>
+                    <span className="truncate min-w-0">{column.header}</span>
                     {column.sortable && sortColumn === column.key && (
                       <span className="text-gray-400 flex-shrink-0">{sortDirection === 'asc' ? '↑' : '↓'}</span>
                     )}
@@ -274,8 +274,9 @@ export default function DataTable<T extends { id: string }>({
                     style={{
                       width: column.width,
                       minWidth: column.minWidth || '120px',
+                      maxWidth: column.maxWidth || '250px',
                     }}>
-                    <div className="truncate">
+                    <div className="break-words">
                       {column.render ? column.render(item[column.key], item) : String(item[column.key] || '')}
                     </div>
                   </td>

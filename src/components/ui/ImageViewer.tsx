@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 
 interface ImageViewerProps {
     imageUrl: string | null | undefined;
@@ -59,12 +58,10 @@ export default function ImageViewer({
                     if (showModal) setIsModalOpen(true);
                 }}
                 title={showModal ? 'Click to view larger' : alt}>
-                <Image
+                <img
                     src={imageUrl}
                     alt={alt}
-                    width={size === 'small' ? 64 : size === 'medium' ? 128 : size === 'large' ? 256 : 512}
-                    height={size === 'small' ? 64 : size === 'medium' ? 128 : size === 'large' ? 256 : 512}
-                    className="object-contain w-full h-auto"
+                    className="w-full h-full object-contain"
                 />
             </div>
 
