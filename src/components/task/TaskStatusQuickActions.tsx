@@ -68,9 +68,10 @@ export default function TaskStatusQuickActions({
             type="button"
             onClick={() => !action.isCurrent && onStatusChange(action.value)}
             disabled={disabled || action.isCurrent}
-            className={`px-4 py-2 text-sm font-medium rounded-md border transition-colors ${
-              getStatusVariant(action.value, action.isCurrent)
-            } ${disabled && !action.isCurrent ? 'opacity-50 cursor-not-allowed' : ''} ${
+            className={`px-4 py-2 text-sm font-medium rounded-md border transition-colors ${getStatusVariant(
+              action.value,
+              action.isCurrent,
+            )} ${disabled && !action.isCurrent ? 'opacity-50 cursor-not-allowed' : ''} ${
               action.isCurrent ? 'cursor-not-allowed font-semibold' : 'cursor-pointer'
             }`}>
             {action.isCurrent ? `✓ ${action.label}` : `Mark as ${action.label}`}

@@ -122,7 +122,7 @@ export default function ScheduleCalendar() {
   const [selectedOperator, setSelectedOperator] = useState<string>('all');
   const [selectedProject, setSelectedProject] = useState<string>('all');
   const [selectedItem, setSelectedItem] = useState<string>('all');
-  
+
   // Row height control (30-minute slot height in pixels)
   const [rowHeight, setRowHeight] = useState<number>(60);
 
@@ -388,9 +388,8 @@ export default function ScheduleCalendar() {
               if (t.id === updatedTask.id) {
                 return {
                   ...t, // Keep existing fields
-                  ...updatedTask, // Apply updates
+                  ...updatedTask, // Apply updates (including status)
                   // Ensure required fields are present
-                  status: t.status,
                   createdAt: t.createdAt,
                   updatedAt: t.updatedAt,
                 };
@@ -398,6 +397,16 @@ export default function ScheduleCalendar() {
               return t;
             }),
           );
+
+          // Also update the selectedTask state if it's the same task
+          if (selectedTask && selectedTask.id === updatedTask.id) {
+            setSelectedTask({
+              ...selectedTask,
+              ...updatedTask,
+              createdAt: selectedTask.createdAt,
+              updatedAt: selectedTask.updatedAt,
+            });
+          }
         },
         () => setIsModalOpen(false),
       );
@@ -449,7 +458,7 @@ export default function ScheduleCalendar() {
             </svg>
             Filters
           </h3>
-          
+
           {/* Row Height Control */}
           <div className="flex items-center gap-3">
             <label className="text-sm font-medium text-slate-700">Row Height:</label>
@@ -462,7 +471,9 @@ export default function ScheduleCalendar() {
               onChange={(e) => setRowHeight(Number(e.target.value))}
               className="w-32 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
               style={{
-                background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((rowHeight - 40) / 80) * 100}%, #e2e8f0 ${((rowHeight - 40) / 80) * 100}%, #e2e8f0 100%)`
+                background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((rowHeight - 40) / 80) * 100}%, #e2e8f0 ${
+                  ((rowHeight - 40) / 80) * 100
+                }%, #e2e8f0 100%)`,
               }}
             />
             <span className="text-sm text-slate-600 min-w-[45px]">{rowHeight}px</span>
