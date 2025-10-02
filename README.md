@@ -12,15 +12,13 @@
 ✅ FIXED: quitar scroll interno del calendario
 ✅ FIXED: change color of task in calendar instead of left/right do top/bottom
 ✅ FIXED: calendar row height control
+✅ FIXED: add measure field for the item
+✅ FIXED: add image field to the item
+✅ FIXED: add image field to the project
 
 Work in progress:
-add measure field for the item
-add image field to the item
-add image field to the project
+Display iamge in table
 
-Set up Vercel Blob storage with upload API routes?
-Update the Prisma schema to add measure and imageUrl fields?
-Create image upload components for items and projects?
 
 Pending:
 quantity, image, measure and x/y tasks for item list columns
