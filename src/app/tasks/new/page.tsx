@@ -21,7 +21,7 @@ function NewTaskPageContent() {
   const itemIdFromUrl = searchParams.get('item');
   const returnUrl = searchParams.get('returnUrl');
 
-  const { projects, items, machines, operators, taskTitles, loading: dataLoading } = useTaskFormData();
+  const { projects, items, machines, operators, loading: dataLoading } = useTaskFormData();
 
   const sortedOperators = useMemo(() => [...operators].sort((a, b) => a.name.localeCompare(b.name)), [operators]);
 
@@ -170,7 +170,6 @@ function NewTaskPageContent() {
               </label>
               <div className="mt-1">
                 <TaskTitleSelect
-                  options={taskTitles}
                   value={formData.title}
                   onChange={handleTitleChange}
                 />

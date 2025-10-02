@@ -20,7 +20,7 @@ import TaskTitleSelect from '@/components/forms/TaskTitleSelect';
 export default function EditTaskPage() {
   const params = useParams();
   const router = useRouter();
-  const { projects, items, machines, operators, taskTitles, loading: dataLoading } = useTaskFormData();
+  const { projects, items, machines, operators, loading: dataLoading } = useTaskFormData();
 
   const [task, setTask] = useState<TaskResponseDTO | null>(null);
   const [formData, setFormData] = useState({
@@ -235,7 +235,6 @@ export default function EditTaskPage() {
               </label>
               <div className="mt-1">
                 <TaskTitleSelect
-                  options={taskTitles}
                   value={formData.title}
                   onChange={handleTitleChange}
                 />
