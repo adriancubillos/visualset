@@ -1,4 +1,4 @@
-# CHANGES October 1 2025
+# CHANGES October 1,2 2025
 
 ✅ FIXED: Migrate breadcrumbs - Replace manual breadcrumb code with breadcrumbs prop
 ✅ FIXED: Simplify loading - Use loading prop instead of conditional returns
@@ -19,9 +19,7 @@
 ✅ FIXED: quantity, image, measure and x/y tasks for item list columns
 ✅ FIXED: Add a number to the project (order number)
 ✅ FIXED: keep filters on pages so if a navigate away or reload the filters stay
-
-Work in progress:
-Crear plantillas de tareas, (Plano general y visual//Archivos impreison y corte//cuenta de materiales//compra de materiales//impreison//corte//carpinteria//pintura//planos estructuras//Ornamentacio//cableado iluminación//Ensamble//Empaque//Laminado//transporte//instalacion)
+✅ FIXED: Crear plantillas de tareas, (Plano general y visual//Archivos impreison y corte//cuenta de materiales//compra de materiales//impreison//corte//carpinteria//pintura//planos estructuras//Ornamentacio//cableado iluminación//Ensamble//Empaque//Laminado//transporte//instalacion)
 
 # Extra DB for Production
 
