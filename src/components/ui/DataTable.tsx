@@ -1,6 +1,16 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import {
+  useReactTable,
+  getCoreRowModel,
+  getSortedRowModel,
+  flexRender,
+  ColumnDef,
+  SortingState,
+  ColumnOrderState,
+  ColumnSizingState,
+} from '@tanstack/react-table';
 import { Column } from '@/types/table';
 
 interface DataTableProps<T> {
@@ -10,10 +20,10 @@ interface DataTableProps<T> {
   onRowClick?: (item: T) => void;
   actions?: (item: T) => React.ReactNode;
   stickyHeader?: boolean;
-  maxHeight?: string; // e.g., "500px", "70vh"
-  onColumnReorder?: (newColumnOrder: Column<T>[]) => void; // Callback for column reordering
-  onResetColumns?: () => void; // Callback for resetting columns to default order
-  showResetColumns?: boolean; // Whether to show the reset columns button
+  maxHeight?: string;
+  onColumnReorder?: (newColumnOrder: Column<T>[]) => void;
+  onResetColumns?: () => void;
+  showResetColumns?: boolean;
 }
 
 export default function DataTable<T extends { id: string }>({
@@ -28,67 +38,190 @@ export default function DataTable<T extends { id: string }>({
   onResetColumns,
   showResetColumns = false,
 }: DataTableProps<T>) {
-  const [columns, setColumns] = useState<Column<T>[]>(initialColumns);
-  const [sortColumn, setSortColumn] = useState<keyof T | null>(null);
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [showScrollHint, setShowScrollHint] = useState(false);
-  const [draggedColumnIndex, setDraggedColumnIndex] = useState<number | null>(null);
-  const [dragOverColumnIndex, setDragOverColumnIndex] = useState<number | null>(null);
   const tableContainerRef = useRef<HTMLDivElement>(null);
+  const [showScrollHint, setShowScrollHint] = useState(false);
+  const [draggedColumnId, setDraggedColumnId] = useState<string | null>(null);
+  const [dragOverColumnId, setDragOverColumnId] = useState<string | null>(null);
+  const [isResizing, setIsResizing] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  
+  // TanStack Table state
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnOrder, setColumnOrder] = useState<ColumnOrderState>(() => {
+    const order = initialColumns.map((col) => (col.id || String(col.key)) as string);
+    // Add actions at the beginning if it exists
+    if (actions) {
+      return ['actions', ...order];
+    }
+    return order;
+  });
+  const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(() => {
+    // Load saved column widths from localStorage
+    if (typeof window === 'undefined') return {};
+    try {
+      const saved = localStorage.getItem('tableColumnWidths');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
 
-  // Sync columns when initialColumns changes
+  // Convert our Column type to TanStack ColumnDef
+  const tanstackColumns = useMemo<ColumnDef<T>[]>(() => {
+    const cols: ColumnDef<T>[] = [];
+
+    // Add actions column FIRST if provided
+    if (actions) {
+      cols.push({
+        id: 'actions',
+        header: 'Actions',
+        enableSorting: false,
+        enableResizing: false,
+        size: 120,
+        minSize: 120,
+        maxSize: 120,
+        cell: (info) => (
+          <div className="flex justify-center">{actions(info.row.original)}</div>
+        ),
+      });
+    }
+
+    // Add regular columns
+    const regularCols = initialColumns.map((col) => ({
+      id: col.id || String(col.key),
+      accessorKey: col.key as string,
+      header: col.header,
+      enableSorting: col.sortable ?? false,
+      size: col.width ? parseInt(col.width) : undefined,
+      minSize: col.minWidth ? parseInt(col.minWidth) : 120,
+      // Remove maxSize to allow unlimited resizing
+      cell: (info: any) => {
+        const value = info.getValue();
+        const item = info.row.original;
+        const alignment = col.align || 'center';
+        const justifyClass =
+          alignment === 'left' ? 'justify-start' : alignment === 'right' ? 'justify-end' : 'justify-center';
+
+        return (
+          <div className={`break-words flex ${justifyClass}`}>
+            {col.render ? col.render(value, item) : String(value || '')}
+          </div>
+        );
+      },
+    }));
+
+    cols.push(...regularCols);
+    return cols;
+  }, [initialColumns, actions]);
+
+  const table = useReactTable({
+    data,
+    columns: tanstackColumns,
+    state: {
+      sorting,
+      columnOrder,
+      columnSizing,
+    },
+    onSortingChange: setSorting,
+    onColumnOrderChange: setColumnOrder,
+    onColumnSizingChange: (updater) => {
+      setColumnSizing((old) => {
+        const newSizing = typeof updater === 'function' ? updater(old) : updater;
+        // Save to localStorage
+        localStorage.setItem('tableColumnWidths', JSON.stringify(newSizing));
+        return newSizing;
+      });
+    },
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    columnResizeMode: 'onChange',
+    enableColumnResizing: true,
+  });
+
+  // Sync column order when initialColumns changes
   useEffect(() => {
-    setColumns(initialColumns);
-  }, [initialColumns]);
+    const order = initialColumns.map((col) => (col.id || String(col.key)) as string);
+    // Add actions at the beginning if it exists
+    if (actions) {
+      setColumnOrder(['actions', ...order]);
+    } else {
+      setColumnOrder(order);
+    }
+  }, [initialColumns, actions]);
 
   // Handle column drag and drop
-  const handleDragStart = (e: React.DragEvent, columnIndex: number) => {
-    setDraggedColumnIndex(columnIndex);
+  const handleDragStart = (e: React.DragEvent, columnId: string) => {
+    // Don't allow drag if we're resizing or if it's the actions column
+    if (isResizing || columnId === 'actions') {
+      e.preventDefault();
+      return;
+    }
+    setIsDragging(true);
+    setDraggedColumnId(columnId);
     e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/html', ''); // Required for Firefox
   };
 
-  const handleDragOver = (e: React.DragEvent, columnIndex: number) => {
+  const handleDragOver = (e: React.DragEvent, columnId: string) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-    setDragOverColumnIndex(columnIndex);
+    setDragOverColumnId(columnId);
   };
 
   const handleDragLeave = () => {
-    setDragOverColumnIndex(null);
+    setDragOverColumnId(null);
   };
 
-  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+  const handleDrop = (e: React.DragEvent, dropColumnId: string) => {
     e.preventDefault();
-
-    if (draggedColumnIndex === null || draggedColumnIndex === dropIndex) {
-      setDraggedColumnIndex(null);
-      setDragOverColumnIndex(null);
+    
+    // Don't allow dropping on actions column
+    if (!draggedColumnId || draggedColumnId === dropColumnId || dropColumnId === 'actions') {
+      setDraggedColumnId(null);
+      setDragOverColumnId(null);
       return;
     }
 
-    const newColumns = [...columns];
-    const draggedColumn = newColumns[draggedColumnIndex];
+    const newOrder = [...columnOrder];
+    const draggedIndex = newOrder.indexOf(draggedColumnId);
+    const dropIndex = newOrder.indexOf(dropColumnId);
 
-    // Remove the dragged column
-    newColumns.splice(draggedColumnIndex, 1);
-    // Insert it at the new position
-    newColumns.splice(dropIndex, 0, draggedColumn);
+    // Remove dragged column and insert at new position
+    newOrder.splice(draggedIndex, 1);
+    newOrder.splice(dropIndex, 0, draggedColumnId);
 
-    setColumns(newColumns);
-    setDraggedColumnIndex(null);
-    setDragOverColumnIndex(null);
+    setColumnOrder(newOrder);
+    setDraggedColumnId(null);
+    setDragOverColumnId(null);
 
-    // Notify parent component of the new column order
+    // Notify parent if callback provided
     if (onColumnReorder) {
-      onColumnReorder(newColumns);
+      const reorderedColumns = newOrder
+        .map(id => initialColumns.find(col => (col.id || String(col.key)) === id))
+        .filter((col): col is Column<T> => col !== undefined);
+      onColumnReorder(reorderedColumns);
     }
   };
 
   const handleDragEnd = () => {
-    setDraggedColumnIndex(null);
-    setDragOverColumnIndex(null);
+    setDraggedColumnId(null);
+    setDragOverColumnId(null);
+    // Delay clearing isDragging to prevent sort from triggering
+    setTimeout(() => setIsDragging(false), 100);
   };
+
+  // Track when resizing ends globally
+  useEffect(() => {
+    const handleMouseUp = () => {
+      if (isResizing) {
+        setTimeout(() => setIsResizing(false), 100);
+      }
+    };
+
+    if (isResizing) {
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => document.removeEventListener('mouseup', handleMouseUp);
+    }
+  }, [isResizing]);
 
   // Check if table has horizontal overflow
   useEffect(() => {
@@ -103,27 +236,22 @@ export default function DataTable<T extends { id: string }>({
     checkOverflow();
     window.addEventListener('resize', checkOverflow);
     return () => window.removeEventListener('resize', checkOverflow);
-  }, [data, columns]);
+  }, [data, columnOrder]);
 
-  const handleSort = (column: keyof T) => {
-    if (sortColumn === column) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+  const handleResetColumns = () => {
+    localStorage.removeItem('tableColumnWidths');
+    setColumnSizing({});
+    const order = initialColumns.map((col) => (col.id || String(col.key)) as string);
+    // Add actions at the beginning if it exists
+    if (actions) {
+      setColumnOrder(['actions', ...order]);
     } else {
-      setSortColumn(column);
-      setSortDirection('asc');
+      setColumnOrder(order);
+    }
+    if (onResetColumns) {
+      onResetColumns();
     }
   };
-
-  const sortedData = [...data].sort((a, b) => {
-    if (!sortColumn) return 0;
-
-    const aValue = a[sortColumn];
-    const bValue = b[sortColumn];
-
-    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
-    return 0;
-  });
 
   if (loading) {
     return (
@@ -133,9 +261,7 @@ export default function DataTable<T extends { id: string }>({
             <div className="h-4 bg-gray-200 rounded w-1/4"></div>
           </div>
           {[...Array(5)].map((_, i) => (
-            <div
-              key={i}
-              className="px-6 py-4 border-b border-gray-200">
+            <div key={i} className="px-6 py-4 border-b border-gray-200">
               <div className="flex space-x-4">
                 <div className="h-4 bg-gray-200 rounded w-1/4"></div>
                 <div className="h-4 bg-gray-200 rounded w-1/3"></div>
@@ -156,11 +282,7 @@ export default function DataTable<T extends { id: string }>({
       {showScrollHint && (
         <div className="bg-blue-50 border-b border-blue-200 px-4 py-2">
           <div className="flex items-center text-sm text-blue-700">
-            <svg
-              className="w-4 h-4 mr-2"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24">
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -173,23 +295,16 @@ export default function DataTable<T extends { id: string }>({
         </div>
       )}
 
-      <div
-        ref={tableContainerRef}
-        className="overflow-auto scrollbar-visible relative"
-        style={containerStyle}>
+      <div ref={tableContainerRef} className="overflow-auto scrollbar-visible relative" style={containerStyle}>
         {/* Reset Columns Button */}
-        {showResetColumns && onResetColumns && (
+        {showResetColumns && (
           <div className="sticky top-0 z-30 bg-gray-50 px-4 py-2 border-b-0 left-0 right-0 block">
             <div className="flex justify-end">
               <button
-                onClick={onResetColumns}
+                onClick={handleResetColumns}
                 className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-50 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-colors"
-                title="Reset column order to default">
-                <svg
-                  className="w-3 h-3 mr-1"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24">
+                title="Reset column order and widths to default">
+                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -203,34 +318,45 @@ export default function DataTable<T extends { id: string }>({
           </div>
         )}
 
-        <table className="min-w-full">
+        <table className="min-w-full" style={{ width: table.getCenterTotalSize(), borderCollapse: 'separate', borderSpacing: 0 }}>
           <thead
-            className={`bg-gray-50 border-t border-b border-gray-300 ${stickyHeader ? 'sticky z-20' : ''}`}
-            style={{ top: showResetColumns && onResetColumns ? '40px' : '0px' }}>
-            <tr>
-              {columns.map((column, columnIndex) => {
-                // Headers are always centered
-                
-                return (
+            className={`${stickyHeader ? 'sticky z-20' : ''}`}
+            style={{ 
+              top: showResetColumns ? '40px' : '0px',
+            }}>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id}>
+                {headerGroup.headers.map((header) => {
+                  const isDragging = draggedColumnId === header.id;
+                  const isDragOver = dragOverColumnId === header.id;
+                  
+                  return (
                   <th
-                    key={column.id || String(column.key)}
+                    key={header.id}
                     draggable
-                    onDragStart={(e) => handleDragStart(e, columnIndex)}
-                    onDragOver={(e) => handleDragOver(e, columnIndex)}
+                    onDragStart={(e) => handleDragStart(e, header.id)}
+                    onDragOver={(e) => handleDragOver(e, header.id)}
                     onDragLeave={handleDragLeave}
-                    onDrop={(e) => handleDrop(e, columnIndex)}
+                    onDrop={(e) => handleDrop(e, header.id)}
                     onDragEnd={handleDragEnd}
-                    className={`px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider transition-all duration-200 ${column.sortable ? 'cursor-pointer hover:bg-gray-100' : ''
-                      } ${draggedColumnIndex === columnIndex ? 'opacity-50 bg-blue-100' : ''} ${dragOverColumnIndex === columnIndex && draggedColumnIndex !== columnIndex
-                        ? 'bg-blue-50 border-l-4 border-l-blue-400'
-                        : ''
-                      }`}
+                    className={`relative px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider transition-all duration-200 cursor-pointer hover:bg-gray-100 bg-gray-50 ${
+                      isDragging ? 'opacity-50 bg-blue-100' : ''
+                    } ${
+                      isDragOver && !isDragging ? 'bg-blue-50 border-l-4 border-l-blue-400' : ''
+                    }`}
                     style={{
-                      width: column.width,
-                      minWidth: column.minWidth || '120px',
-                      maxWidth: column.maxWidth || '250px',
+                      width: header.getSize(),
+                      borderTop: '1px solid #d1d5db',
+                      borderRight: '1px solid #d1d5db',
+                      borderBottom: '1px solid #d1d5db',
                     }}
-                    onClick={() => column.sortable && handleSort(column.key)}>
+                    onClick={(e) => {
+                      // Only allow sorting if not dragging
+                      if (!isDragging) {
+                        const handler = header.column.getToggleSortingHandler();
+                        handler?.(e);
+                      }
+                    }}>
                     <div className="flex items-center space-x-1 justify-center">
                       {/* Drag handle indicator */}
                       <svg
@@ -239,51 +365,51 @@ export default function DataTable<T extends { id: string }>({
                         viewBox="0 0 20 20">
                         <path d="M7 2a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM7 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM7 14a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM17 2a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM17 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM17 14a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" />
                       </svg>
-                      <span className="truncate min-w-0">{column.header}</span>
-                      {column.sortable && sortColumn === column.key && (
-                        <span className="text-gray-400 flex-shrink-0">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-                      )}
+                      <span className="truncate min-w-0">
+                        {flexRender(header.column.columnDef.header, header.getContext())}
+                      </span>
+                      {/* Sort indicator */}
+                      {{
+                        asc: <span className="text-gray-400 flex-shrink-0">↑</span>,
+                        desc: <span className="text-gray-400 flex-shrink-0">↓</span>,
+                      }[header.column.getIsSorted() as string] ?? null}
                     </div>
+                    {/* Resize handle */}
+                    {header.column.getCanResize() && (
+                      <div
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          setIsResizing(true);
+                          header.getResizeHandler()(e);
+                        }}
+                        onTouchStart={header.getResizeHandler()}
+                        className="absolute top-0 right-0 w-4 h-full cursor-col-resize hover:bg-blue-400 active:bg-blue-500 z-10 -mr-2"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    )}
                   </th>
-                );
-              })}
-              {actions && (
-                <th className="sticky right-0 bg-gray-50 px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-l border-gray-200">
-                  Actions
-                </th>
-              )}
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {sortedData.map((item) => (
-              <tr
-                key={item.id}
-                className={`${onRowClick ? 'cursor-pointer hover:bg-gray-50' : ''} transition-colors duration-150`}
-                onClick={() => onRowClick?.(item)}>
-                {columns.map((column) => {
-                  const alignment = column.align || 'center';
-                  const justifyClass = alignment === 'left' ? 'justify-start' : alignment === 'right' ? 'justify-end' : 'justify-center';
-                  
-                  return (
-                    <td
-                      key={column.id || String(column.key)}
-                      className="px-6 py-4 text-sm text-gray-900 align-middle"
-                      style={{
-                        width: column.width,
-                        minWidth: column.minWidth || '120px',
-                        maxWidth: column.maxWidth || '250px',
-                      }}>
-                      <div className={`break-words flex ${justifyClass}`}>
-                        {column.render ? column.render(item[column.key], item) : String(item[column.key] || '')}
-                      </div>
-                    </td>
                   );
                 })}
-                {actions && (
-                  <td className="sticky right-0 bg-white px-6 py-4 text-right text-sm font-medium border-l border-gray-200">
-                    <div className="flex justify-end">{actions(item)}</div>
+              </tr>
+            ))}
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {table.getRowModel().rows.map((row) => (
+              <tr
+                key={row.id}
+                className={`${onRowClick ? 'cursor-pointer hover:bg-gray-50' : ''} transition-colors duration-150`}
+                onClick={() => onRowClick?.(row.original)}>
+                {row.getVisibleCells().map((cell) => (
+                  <td
+                    key={cell.id}
+                    className="px-6 py-4 text-sm text-gray-900 align-middle"
+                    style={{
+                      width: cell.column.getSize(),
+                      borderRight: '1px solid #e5e7eb',
+                    }}>
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
-                )}
+                ))}
               </tr>
             ))}
           </tbody>
