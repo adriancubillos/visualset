@@ -3,7 +3,7 @@
 ✅ FIXED: Migrate breadcrumbs - Replace manual breadcrumb code with breadcrumbs prop
 ✅ FIXED: Simplify loading - Use loading prop instead of conditional returns
 ✅ FIXED: Remove duplication - Clean up ~385 lines of repetitive code
-✅ FIXED: al adicionar item lo amndo a itmes debio dejarlo adicionar otro item de tarea si ya estoy en proyecto 
+✅ FIXED: al adicionar item lo amndo a itmes debio dejarlo adicionar otro item de tarea si ya estoy en proyecto
 ✅ FIXED: calendario el tolltip esta mostrando una hora extra cuando se para de mover e impide ver el tooltoip
 ✅ FIXED: en modal mostrar el nombere de la tarea
 ✅ FIXED: toltip se queda pegado en calendar // REcomend to use FireFox Browser
@@ -12,7 +12,6 @@
 ✅ FIXED: quitar scroll interno del calendario
 ✅ FIXED: change color of task in calendar instead of left/right do top/bottom
 ✅ FIXED: calendar row height control
-
 
 Work in progress:
 add measure field for the item
@@ -23,10 +22,10 @@ Set up Vercel Blob storage with upload API routes?
 Update the Prisma schema to add measure and imageUrl fields?
 Create image upload components for items and projects?
 
-Pending: 
+Pending:
 quantity, image, measure and x/y tasks for item list columns
 
-
+# Extra DB for Production
 
 # CHANGES September 30 2025
 
