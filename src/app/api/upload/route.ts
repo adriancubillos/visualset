@@ -1,7 +1,7 @@
 import { put } from '@vercel/blob';
 import { NextResponse } from 'next/server';
 
-export const runtime = 'edge';
+// Removed edge runtime to enable static generation
 
 export async function POST(request: Request): Promise<NextResponse> {
   try {
@@ -25,24 +25,24 @@ export async function POST(request: Request): Promise<NextResponse> {
     // Generate a meaningful filename with folder structure
     const fileExtension = filename.split('.').pop();
     const timestamp = Date.now();
-    
+
     let newFilename = filename;
-    
+
     // Sanitize names for use in paths
-    const sanitizeName = (name: string) => 
+    const sanitizeName = (name: string) =>
       name
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '');
-    
+
     if (projectName) {
       // Create folder structure: projects/project-name/entity-type/filename
       const sanitizedProject = sanitizeName(projectName);
-      
+
       // Use entity name if available, otherwise use original filename without extension
       const nameWithoutExt = filename.substring(0, filename.lastIndexOf('.')) || 'file';
       const sanitizedEntity = entityName ? sanitizeName(entityName) : sanitizeName(nameWithoutExt);
-      
+
       if (entityType === 'project') {
         // Format: projects/project-name/project-name-timestamp.ext
         newFilename = `projects/${sanitizedProject}/${sanitizedProject}-${timestamp}.${fileExtension}`;
@@ -71,9 +71,6 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json(blob);
   } catch (error) {
     console.error('Error uploading file:', error);
-    return NextResponse.json(
-      { error: 'Failed to upload file' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 });
   }
 }

@@ -25,7 +25,15 @@ interface TaskModalProps {
   operators: { id: string; name: string }[];
 }
 
-export default function TaskModal({ isOpen, onClose, task, selectedSlotIndex, onSave, items, machines, operators }: TaskModalProps) {
+export default function TaskModal({
+  isOpen,
+  onClose,
+  task,
+  selectedSlotIndex,
+  onSave,
+  machines,
+  operators,
+}: TaskModalProps) {
   const [itemId, setItemId] = useState<string | null>(null);
   const [machineId, setMachineId] = useState<string | null>(null);
   const [operatorId, setOperatorId] = useState<string | null>(null);
@@ -71,16 +79,16 @@ export default function TaskModal({ isOpen, onClose, task, selectedSlotIndex, on
 
               const endDateTime = slot.endDateTime
                 ? (() => {
-                  const endDate = new Date(slot.endDateTime);
-                  return new Date(endDate.getTime() - endDate.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-                })()
+                    const endDate = new Date(slot.endDateTime);
+                    return new Date(endDate.getTime() - endDate.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                  })()
                 : undefined;
 
               // Calculate actual duration from start and end times if endDateTime exists
               const actualDurationMin = slot.endDateTime
                 ? Math.round(
-                  (new Date(slot.endDateTime).getTime() - new Date(slot.startDateTime).getTime()) / (1000 * 60),
-                )
+                    (new Date(slot.endDateTime).getTime() - new Date(slot.startDateTime).getTime()) / (1000 * 60),
+                  )
                 : slot.durationMin;
 
               return {
@@ -113,19 +121,26 @@ export default function TaskModal({ isOpen, onClose, task, selectedSlotIndex, on
       <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-2xl mx-4 border max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-start mb-6">
           <div>
-            <h3 className="text-xl font-bold text-gray-900">Update Task
-              {task.title && (
-                <span className="text-lg font-medium text-gray-700 mt-1"> - {task.title}</span>
-              )}
+            <h3 className="text-xl font-bold text-gray-900">
+              Update Task
+              {task.title && <span className="text-lg font-medium text-gray-700 mt-1"> - {task.title}</span>}
             </h3>
           </div>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-500"
-            aria-label="Close"
-          >
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            aria-label="Close">
+            <svg
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -146,7 +161,6 @@ export default function TaskModal({ isOpen, onClose, task, selectedSlotIndex, on
 
         {/* Machine and Operator in same row */}
         <div className="grid grid-cols-2 gap-4 mb-4">
-
           <Select
             label="Operator"
             value={operatorId}
@@ -189,7 +203,9 @@ export default function TaskModal({ isOpen, onClose, task, selectedSlotIndex, on
             className="w-full flex items-center justify-between bg-gray-50 hover:bg-gray-100 rounded-lg p-4 border border-gray-200 transition-all duration-200 mb-3">
             <h4 className="text-sm font-semibold text-gray-700">Schedule Time Slots</h4>
             <svg
-              className={`w-5 h-5 text-gray-600 transition-transform duration-300 ${isTimeSlotsExpanded ? 'rotate-180' : ''}`}
+              className={`w-5 h-5 text-gray-600 transition-transform duration-300 ${
+                isTimeSlotsExpanded ? 'rotate-180' : ''
+              }`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24">
@@ -202,8 +218,9 @@ export default function TaskModal({ isOpen, onClose, task, selectedSlotIndex, on
             </svg>
           </button>
           <div
-            className={`transition-all duration-300 ease-in-out overflow-hidden ${isTimeSlotsExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
-              }`}>
+            className={`transition-all duration-300 ease-in-out overflow-hidden ${
+              isTimeSlotsExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
+            }`}>
             <TimeSlotsManager
               timeSlots={timeSlots}
               onChange={setTimeSlots}

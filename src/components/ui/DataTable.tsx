@@ -43,7 +43,7 @@ export default function DataTable<T extends { id: string }>({
   const [draggedColumnId, setDraggedColumnId] = useState<string | null>(null);
   const [dragOverColumnId, setDragOverColumnId] = useState<string | null>(null);
   const [isResizing, setIsResizing] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
+  const [, setIsDragging] = useState(false); // isDragging state not used in render
 
   // TanStack Table state
   const [sorting, setSorting] = useState<SortingState>([]);

@@ -49,9 +49,10 @@ export default function GanttPage() {
   const [loading, setLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [currentDate, setCurrentDate] = useState(new Date()); // For day/week views
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [operatorFilter, setOperatorFilter] = useState<string>('all');
-  const [searchTerm, setSearchTerm] = useState<string>('');
+  // TODO: Implement filtering and search functionality
+  // const [statusFilter, setStatusFilter] = useState<string>('all');
+  // const [operatorFilter, setOperatorFilter] = useState<string>('all');
+  // const [searchTerm, setSearchTerm] = useState<string>('');
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('month');
 
   useEffect(() => {
@@ -100,56 +101,54 @@ export default function GanttPage() {
   };
 
   // Filter projects based on current filters
-  const getFilteredProjects = () => {
-    if (!data) return [];
+  // TODO: Implement filtering functionality
+  // const getFilteredProjects = () => {
+  //   if (!data) return [];
 
-    return data.projects
-      .map((project) => ({
-        ...project,
-        items: project.items
-          .map((item) => ({
-            ...item,
-            tasks: item.tasks.filter((task) => {
-              // Status filter
-              if (statusFilter !== 'all' && task.status.toLowerCase() !== statusFilter.toLowerCase()) {
-                return false;
-              }
-
-              // Operator filter
-              if (operatorFilter !== 'all' && (!task.operator || task.operator.id !== operatorFilter)) {
-                return false;
-              }
-
-              // Search filter
-              if (searchTerm && !task.title.toLowerCase().includes(searchTerm.toLowerCase())) {
-                return false;
-              }
-
-              return true;
-            }),
-          }))
-          .filter((item) => item.tasks.length > 0), // Only show items with visible tasks
-      }))
-      .filter((project) => project.items.length > 0); // Only show projects with visible items
-  };
+  //   return data.projects
+  //     .map((project) => ({
+  //       ...project,
+  //       items: project.items
+  //         .map((item) => ({
+  //           ...item,
+  //           tasks: item.tasks.filter((task) => {
+  //             // Apply status filter
+  //             if (statusFilter !== 'all' && task.status !== statusFilter) {
+  //               return false;
+  //             }
+  //             // Apply operator filter
+  //             if (operatorFilter !== 'all' && task.operator?.id !== operatorFilter) {
+  //               return false;
+  //             }
+  //             // Apply search filter
+  //             if (searchTerm && !task.title.toLowerCase().includes(searchTerm.toLowerCase())) {
+  //               return false;
+  //             }
+  //             return true;
+  //           }),
+  //         }))
+  //         .filter((item) => item.tasks.length > 0), // Only show items with visible tasks
+  //     }))
+  //     .filter((project) => project.items.length > 0); // Only show projects with visible items
+  // };
 
   // Get unique operators for filter dropdown
-  const getAvailableOperators = () => {
-    if (!data) return [];
+  // TODO: Implement operator filtering
+  // const getAvailableOperators = () => {
+  //   if (!data) return [];
 
-    const operators = new Map();
-    data.projects.forEach((project) => {
-      project.items.forEach((item) => {
-        item.tasks.forEach((task) => {
-          if (task.operator) {
-            operators.set(task.operator.id, task.operator);
-          }
-        });
-      });
-    });
-
-    return Array.from(operators.values());
-  };
+  //   const operators = new Map();
+  //   data.projects.forEach((project) => {
+  //     project.items.forEach((item) => {
+  //       item.tasks.forEach((task) => {
+  //         if (task.operator) {
+  //           operators.set(task.operator.id, task.operator);
+  //         }
+  //       });
+  //     });
+  //   });
+  //   return Array.from(operators.values());
+  // };
 
   if (loading) {
     return (

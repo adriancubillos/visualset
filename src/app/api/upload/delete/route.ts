@@ -2,7 +2,7 @@ import { del } from '@vercel/blob';
 import { NextResponse } from 'next/server';
 import { logger } from '@/utils/logger';
 
-export const runtime = 'edge';
+// Removed edge runtime to enable static generation
 
 export async function DELETE(request: Request): Promise<NextResponse> {
   try {
@@ -19,9 +19,6 @@ export async function DELETE(request: Request): Promise<NextResponse> {
     return NextResponse.json({ success: true, message: 'Image deleted successfully' });
   } catch (error) {
     logger.error('Error deleting file from Vercel Blob', error);
-    return NextResponse.json(
-      { error: 'Failed to delete file' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to delete file' }, { status: 500 });
   }
 }

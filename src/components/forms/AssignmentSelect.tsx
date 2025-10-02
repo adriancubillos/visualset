@@ -27,7 +27,7 @@ export default function AssignmentSelect({
   options,
   onChange,
   required = false,
-  disabled = false,
+  // disabled = false, // TODO: Implement disabled state
   placeholder,
   noSelectionText,
   className = '',
@@ -61,7 +61,12 @@ export default function AssignmentSelect({
         placeholder={getDefaultPlaceholder()}
       />
       {/* Hidden input for form submission if needed */}
-      <input type="hidden" id={id} name={name} value={value} />
+      <input
+        type="hidden"
+        id={id}
+        name={name}
+        value={value}
+      />
     </div>
   );
 }
