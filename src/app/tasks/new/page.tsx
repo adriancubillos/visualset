@@ -9,6 +9,7 @@ import ProjectItemSelect from '@/components/forms/ProjectItemSelect';
 import AssignmentSelect from '@/components/forms/AssignmentSelect';
 import TimeSlotsManager, { TimeSlot } from '@/components/forms/TimeSlotsManager';
 import QuantityProgress from '@/components/forms/QuantityProgress';
+import TaskTitleSelect from '@/components/forms/TaskTitleSelect';
 import { handleTaskResponse } from '@/utils/taskErrorHandling';
 import { logger } from '@/utils/logger';
 import toast from 'react-hot-toast';
@@ -19,8 +20,8 @@ function NewTaskPageContent() {
   const projectIdFromUrl = searchParams.get('project');
   const itemIdFromUrl = searchParams.get('item');
   const returnUrl = searchParams.get('returnUrl');
-  
-  const { projects, items, machines, operators, loading: dataLoading } = useTaskFormData();
+
+  const { projects, items, machines, operators, taskTitles, loading: dataLoading } = useTaskFormData();
 
   const sortedOperators = useMemo(() => [...operators].sort((a, b) => a.name.localeCompare(b.name)), [operators]);
 
@@ -91,6 +92,10 @@ function NewTaskPageContent() {
     setFormData((prev) => ({ ...prev, itemId }));
   };
 
+  const handleTitleChange = (title: string) => {
+    setFormData((prev) => ({ ...prev, title }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -131,7 +136,7 @@ function NewTaskPageContent() {
             router.push('/tasks');
           }
         },
-        'create task'
+        'create task',
       );
     } catch (error) {
       logger.error('Error creating task', error);
@@ -155,40 +160,43 @@ function NewTaskPageContent() {
           onSubmit={handleSubmit}
           className="space-y-6 p-6">
           {/* Task Title */}
-          <div>
-            <label
-              htmlFor="title"
-              className="block text-sm font-medium text-gray-700">
-              Task Title *
-            </label>
-            <input
-              type="text"
-              id="title"
-              name="title"
-              required
-              value={formData.title}
-              onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Enter task title"
-            />
-          </div>
+          <div className="grid grid-cols-1 gap-y-6 sm:grid-cols-2 sm:gap-x-8">
+            {/* Title */}
+            <div className="sm:col-span-2">
+              <label
+                htmlFor="title"
+                className="block text-sm font-medium text-gray-700">
+                Task Title
+              </label>
+              <div className="mt-1">
+                <TaskTitleSelect
+                  options={taskTitles}
+                  value={formData.title}
+                  onChange={handleTitleChange}
+                />
+              </div>
+              <p className="mt-2 text-sm text-gray-500">
+                Select an existing title or start typing to create a new one.
+              </p>
+            </div>
 
-          {/* Description */}
-          <div>
-            <label
-              htmlFor="description"
-              className="block text-sm font-medium text-gray-700">
-              Description
-            </label>
-            <textarea
-              id="description"
-              name="description"
-              rows={3}
-              value={formData.description}
-              onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Enter task description"
-            />
+            {/* Description */}
+            <div className="sm:col-span-2">
+              <label
+                htmlFor="description"
+                className="block text-sm font-medium text-gray-700">
+                Description
+              </label>
+              <textarea
+                id="description"
+                name="description"
+                rows={3}
+                value={formData.description}
+                onChange={handleChange}
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter task description"
+              />
+            </div>
           </div>
 
           {/* Project and Item Assignment */}
@@ -316,10 +324,11 @@ function NewTaskPageContent() {
               disabled={
                 loading || !formData.title.trim() || !formData.projectId || !formData.itemId || timeSlots.length === 0
               }
-              className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${loading || !formData.title.trim() || !formData.projectId || !formData.itemId || timeSlots.length === 0
+              className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                loading || !formData.title.trim() || !formData.projectId || !formData.itemId || timeSlots.length === 0
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700'
-                }`}>
+              }`}>
               {loading ? 'Creating...' : 'Create Task'}
             </button>
           </div>

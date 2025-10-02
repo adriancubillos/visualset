@@ -13,7 +13,8 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
-    "@headlessui/react": "^2.2.8",
+    "@headlessui/react": "^2.2.9",
+    "@heroicons/react": "^2.2.0",
     "@prisma/client": "^6.16.1",
     "@tanstack/react-table": "^8.21.3",
     "@vercel/blob": "^2.0.0",

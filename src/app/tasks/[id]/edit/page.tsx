@@ -15,11 +15,12 @@ import TaskStatusQuickActions from '@/components/task/TaskStatusQuickActions';
 import { handleTaskResponse } from '@/utils/taskErrorHandling';
 import { logger } from '@/utils/logger';
 import toast from 'react-hot-toast';
+import TaskTitleSelect from '@/components/forms/TaskTitleSelect';
 
 export default function EditTaskPage() {
   const params = useParams();
   const router = useRouter();
-  const { projects, items, machines, operators, loading: dataLoading } = useTaskFormData();
+  const { projects, items, machines, operators, taskTitles, loading: dataLoading } = useTaskFormData();
 
   const [task, setTask] = useState<TaskResponseDTO | null>(null);
   const [formData, setFormData] = useState({
@@ -109,8 +110,12 @@ export default function EditTaskPage() {
     fetchTaskData();
   }, [params.id]);
 
+  const handleTitleChange = (title: string) => {
+    setFormData((prev) => ({ ...prev, title }));
+  };
+
   const handleProjectChange = (projectId: string) => {
-    setFormData((prev) => ({ ...prev, projectId }));
+    setFormData((prev) => ({ ...prev, projectId, itemId: '' })); // Reset item when project changes
   };
 
   const handleItemChange = (itemId: string) => {
@@ -184,11 +189,7 @@ export default function EditTaskPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]:
-        name === 'durationMin' || name === 'quantity' || name === 'completed_quantity' ? parseInt(value) || 0 : value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   if (!task && !loading) {
@@ -213,52 +214,54 @@ export default function EditTaskPage() {
         description: 'Update task information',
       }}
       loading={loading}
-      breadcrumbs={task ? [
-        { label: 'Tasks', href: '/tasks' },
-        { label: task.title, href: `/tasks/${task.id}` },
-        { label: 'Edit' },
-      ] : undefined}>
-
+      breadcrumbs={
+        task
+          ? [{ label: 'Tasks', href: '/tasks' }, { label: task.title, href: `/tasks/${task.id}` }, { label: 'Edit' }]
+          : undefined
+      }>
       {/* Form */}
       <div className="bg-white shadow rounded-lg">
         <form
           onSubmit={handleSubmit}
           className="space-y-6 p-6">
           {/* Task Title */}
-          <div>
-            <label
-              htmlFor="title"
-              className="block text-sm font-medium text-gray-700">
-              Task Title *
-            </label>
-            <input
-              type="text"
-              id="title"
-              name="title"
-              required
-              value={formData.title}
-              onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Enter task title"
-            />
-          </div>
+          <div className="grid grid-cols-1 gap-y-6 sm:grid-cols-2 sm:gap-x-8">
+            {/* Title */}
+            <div className="sm:col-span-2">
+              <label
+                htmlFor="title"
+                className="block text-sm font-medium text-gray-700">
+                Task Title
+              </label>
+              <div className="mt-1">
+                <TaskTitleSelect
+                  options={taskTitles}
+                  value={formData.title}
+                  onChange={handleTitleChange}
+                />
+              </div>
+              <p className="mt-2 text-sm text-gray-500">
+                Select an existing title or start typing to create a new one.
+              </p>
+            </div>
 
-          {/* Description */}
-          <div>
-            <label
-              htmlFor="description"
-              className="block text-sm font-medium text-gray-700">
-              Description
-            </label>
-            <textarea
-              id="description"
-              name="description"
-              rows={3}
-              value={formData.description}
-              onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Enter task description"
-            />
+            {/* Description */}
+            <div className="sm:col-span-2">
+              <label
+                htmlFor="description"
+                className="block text-sm font-medium text-gray-700">
+                Description
+              </label>
+              <textarea
+                id="description"
+                name="description"
+                rows={3}
+                value={formData.description}
+                onChange={handleChange}
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter task description"
+              />
+            </div>
           </div>
 
           {/* Project and Item Assignment */}

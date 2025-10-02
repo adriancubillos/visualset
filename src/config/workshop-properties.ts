@@ -90,6 +90,25 @@ export const ITEM_STATUS = [
   { value: 'COMPLETED', label: 'Completed' },
 ] as const;
 
+export const TASK_TITLES = [
+  { value: 'ARCHIVOS_IMPRESION_CORTE', label: 'Archivos impresion y corte' },
+  { value: 'CABLEADO_ILUMINACION', label: 'Cableado iluminación' },
+  { value: 'CARPINTERIA', label: 'Carpinteria' },
+  { value: 'COMPRA_MATERIALES', label: 'Compra de materiales' },
+  { value: 'CORTE', label: 'Corte' },
+  { value: 'CUENTA_MATERIALES', label: 'Cuenta de materiales' },
+  { value: 'EMPAQUE', label: 'Empaque' },
+  { value: 'ENSAMBLE', label: 'Ensamble' },
+  { value: 'IMPRESION', label: 'Impresion' },
+  { value: 'INSTALACION', label: 'Instalacion' },
+  { value: 'LAMINADO', label: 'Laminado' },
+  { value: 'ORNAMENTACION', label: 'Ornamentacion' },
+  { value: 'PINTURA', label: 'Pintura' },
+  { value: 'PLANOS_ESTRUCTURAS', label: 'Planos estructuras' },
+  { value: 'PLANO_GENERAL_VISUAL', label: 'Plano general y visual' },
+  { value: 'TRANSPORTE', label: 'Transporte' },
+] as const;
+
 // Helper functions to get labels by value
 export const getSkillLabel = (value: string) => AVAILABLE_SKILLS.find((skill) => skill.value === value)?.label || value;
 

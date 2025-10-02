@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { logger } from '@/utils/logger';
+import { TASK_TITLES } from '@/config/workshop-properties';
 
 export interface DropdownOption {
   id: string;
@@ -17,6 +18,7 @@ export interface TaskFormData {
   items: ItemOption[];
   machines: DropdownOption[];
   operators: DropdownOption[];
+  taskTitles: DropdownOption[];
   loading: boolean;
   error: string | null;
 }
@@ -27,6 +29,7 @@ export function useTaskFormData() {
     items: [],
     machines: [],
     operators: [],
+    taskTitles: [],
     loading: true,
     error: null,
   });
@@ -79,11 +82,17 @@ export function useTaskFormData() {
           name: o.name,
         }));
 
+        const taskTitles = TASK_TITLES.map((title) => ({
+          id: title.value,
+          name: title.label,
+        }));
+
         setData({
           projects,
           items,
           machines,
           operators,
+          taskTitles,
           loading: false,
           error: null,
         });
