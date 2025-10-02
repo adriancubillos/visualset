@@ -12,20 +12,7 @@ import ImageViewer from '@/components/ui/ImageViewer';
 import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { logger } from '@/utils/logger';
 import StatisticsCards from '@/components/ui/StatisticsCards';
-
-// Import the Column type from DataTable
-type Column<T> = {
-  key: keyof T;
-  header: string;
-  sortable?: boolean;
-  width?: string;
-  minWidth?: string;
-  maxWidth?: string;
-  align?: 'left' | 'center' | 'right';
-  id?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  render?: (value: any, item: T) => React.ReactNode;
-};
+import { Column } from '@/types/table';
 
 interface Item {
   id: string;

@@ -12,20 +12,7 @@ import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { logger } from '@/utils/logger';
 import StatisticsCards from '@/components/ui/StatisticsCards';
 import { TASK_STATUS } from '@/config/workshop-properties';
-
-// Column type for DataTable
-type Column<T> = {
-  key: keyof T;
-  header: string;
-  sortable?: boolean;
-  width?: string;
-  minWidth?: string;
-  maxWidth?: string;
-  align?: 'left' | 'center' | 'right';
-  id?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  render?: (value: any, item: T) => React.ReactNode;
-};
+import { Column } from '@/types/table';
 
 interface Task {
   id: string;
@@ -57,6 +44,7 @@ const defaultColumns: Column<Task>[] = [
     key: 'title',
     header: 'Task',
     sortable: true,
+    align: 'left',
     width: '30%',
     minWidth: '200px',
   },
@@ -100,7 +88,8 @@ const defaultColumns: Column<Task>[] = [
   {
     key: 'operator',
     header: 'Operator',
-    sortable: false,
+    sortable: true,
+    align: 'left',
     width: '15%',
     minWidth: '120px',
     render: (operator: Task['operator']) => <span className="text-sm">{operator?.name || 'Unassigned'}</span>,
@@ -108,7 +97,7 @@ const defaultColumns: Column<Task>[] = [
   {
     key: 'machine',
     header: 'Machine',
-    sortable: false,
+    sortable: true,
     width: '15%',
     minWidth: '120px',
     render: (machine: Task['machine']) => <span className="text-sm">{machine?.name || 'Unassigned'}</span>,

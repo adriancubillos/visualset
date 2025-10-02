@@ -13,22 +13,8 @@ import StatisticsCards from '@/components/ui/StatisticsCards';
 import ImageViewer from '@/components/ui/ImageViewer';
 import { PROJECT_STATUS } from '@/config/workshop-properties';
 import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
-
 import { logger } from '@/utils/logger';
-
-// Column type for DataTable
-type Column<T> = {
-  key: keyof T;
-  header: string;
-  sortable?: boolean;
-  width?: string;
-  minWidth?: string;
-  maxWidth?: string;
-  align?: 'left' | 'center' | 'right';
-  id?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  render?: (value: any, item: T) => React.ReactNode;
-};
+import { Column } from '@/types/table';
 
 interface Project {
   id: string;
