@@ -11,6 +11,7 @@ model Project {
   id          String        @id @default(cuid())
   name        String
   description String?
+  orderNumber String?       // Project order number for tracking
   status      ProjectStatus @default(ACTIVE)
   startDate   DateTime?
   endDate     DateTime?

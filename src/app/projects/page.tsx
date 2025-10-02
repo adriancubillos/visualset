@@ -23,6 +23,8 @@ type Column<T> = {
   sortable?: boolean;
   width?: string;
   minWidth?: string;
+  maxWidth?: string;
+  align?: 'left' | 'center' | 'right';
   id?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   render?: (value: any, item: T) => React.ReactNode;
@@ -32,6 +34,7 @@ interface Project {
   id: string;
   name: string;
   description: string;
+  orderNumber?: string | null;
   status: string;
   color?: string | null;
   pattern?: string | null;
@@ -48,7 +51,7 @@ interface Project {
 const defaultColumns: Column<Project>[] = [
   {
     key: 'color',
-    header: '',
+    header: 'Color',
     render: (_: unknown, project: Project) => (
       <ProjectColorIndicator
         project={project}
@@ -72,11 +75,20 @@ const defaultColumns: Column<Project>[] = [
   {
     key: 'name',
     header: 'Project Name',
+    align: 'left',
     sortable: true,
+  },
+  {
+    key: 'orderNumber',
+    header: 'Order #',
+    render: (value: string | null | undefined) => (
+      <span className="text-sm text-gray-600">{value || '-'}</span>
+    ),
   },
   {
     key: 'description',
     header: 'Description',
+    align: 'left',
     sortable: false,
   },
   {

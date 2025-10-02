@@ -13,6 +13,7 @@ export default function NewProjectPage() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    orderNumber: '',
     status: 'ACTIVE',
     color: '',
     imageUrl: null as string | null,
@@ -117,13 +118,31 @@ export default function NewProjectPage() {
             </label>
             <input
               type="text"
-              id="name"
               name="name"
+              id="name"
               required
               value={formData.name}
               onChange={handleChange}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               placeholder="Enter project name"
+            />
+          </div>
+
+          {/* Order Number */}
+          <div>
+            <label
+              htmlFor="orderNumber"
+              className="block text-sm font-medium text-gray-700">
+              Order Number
+            </label>
+            <input
+              type="text"
+              name="orderNumber"
+              id="orderNumber"
+              value={formData.orderNumber}
+              onChange={handleChange}
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter order number (optional)"
             />
           </div>
 

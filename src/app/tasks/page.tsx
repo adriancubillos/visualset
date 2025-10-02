@@ -20,6 +20,8 @@ type Column<T> = {
   sortable?: boolean;
   width?: string;
   minWidth?: string;
+  maxWidth?: string;
+  align?: 'left' | 'center' | 'right';
   id?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   render?: (value: any, item: T) => React.ReactNode;
@@ -57,38 +59,6 @@ const defaultColumns: Column<Task>[] = [
     sortable: true,
     width: '30%',
     minWidth: '200px',
-  },
-  {
-    key: 'status',
-    header: 'Status',
-    sortable: true,
-    width: '120px',
-    minWidth: '120px',
-    render: (status: string) => {
-      const getStatusVariant = (status: string) => {
-        switch (status) {
-          case 'COMPLETED':
-            return 'success';
-          case 'IN_PROGRESS':
-            return 'info';
-          case 'SCHEDULED':
-            return 'info';
-          case 'PENDING':
-            return 'warning';
-          case 'BLOCKED':
-            return 'error';
-          default:
-            return 'default';
-        }
-      };
-
-      return (
-        <StatusBadge
-          status={status ? status.replace(/_/g, ' ') : 'Unknown'}
-          variant={getStatusVariant(status)}
-        />
-      );
-    },
   },
   {
     id: 'project',
@@ -142,6 +112,38 @@ const defaultColumns: Column<Task>[] = [
     width: '15%',
     minWidth: '120px',
     render: (machine: Task['machine']) => <span className="text-sm">{machine?.name || 'Unassigned'}</span>,
+  },
+  {
+    key: 'status',
+    header: 'Status',
+    sortable: true,
+    width: '120px',
+    minWidth: '120px',
+    render: (status: string) => {
+      const getStatusVariant = (status: string) => {
+        switch (status) {
+          case 'COMPLETED':
+            return 'success';
+          case 'IN_PROGRESS':
+            return 'info';
+          case 'SCHEDULED':
+            return 'info';
+          case 'PENDING':
+            return 'warning';
+          case 'BLOCKED':
+            return 'error';
+          default:
+            return 'default';
+        }
+      };
+
+      return (
+        <StatusBadge
+          status={status ? status.replace(/_/g, ' ') : 'Unknown'}
+          variant={getStatusVariant(status)}
+        />
+      );
+    },
   },
   {
     key: 'timeSlots',

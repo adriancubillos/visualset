@@ -21,6 +21,8 @@ type Column<T> = {
   sortable?: boolean;
   width?: string;
   minWidth?: string;
+  maxWidth?: string;
+  align?: 'left' | 'center' | 'right';
   id?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   render?: (value: any, item: T) => React.ReactNode;
@@ -42,7 +44,7 @@ interface Machine {
 const defaultColumns: Column<Machine>[] = [
   {
     key: 'color',
-    header: '',
+    header: 'Color',
     render: (_: unknown, machine: Machine) => (
       <MachineColorIndicator
         machine={machine}
@@ -55,6 +57,7 @@ const defaultColumns: Column<Machine>[] = [
   {
     key: 'name',
     header: 'Machine Name',
+    align: 'left',
     sortable: true,
   },
   {

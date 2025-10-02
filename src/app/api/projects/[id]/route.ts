@@ -94,6 +94,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       data: {
         name: body.name,
         description: body.description,
+        orderNumber: body.orderNumber || null,
         status: body.status,
         color: body.color,
         imageUrl: body.imageUrl || null,

@@ -18,6 +18,7 @@ interface Project {
   id: string;
   name: string;
   description: string;
+  orderNumber?: string | null;
   status: string;
   color?: string;
   pattern?: string;
@@ -224,6 +225,9 @@ export default function ProjectDetailPage() {
             size="lg"
           />
         </div>
+        {project.orderNumber && (
+          <span className="font-medium text-gray-700">Order #: {project.orderNumber}</span>
+        )}
         <span>Created: {new Date(project.createdAt).toLocaleDateString()}</span>
         <span>Last Updated: {new Date(project.updatedAt).toLocaleDateString()}</span>
       </div>

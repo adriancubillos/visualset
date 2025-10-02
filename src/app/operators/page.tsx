@@ -19,6 +19,8 @@ type Column<T> = {
   sortable?: boolean;
   width?: string;
   minWidth?: string;
+  maxWidth?: string;
+  align?: 'left' | 'center' | 'right';
   id?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   render?: (value: any, item: T) => React.ReactNode;
@@ -41,7 +43,7 @@ interface Operator {
 const defaultColumns: Column<Operator>[] = [
   {
     key: 'color',
-    header: '',
+    header: 'Color',
     render: (_: unknown, operator: Operator) => (
       <OperatorColorIndicator
         operator={operator}
@@ -54,16 +56,19 @@ const defaultColumns: Column<Operator>[] = [
   {
     key: 'name',
     header: 'Name',
+    align: 'left',
     sortable: true,
   },
   {
     key: 'email',
     header: 'Email',
+    align: 'left',
     sortable: true,
   },
   {
     key: 'skills',
     header: 'Skills',
+    align: 'left',
     sortable: false,
     render: (skills: string[]) => (
       <div className="flex flex-wrap gap-1">
@@ -284,7 +289,7 @@ export default function OperatorsPage() {
       } else {
         const errorData = await response.json();
         logger.error('Failed to delete operator,', errorData.error);
-        
+
         if (errorData.error?.includes('assigned tasks')) {
           toast.error(`Cannot delete "${operatorName}". This operator is currently assigned to one or more tasks. Please unassign or delete those tasks first.`, { duration: 6000 });
         } else {

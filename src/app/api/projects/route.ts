@@ -47,6 +47,7 @@ export async function POST(req: Request) {
       data: {
         name: body.name,
         description: body.description,
+        orderNumber: body.orderNumber || null,
         status: body.status ?? 'ACTIVE',
         color: body.color || null,
         imageUrl: body.imageUrl || null,
