@@ -51,6 +51,7 @@ export default function EditItemPage() {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [projectsLoading, setProjectsLoading] = useState(true);
+  const [imageLoading, setImageLoading] = useState(false);
   const [statusValidationError, setStatusValidationError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -354,6 +355,7 @@ export default function EditItemPage() {
             currentImageUrl={formData.imageUrl || null}
             onImageUploaded={(url) => setFormData({ ...formData, imageUrl: url })}
             onImageRemoved={() => setFormData({ ...formData, imageUrl: null })}
+            onLoadingChange={setImageLoading}
             entityType="item"
             entityName={formData.name}
             projectName={projects.find(p => p.id === formData.projectId)?.name}
@@ -462,13 +464,13 @@ export default function EditItemPage() {
             </button>
             <button
               type="submit"
-              disabled={loading || !formData.name.trim() || !formData.projectId}
+              disabled={loading || imageLoading || !formData.name.trim() || !formData.projectId}
               className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                loading || !formData.name.trim() || !formData.projectId
+                loading || imageLoading || !formData.name.trim() || !formData.projectId
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700'
               }`}>
-              {loading ? 'Updating...' : 'Update Item'}
+              {loading ? 'Updating...' : imageLoading ? 'Processing image...' : 'Update Item'}
             </button>
           </div>
         </form>

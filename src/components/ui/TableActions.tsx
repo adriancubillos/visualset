@@ -21,6 +21,7 @@ export default function TableActions({
     <div className="flex space-x-2">
       <Link
         href={editPath}
+        onClick={(e) => e.stopPropagation()}
         className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
         title="Edit"
       >

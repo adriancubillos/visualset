@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
+import { logger } from '@/utils/logger';
 
 interface ImageUploadProps {
   label: string;
@@ -12,6 +13,7 @@ interface ImageUploadProps {
   entityType?: 'project' | 'item'; // Type of entity (project or item)
   entityName?: string; // Name of the entity for filename
   projectName?: string; // Project name for folder organization
+  onLoadingChange?: (isLoading: boolean) => void; // Callback when upload/delete state changes
 }
 
 export default function ImageUpload({
@@ -22,10 +24,20 @@ export default function ImageUpload({
   entityType,
   entityName,
   projectName,
+  onLoadingChange,
 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentImageUrl || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Notify parent when loading state changes
+  const updateLoadingState = (isUploading: boolean, isDeleting: boolean) => {
+    const isLoading = isUploading || isDeleting;
+    if (onLoadingChange) {
+      onLoadingChange(isLoading);
+    }
+  };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -44,6 +56,7 @@ export default function ImageUpload({
     }
 
     setUploading(true);
+    updateLoadingState(true, deleting);
 
     try {
       // Create preview
@@ -79,15 +92,41 @@ export default function ImageUpload({
       onImageUploaded(blob.url);
       toast.success('Image uploaded successfully');
     } catch (error) {
-      console.error('Error uploading image:', error);
+      logger.error('Error uploading image', error);
       toast.error('Failed to upload image');
       setPreviewUrl(currentImageUrl || null);
     } finally {
       setUploading(false);
+      updateLoadingState(false, deleting);
     }
   };
 
-  const handleRemove = () => {
+  const handleRemove = async () => {
+    setDeleting(true);
+    updateLoadingState(uploading, true);
+    
+    // If there's a current image URL (from server), delete it from Vercel Blob
+    if (currentImageUrl) {
+      try {
+        const response = await fetch(
+          `/api/upload/delete?url=${encodeURIComponent(currentImageUrl)}`,
+          {
+            method: 'DELETE',
+          }
+        );
+
+        if (!response.ok) {
+          logger.apiError('Delete image', `/api/upload/delete`, 'Failed to delete from storage');
+          toast.error('Failed to delete image from storage');
+        } else {
+          toast.success('Image removed from storage');
+        }
+      } catch (error) {
+        logger.error('Error deleting image', error);
+        toast.error('Error deleting image');
+      }
+    }
+
     setPreviewUrl(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -95,6 +134,9 @@ export default function ImageUpload({
     if (onImageRemoved) {
       onImageRemoved();
     }
+    
+    setDeleting(false);
+    updateLoadingState(uploading, false);
   };
 
   return (
@@ -114,16 +156,39 @@ export default function ImageUpload({
           <button
             type="button"
             onClick={handleRemove}
-            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
-            title="Remove image">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+            disabled={deleting || uploading}
+            className={`absolute -top-2 -right-2 rounded-full p-1 transition-colors ${
+              deleting || uploading
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-red-500 hover:bg-red-600 text-white'
+            }`}
+            title={deleting ? 'Deleting...' : 'Remove image'}>
+            {deleting ? (
+              <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            )}
           </button>
         </div>
       ) : (

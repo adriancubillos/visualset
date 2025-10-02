@@ -45,6 +45,7 @@ export default function EditProjectPage() {
   const [statusValidationError, setStatusValidationError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [imageLoading, setImageLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -395,6 +396,7 @@ export default function EditProjectPage() {
             currentImageUrl={formData.imageUrl}
             onImageUploaded={(url) => setFormData({ ...formData, imageUrl: url })}
             onImageRemoved={() => setFormData({ ...formData, imageUrl: null })}
+            onLoadingChange={setImageLoading}
             entityType="project"
             entityName={formData.name}
           />
@@ -408,11 +410,11 @@ export default function EditProjectPage() {
             </Link>
             <button
               type="submit"
-              disabled={saving || !formData.name.trim()}
+              disabled={saving || imageLoading || !formData.name.trim()}
               className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                saving || !formData.name.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+                saving || imageLoading || !formData.name.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
               }`}>
-              {saving ? 'Saving...' : 'Save Changes'}
+              {saving ? 'Saving...' : imageLoading ? 'Processing image...' : 'Save Changes'}
             </button>
           </div>
         </form>
