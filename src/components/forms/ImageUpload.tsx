@@ -9,6 +9,9 @@ interface ImageUploadProps {
   currentImageUrl?: string | null;
   onImageUploaded: (url: string) => void;
   onImageRemoved?: () => void;
+  entityType?: 'project' | 'item'; // Type of entity (project or item)
+  entityName?: string; // Name of the entity for filename
+  projectName?: string; // Project name for folder organization
 }
 
 export default function ImageUpload({
@@ -16,6 +19,9 @@ export default function ImageUpload({
   currentImageUrl,
   onImageUploaded,
   onImageRemoved,
+  entityType,
+  entityName,
+  projectName,
 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentImageUrl || null);
@@ -48,8 +54,17 @@ export default function ImageUpload({
       reader.readAsDataURL(file);
 
       // Upload to Vercel Blob
+      const params = new URLSearchParams({
+        filename: file.name,
+      });
+      
+      // Add entity information if provided
+      if (entityType) params.append('entityType', entityType);
+      if (entityName) params.append('entityName', entityName);
+      if (projectName) params.append('projectName', projectName);
+      
       const response = await fetch(
-        `/api/upload?filename=${encodeURIComponent(file.name)}`,
+        `/api/upload?${params.toString()}`,
         {
           method: 'POST',
           body: file,

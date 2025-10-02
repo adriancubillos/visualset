@@ -395,6 +395,8 @@ export default function EditProjectPage() {
             currentImageUrl={formData.imageUrl}
             onImageUploaded={(url) => setFormData({ ...formData, imageUrl: url })}
             onImageRemoved={() => setFormData({ ...formData, imageUrl: null })}
+            entityType="project"
+            entityName={formData.name}
           />
 
           {/* Actions */}

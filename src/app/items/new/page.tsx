@@ -225,6 +225,9 @@ function NewItemPageContent() {
             currentImageUrl={formData.imageUrl}
             onImageUploaded={(url) => setFormData({ ...formData, imageUrl: url })}
             onImageRemoved={() => setFormData({ ...formData, imageUrl: null })}
+            entityType="item"
+            entityName={formData.name}
+            projectName={projects.find(p => p.id === formData.projectId)?.name}
           />
 
           {/* Status */}
