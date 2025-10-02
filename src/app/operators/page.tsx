@@ -291,55 +291,12 @@ export default function OperatorsPage() {
     }
   };
 
-  const handleStatusChange = async (operatorId: string, newStatus: string) => {
-    try {
-      const operator = operators.find((op) => op.id === operatorId);
-      if (!operator) return;
-
-      const response = await fetch(`/api/operators/${operatorId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...operator,
-          status: newStatus,
-        }),
-      });
-
-      if (response.ok) {
-        const updatedOperator = await response.json();
-        const updatedOperators = operators.map((op) => (op.id === operatorId ? updatedOperator : op));
-        setOperators(updatedOperators);
-        setFilteredOperators(updatedOperators);
-      } else {
-        const errorData = await response.json();
-        logger.apiError('Update operator status', `/api/operators/${operatorId}`, errorData.error);
-        toast.error('Failed to update operator status: ' + (errorData.error || 'Unknown error'));
-      }
-    } catch (error) {
-      logger.error('Error updating operator status', error);
-      toast.error('Error updating operator status. Please try again.');
-    }
-  };
-
   const renderActions = (operator: Operator) => (
     <TableActions
       itemId={operator.id}
       itemName={operator.name}
       editPath={`/operators/${operator.id}/edit`}
       onDelete={handleDelete}
-      extraActions={
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            const newStatus = operator.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-            handleStatusChange(operator.id, newStatus);
-          }}
-          className="text-green-600 hover:text-green-900 text-sm font-medium">
-          {operator.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
-        </button>
-      }
     />
   );
 

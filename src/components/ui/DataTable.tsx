@@ -93,7 +93,7 @@ export default function DataTable<T extends { id: string }>({
       header: col.header,
       enableSorting: col.sortable ?? false,
       size: col.width ? parseInt(col.width) : undefined,
-      minSize: col.minWidth ? parseInt(col.minWidth) : 120,
+      minSize: col.minWidth ? parseInt(col.minWidth) : 60,
       // Remove maxSize to allow unlimited resizing
       cell: (info: any) => {
         const value = info.getValue();
@@ -103,7 +103,7 @@ export default function DataTable<T extends { id: string }>({
           alignment === 'left' ? 'justify-start' : alignment === 'right' ? 'justify-end' : 'justify-center';
 
         return (
-          <div className={`break-words flex ${justifyClass}`}>
+          <div className={`break-words break-all flex ${justifyClass}`}>
             {col.render ? col.render(value, item) : String(value || '')}
           </div>
         );
@@ -351,8 +351,8 @@ export default function DataTable<T extends { id: string }>({
                       borderBottom: '1px solid #d1d5db',
                     }}
                     onClick={(e) => {
-                      // Only allow sorting if not dragging
-                      if (!isDragging) {
+                      // Only allow sorting if not dragging or resizing
+                      if (!isDragging && !isResizing) {
                         const handler = header.column.getToggleSortingHandler();
                         handler?.(e);
                       }
