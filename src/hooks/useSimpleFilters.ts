@@ -29,18 +29,6 @@ export function useSimpleFilters({ defaultFilters = {} }: UseSimpleFiltersOption
     return acc;
   }, {} as Record<string, string>);
 
-  // Debug logging
-  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-    console.log(
-      `[${pathname}] Search:`,
-      search,
-      'Filters:',
-      filters,
-      'SearchParams:',
-      Object.fromEntries(searchParams.entries()),
-    );
-  }
-
   // Update URL (which automatically updates component)
   const updateUrl = useCallback(
     (newParams: Record<string, string>) => {

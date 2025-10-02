@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { useMemo } from 'react';
+import { useState, useEffect } from 'react';
 
 const navigationItems = [
   { name: 'Dashboard', href: '/', icon: '📊' },
@@ -17,27 +17,34 @@ const navigationItems = [
 export default function Navigation() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isClient, setIsClient] = useState(false);
+
+  // Ensure this only runs on client side to avoid hydration mismatch
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Store current page's search params for restoration
-  const currentSearchString = useMemo(() => {
-    return searchParams.toString();
-  }, [searchParams]);
+  const currentSearchString = searchParams.toString();
 
   // Store filter state in sessionStorage when navigating away
-  const handleNavigation = (href: string) => {
-    if (typeof window !== 'undefined' && currentSearchString) {
+  const handleNavigation = () => {
+    if (isClient && currentSearchString) {
       // Store the current page's search params
       sessionStorage.setItem(`filters_${pathname}`, currentSearchString);
     }
   };
 
-  // Get stored search params for the target page
+  // Get stored search params for the target page (only on client)
   const getHrefWithStoredParams = (href: string) => {
-    if (typeof window !== 'undefined') {
-      const storedParams = sessionStorage.getItem(`filters_${href}`);
-      if (storedParams) {
-        return `${href}?${storedParams}`;
-      }
+    if (!isClient) {
+      // During SSR, always return the base href to avoid hydration mismatch
+      return href;
+    }
+
+    const storedParams = sessionStorage.getItem(`filters_${href}`);
+    if (storedParams) {
+      return `${href}?${storedParams}`;
     }
     return href;
   };
@@ -58,7 +65,7 @@ export default function Navigation() {
                   <Link
                     key={item.name}
                     href={getHrefWithStoredParams(item.href)}
-                    onClick={() => handleNavigation(item.href)}
+                    onClick={handleNavigation}
                     className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
                       isActive
                         ? 'border-blue-500 text-gray-900'
