@@ -6,9 +6,7 @@ import Link from 'next/link';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { logger } from '@/utils/logger';
 import PageContainer from '@/components/layout/PageContainer';
-import ColorIndicator from '@/components/ui/ColorIndicator';
 import ImageViewer from '@/components/ui/ImageViewer';
-import { PatternType } from '@/utils/entityColors';
 import { checkProjectCompletionReadiness } from '@/utils/projectValidation';
 import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import StatisticsCards from '@/components/ui/StatisticsCards';
@@ -159,11 +157,11 @@ export default function ProjectDetailPage() {
       label: 'Machines Used',
       value: project.items
         ? new Set(
-          project.items
-            .flatMap((item) => item.tasks || [])
-            .filter((task) => task.machine)
-            .map((task) => task.machine!.id),
-        ).size
+            project.items
+              .flatMap((item) => item.tasks || [])
+              .filter((task) => task.machine)
+              .map((task) => task.machine!.id),
+          ).size
         : 0,
       color: 'purple' as const,
     },
@@ -171,11 +169,11 @@ export default function ProjectDetailPage() {
       label: 'Operators Assigned',
       value: project.items
         ? new Set(
-          project.items
-            .flatMap((item) => item.tasks || [])
-            .filter((task) => task.operator)
-            .map((task) => task.operator!.id),
-        ).size
+            project.items
+              .flatMap((item) => item.tasks || [])
+              .filter((task) => task.operator)
+              .map((task) => task.operator!.id),
+          ).size
         : 0,
       color: 'orange' as const,
     },
@@ -207,27 +205,10 @@ export default function ProjectDetailPage() {
         ),
       }}
       variant="detail"
-      breadcrumbs={[
-        { label: 'Projects', href: '/projects' },
-        { label: project.name },
-      ]}>
-
+      breadcrumbs={[{ label: 'Projects', href: '/projects' }, { label: project.name }]}>
       {/* Created and Updated Info */}
       <div className="mb-4 flex items-center space-x-6 text-sm text-gray-500">
-        <div className="flex items-center space-x-2">
-          <ColorIndicator
-            entity={{
-              id: project.id,
-              color: project.color,
-              pattern: project.pattern as PatternType,
-            }}
-            entityType="project"
-            size="lg"
-          />
-        </div>
-        {project.orderNumber && (
-          <span className="font-medium text-gray-700">Order #: {project.orderNumber}</span>
-        )}
+        {project.orderNumber && <span className="font-medium text-gray-700">Order #: {project.orderNumber}</span>}
         <span>Created: {new Date(project.createdAt).toLocaleDateString()}</span>
         <span>Last Updated: {new Date(project.updatedAt).toLocaleDateString()}</span>
       </div>
@@ -352,13 +333,15 @@ export default function ProjectDetailPage() {
                       {/* Progress bar */}
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div
-                          className={`h-2 rounded-full transition-all duration-300 ${item.tasks.filter((t) => t.status === 'COMPLETED').length / item.tasks.length === 1
-                            ? 'bg-green-500'
-                            : 'bg-blue-500'
-                            }`}
+                          className={`h-2 rounded-full transition-all duration-300 ${
+                            item.tasks.filter((t) => t.status === 'COMPLETED').length / item.tasks.length === 1
+                              ? 'bg-green-500'
+                              : 'bg-blue-500'
+                          }`}
                           style={{
-                            width: `${(item.tasks.filter((t) => t.status === 'COMPLETED').length / item.tasks.length) * 100
-                              }%`,
+                            width: `${
+                              (item.tasks.filter((t) => t.status === 'COMPLETED').length / item.tasks.length) * 100
+                            }%`,
                           }}
                         />
                       </div>
@@ -377,16 +360,16 @@ export default function ProjectDetailPage() {
                         {item.tasks.filter(
                           (t) => !['PENDING', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED'].includes(t.status),
                         ).length > 0 && (
-                            <div className="flex items-center text-xs text-red-700 bg-red-50 px-2 py-1 rounded">
-                              <span className="mr-1">🚨</span>
-                              {
-                                item.tasks.filter(
-                                  (t) => !['PENDING', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED'].includes(t.status),
-                                ).length
-                              }{' '}
-                              task(s) need attention
-                            </div>
-                          )}
+                          <div className="flex items-center text-xs text-red-700 bg-red-50 px-2 py-1 rounded">
+                            <span className="mr-1">🚨</span>
+                            {
+                              item.tasks.filter(
+                                (t) => !['PENDING', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED'].includes(t.status),
+                              ).length
+                            }{' '}
+                            task(s) need attention
+                          </div>
+                        )}
                       </div>
                     </div>
                   ) : (

@@ -21,6 +21,7 @@ interface Project {
   id: string;
   name: string;
   description: string;
+  orderNumber?: string | null;
   status: string;
   color?: string;
   imageUrl?: string | null;
@@ -108,7 +109,7 @@ export default function EditProjectPage() {
         color: formData.color,
       },
     });
-    
+
     router.push(`/projects/${project?.id}`);
   };
 
@@ -224,7 +225,6 @@ export default function EditProjectPage() {
         { label: project.name, href: `/projects/${project.id}` },
         { label: 'Edit' },
       ]}>
-
       {/* Global Error Message */}
       {statusValidationError && (
         <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-400 rounded-md">
@@ -458,7 +458,9 @@ export default function EditProjectPage() {
               type="submit"
               disabled={saving || imageLoading || !formData.name.trim()}
               className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                saving || imageLoading || !formData.name.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+                saving || imageLoading || !formData.name.trim()
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-blue-600 hover:bg-blue-700'
               }`}>
               {saving ? 'Saving...' : imageLoading ? 'Processing image...' : 'Save Changes'}
             </button>
