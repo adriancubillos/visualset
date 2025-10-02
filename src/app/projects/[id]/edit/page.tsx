@@ -9,6 +9,7 @@ import PageContainer from '@/components/layout/PageContainer';
 import { PROJECT_STATUS } from '@/config/workshop-properties';
 import { checkProjectCompletionReadiness, getProjectCompletionMessage } from '@/utils/projectValidation';
 import { logger } from '@/utils/logger';
+import { cleanupImageOnCancel } from '@/utils/imageCleanup';
 
 interface Item {
   id: string;
@@ -46,6 +47,8 @@ export default function EditProjectPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
+  const [newUploadedImageUrl, setNewUploadedImageUrl] = useState<string | null>(null);
+  const [originalImageUrl, setOriginalImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -70,6 +73,7 @@ export default function EditProjectPage() {
 
         setProject(projectData);
         setUsedColors(usedColorsList);
+        setOriginalImageUrl(projectData.imageUrl || null); // Store original for cancel restoration
         setFormData({
           name: projectData.name,
           description: projectData.description || '',
@@ -88,6 +92,24 @@ export default function EditProjectPage() {
     fetchData();
   }, [params.id]);
 
+  const handleCancel = async () => {
+    await cleanupImageOnCancel({
+      newUploadedImageUrl,
+      originalImageUrl,
+      currentImageUrl: formData.imageUrl,
+      entityId: params.id as string,
+      entityType: 'project',
+      formData: {
+        name: formData.name,
+        description: formData.description,
+        status: formData.status,
+        color: formData.color,
+      },
+    });
+    
+    router.push(`/projects/${project?.id}`);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -104,6 +126,8 @@ export default function EditProjectPage() {
       });
 
       if (response.ok) {
+        // Clear the new upload tracking since it's now saved
+        setNewUploadedImageUrl(null);
         router.push(`/projects/${params.id}`);
       } else {
         const errorData = await response.json();
@@ -397,17 +421,19 @@ export default function EditProjectPage() {
             onImageUploaded={(url) => setFormData({ ...formData, imageUrl: url })}
             onImageRemoved={() => setFormData({ ...formData, imageUrl: null })}
             onLoadingChange={setImageLoading}
+            onNewUploadTracked={setNewUploadedImageUrl}
             entityType="project"
             entityName={formData.name}
           />
 
           {/* Actions */}
           <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
-            <Link
-              href={`/projects/${project.id}`}
+            <button
+              type="button"
+              onClick={handleCancel}
               className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
               Cancel
-            </Link>
+            </button>
             <button
               type="submit"
               disabled={saving || imageLoading || !formData.name.trim()}

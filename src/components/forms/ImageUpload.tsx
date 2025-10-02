@@ -14,6 +14,7 @@ interface ImageUploadProps {
   entityName?: string; // Name of the entity for filename
   projectName?: string; // Project name for folder organization
   onLoadingChange?: (isLoading: boolean) => void; // Callback when upload/delete state changes
+  onNewUploadTracked?: (url: string | null) => void; // Track new uploads for cleanup on cancel
 }
 
 export default function ImageUpload({
@@ -25,10 +26,12 @@ export default function ImageUpload({
   entityName,
   projectName,
   onLoadingChange,
+  onNewUploadTracked,
 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentImageUrl || null);
+  const [newUploadedUrl, setNewUploadedUrl] = useState<string | null>(null); // Track new uploads
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Notify parent when loading state changes
@@ -89,6 +92,10 @@ export default function ImageUpload({
       }
 
       const blob = await response.json();
+      setNewUploadedUrl(blob.url); // Track this as a new upload
+      if (onNewUploadTracked) {
+        onNewUploadTracked(blob.url); // Notify parent to track for cleanup
+      }
       onImageUploaded(blob.url);
       toast.success('Image uploaded successfully');
     } catch (error) {
@@ -105,11 +112,14 @@ export default function ImageUpload({
     setDeleting(true);
     updateLoadingState(uploading, true);
     
-    // If there's a current image URL (from server), delete it from Vercel Blob
-    if (currentImageUrl) {
+    // Determine which URL to delete (new upload takes precedence)
+    const urlToDelete = newUploadedUrl || currentImageUrl;
+    
+    // If there's an image URL, delete it from Vercel Blob
+    if (urlToDelete) {
       try {
         const response = await fetch(
-          `/api/upload/delete?url=${encodeURIComponent(currentImageUrl)}`,
+          `/api/upload/delete?url=${encodeURIComponent(urlToDelete)}`,
           {
             method: 'DELETE',
           }
@@ -128,6 +138,10 @@ export default function ImageUpload({
     }
 
     setPreviewUrl(null);
+    setNewUploadedUrl(null); // Clear the tracked upload
+    if (onNewUploadTracked) {
+      onNewUploadTracked(null); // Clear parent tracking
+    }
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }

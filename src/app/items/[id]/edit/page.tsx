@@ -7,6 +7,7 @@ import ImageUpload from '@/components/forms/ImageUpload';
 import { checkItemCompletionReadiness, getItemCompletionMessage } from '@/utils/itemValidation';
 import { ITEM_STATUS } from '@/config/workshop-properties';
 import { logger } from '@/utils/logger';
+import { cleanupImageOnCancel } from '@/utils/imageCleanup';
 
 interface Project {
   id: string;
@@ -52,6 +53,8 @@ export default function EditItemPage() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [projectsLoading, setProjectsLoading] = useState(true);
   const [imageLoading, setImageLoading] = useState(false);
+  const [newUploadedImageUrl, setNewUploadedImageUrl] = useState<string | null>(null);
+  const [originalImageUrl, setOriginalImageUrl] = useState<string | null>(null);
   const [statusValidationError, setStatusValidationError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -67,6 +70,7 @@ export default function EditItemPage() {
         if (itemResponse.ok) {
           itemData = await itemResponse.json();
           console.log('Loaded item data:', itemData);
+          setOriginalImageUrl(itemData.imageUrl || null); // Store original for cancel restoration
           setFormData({
             id: itemData.id,
             name: itemData.name,
@@ -114,6 +118,26 @@ export default function EditItemPage() {
     }
   }, [params.id]);
 
+  const handleCancel = async () => {
+    await cleanupImageOnCancel({
+      newUploadedImageUrl,
+      originalImageUrl,
+      currentImageUrl: formData.imageUrl || null,
+      entityId: params.id as string,
+      entityType: 'item',
+      formData: {
+        name: formData.name,
+        description: formData.description,
+        status: formData.status,
+        quantity: formData.quantity,
+        measure: formData.measure,
+        projectId: formData.projectId,
+      },
+    });
+    
+    router.back();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -137,6 +161,8 @@ export default function EditItemPage() {
       });
 
       if (response.ok) {
+        // Clear the new upload tracking since it's now saved
+        setNewUploadedImageUrl(null);
         router.push(`/items/${params.id}`);
       } else {
         const errorData = await response.json();
@@ -356,6 +382,7 @@ export default function EditItemPage() {
             onImageUploaded={(url) => setFormData({ ...formData, imageUrl: url })}
             onImageRemoved={() => setFormData({ ...formData, imageUrl: null })}
             onLoadingChange={setImageLoading}
+            onNewUploadTracked={setNewUploadedImageUrl}
             entityType="item"
             entityName={formData.name}
             projectName={projects.find(p => p.id === formData.projectId)?.name}
@@ -458,7 +485,7 @@ export default function EditItemPage() {
           <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
             <button
               type="button"
-              onClick={() => router.back()}
+              onClick={handleCancel}
               className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
               Cancel
             </button>
