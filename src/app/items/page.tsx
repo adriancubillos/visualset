@@ -43,6 +43,7 @@ export const dynamic = 'force-dynamic';
 
 function ItemsPageContent({
   search,
+  searchValue,
   filters,
   updateSearch,
   updateFilters,
@@ -62,7 +63,8 @@ function ItemsPageContent({
         (item) =>
           item.name.toLowerCase().includes(search.toLowerCase()) ||
           item.description?.toLowerCase().includes(search.toLowerCase()) ||
-          item.project.name.toLowerCase().includes(search.toLowerCase()),
+          item.project.name.toLowerCase().includes(search.toLowerCase()) ||
+          item.measure?.toLowerCase().includes(search.toLowerCase()),
       );
     }
 
@@ -307,8 +309,8 @@ function ItemsPageContent({
 
       {/* Search and Filters */}
       <SearchFilter
-        placeholder="Search items by name, description, or project..."
-        searchValue={search}
+        placeholder="Search items..."
+        searchValue={searchValue}
         filterValues={filters}
         onSearch={updateSearch}
         filters={filterOptions}

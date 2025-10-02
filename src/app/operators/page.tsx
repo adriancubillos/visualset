@@ -153,6 +153,7 @@ export const dynamic = 'force-dynamic';
 
 function OperatorsPageContent({
   search,
+  searchValue,
   filters,
   updateSearch,
   updateFilters,
@@ -172,6 +173,7 @@ function OperatorsPageContent({
         (operator) =>
           operator.name.toLowerCase().includes(search.toLowerCase()) ||
           operator.email?.toLowerCase().includes(search.toLowerCase()) ||
+          operator.shift.toLowerCase().includes(search.toLowerCase()) ||
           operator.skills.some((skill) => skill.toLowerCase().includes(search.toLowerCase())),
       );
     }
@@ -352,7 +354,7 @@ function OperatorsPageContent({
       {/* Search and Filters */}
       <SearchFilter
         placeholder="Search operators..."
-        searchValue={search}
+        searchValue={searchValue}
         filterValues={filters}
         onSearch={updateSearch}
         filters={filterOptions}

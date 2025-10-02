@@ -4,7 +4,7 @@ import FilterSelect from './FilterSelect';
 
 interface SearchFilterProps {
   placeholder?: string;
-  searchValue?: string;
+  searchValue?: string; // For backward compatibility - this will be the immediate search value from the hook
   filterValues?: Record<string, string>;
   onSearch: (query: string) => void;
   filters?: Array<{
@@ -41,8 +41,19 @@ export default function SearchFilter({
     onFilterChange(newFilters);
   };
 
-  const hasActiveFilters =
-    Object.entries(filterValues).some(([, value]) => value && value !== 'all') || Boolean(searchValue);
+  const hasActiveFilters = Object.entries(filterValues).some(([, value]) => value && value !== 'all');
+
+  // Handle clear all to only reset filters, not search
+  const handleClearAll = () => {
+    if (clearAll) {
+      clearAll();
+    }
+  };
+
+  // Handle clearing search separately
+  const handleClearSearch = () => {
+    onSearch('');
+  };
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm border mb-6">
@@ -65,11 +76,31 @@ export default function SearchFilter({
             </div>
             <input
               type="text"
-              className="block w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-lg text-sm leading-5 bg-gray-50 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-colors duration-200"
+              className="block w-full pl-12 pr-12 py-3 border-2 border-gray-200 rounded-lg text-sm leading-5 bg-gray-50 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-colors duration-200"
               placeholder={placeholder}
               value={searchValue}
               onChange={handleSearchChange}
             />
+            {searchValue && (
+              <button
+                type="button"
+                className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none focus:text-gray-600 transition-colors duration-150"
+                onClick={handleClearSearch}
+                aria-label="Clear search">
+                <svg
+                  className="h-5 w-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
 
@@ -116,9 +147,9 @@ export default function SearchFilter({
             {clearAll && hasActiveFilters && (
               <button
                 type="button"
-                onClick={clearAll}
+                onClick={handleClearAll}
                 className="text-sm text-gray-700 hover:text-black cursor-pointer underline focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1 transition-colors duration-150">
-                Clear all
+                Clear filters
               </button>
             )}
           </div>

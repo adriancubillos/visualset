@@ -137,6 +137,7 @@ export const dynamic = 'force-dynamic';
 
 function MachinesPageContent({
   search,
+  searchValue,
   filters,
   updateSearch,
   updateFilters,
@@ -155,7 +156,8 @@ function MachinesPageContent({
       filtered = filtered.filter(
         (machine) =>
           machine.name.toLowerCase().includes(search.toLowerCase()) ||
-          machine.location?.toLowerCase().includes(search.toLowerCase()),
+          machine.location?.toLowerCase().includes(search.toLowerCase()) ||
+          machine.type.toLowerCase().includes(search.toLowerCase()),
       );
     }
 
@@ -340,7 +342,7 @@ function MachinesPageContent({
       {/* Search and Filters */}
       <SearchFilter
         placeholder="Search machines..."
-        searchValue={search}
+        searchValue={searchValue}
         filterValues={filters}
         onSearch={updateSearch}
         filters={filterOptions}

@@ -1,5 +1,6 @@
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useDebounce } from './useDebounce';
 
 interface UseSimpleFiltersOptions {
   defaultFilters?: Record<string, string>;
@@ -10,32 +11,41 @@ export function useSimpleFilters({ defaultFilters = {} }: UseSimpleFiltersOption
   const router = useRouter();
   const pathname = usePathname();
 
-  // Check if we should restore filter state from sessionStorage
+  // Local search state (not persisted in URL)
+  const [searchInput, setSearchInput] = useState('');
+  const debouncedSearch = useDebounce(searchInput, 300);
+
+  // Check if we should restore filter state from sessionStorage (filters only, not search)
   useEffect(() => {
     if (typeof window !== 'undefined' && !searchParams.toString()) {
       const storedParams = sessionStorage.getItem(`filters_${pathname}`);
       if (storedParams) {
-        const newUrl = `${pathname}?${storedParams}`;
-        router.replace(newUrl, { scroll: false });
+        // Only restore filter params, not search
+        const params = new URLSearchParams(storedParams);
+        params.delete('search'); // Remove search if it was stored
+        const filterQueryString = params.toString();
+        if (filterQueryString) {
+          const newUrl = `${pathname}?${filterQueryString}`;
+          router.replace(newUrl, { scroll: false });
+        }
         return;
       }
     }
   }, [pathname, searchParams, router]);
 
-  // Get current state directly from URL (single source of truth)
-  const search = searchParams.get('search') || '';
+  // Get current filter state directly from URL (single source of truth for filters)
   const filters = Object.keys(defaultFilters).reduce((acc, key) => {
     acc[key] = searchParams.get(key) || defaultFilters[key] || '';
     return acc;
   }, {} as Record<string, string>);
 
-  // Update URL (which automatically updates component)
+  // Update URL for filters only (search is handled locally)
   const updateUrl = useCallback(
-    (newParams: Record<string, string>) => {
+    (newFilters: Record<string, string>) => {
       const params = new URLSearchParams();
 
-      // Add all provided params
-      Object.entries(newParams).forEach(([key, value]) => {
+      // Add only filter params, not search
+      Object.entries(newFilters).forEach(([key, value]) => {
         if (value && value !== 'all' && value !== '') {
           params.set(key, value);
         }
@@ -44,7 +54,7 @@ export function useSimpleFilters({ defaultFilters = {} }: UseSimpleFiltersOption
       const queryString = params.toString();
       const newUrl = queryString ? `${pathname}?${queryString}` : pathname;
 
-      // Save current filter state to sessionStorage
+      // Save current filter state to sessionStorage (filters only)
       if (typeof window !== 'undefined') {
         if (queryString) {
           sessionStorage.setItem(`filters_${pathname}`, queryString);
@@ -53,38 +63,37 @@ export function useSimpleFilters({ defaultFilters = {} }: UseSimpleFiltersOption
         }
       }
 
-      // Use push instead of replace to create history entries
       router.replace(newUrl, { scroll: false });
     },
     [router, pathname],
   );
 
-  const updateSearch = useCallback(
-    (newSearch: string) => {
-      updateUrl({ ...filters, search: newSearch });
-    },
-    [filters, updateUrl],
-  );
-
   const updateFilters = useCallback(
     (newFilters: Record<string, string>) => {
-      updateUrl({ search, ...newFilters });
+      updateUrl(newFilters);
     },
-    [search, updateUrl],
+    [updateUrl],
   );
 
+  const updateSearch = useCallback((newSearch: string) => {
+    setSearchInput(newSearch);
+  }, []);
+
   const clearAll = useCallback(() => {
-    // Clear sessionStorage to prevent restoration
+    // Clear search state
+    setSearchInput('');
+    // Clear filter sessionStorage and URL
     if (typeof window !== 'undefined') {
       sessionStorage.removeItem(`filters_${pathname}`);
     }
     router.replace(pathname, { scroll: false });
   }, [router, pathname]);
 
-  const hasActiveFilters = Object.values(filters).some((v) => v && v !== 'all') || Boolean(search);
+  const hasActiveFilters = Object.values(filters).some((v) => v && v !== 'all');
 
   return {
-    search,
+    search: debouncedSearch, // Return debounced search for filtering
+    searchValue: searchInput, // Immediate search value for input display
     filters,
     updateSearch,
     updateFilters,

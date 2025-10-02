@@ -156,6 +156,7 @@ export const dynamic = 'force-dynamic';
 
 function ProjectsPageContent({
   search,
+  searchValue,
   filters,
   updateSearch,
   updateFilters,
@@ -329,7 +330,7 @@ function ProjectsPageContent({
       {/* Search and Filters */}
       <SearchFilter
         placeholder="Search projects..."
-        searchValue={search}
+        searchValue={searchValue}
         filterValues={filters}
         onSearch={updateSearch}
         filters={filterOptions}

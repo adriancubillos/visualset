@@ -202,6 +202,7 @@ export const dynamic = 'force-dynamic';
 
 function TasksPageContent({
   search,
+  searchValue,
   filters,
   updateSearch,
   updateFilters,
@@ -226,7 +227,9 @@ function TasksPageContent({
           task.title.toLowerCase().includes(search.toLowerCase()) ||
           task.description?.toLowerCase().includes(search.toLowerCase()) ||
           task.item?.name.toLowerCase().includes(search.toLowerCase()) ||
-          task.item?.project.name.toLowerCase().includes(search.toLowerCase()),
+          task.item?.project.name.toLowerCase().includes(search.toLowerCase()) ||
+          task.machine?.name.toLowerCase().includes(search.toLowerCase()) ||
+          task.operator?.name.toLowerCase().includes(search.toLowerCase()),
       );
     }
 
@@ -481,7 +484,7 @@ function TasksPageContent({
       {/* Search and Filters */}
       <SearchFilter
         placeholder="Search tasks..."
-        searchValue={search}
+        searchValue={searchValue}
         filterValues={filters}
         onSearch={updateSearch}
         filters={filterOptions}
