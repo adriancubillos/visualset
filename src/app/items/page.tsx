@@ -20,6 +20,8 @@ type Column<T> = {
   sortable?: boolean;
   width?: string;
   minWidth?: string;
+  maxWidth?: string;
+  align?: 'left' | 'center' | 'right';
   id?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   render?: (value: any, item: T) => React.ReactNode;
@@ -30,6 +32,7 @@ interface Item {
   name: string;
   description: string;
   status: string;
+  quantity?: number;
   measure?: string;
   imageUrl?: string | null;
   project: {
@@ -39,6 +42,10 @@ interface Item {
   _count: {
     tasks: number;
   };
+  tasks?: Array<{
+    id: string;
+    status: string;
+  }>;
   createdAt: string;
   updatedAt: string;
 }
@@ -52,6 +59,35 @@ export default function ItemsPage() {
   // Default column configuration
   const defaultColumns: Column<Item>[] = [
     {
+      key: 'quantity' as keyof Item,
+      header: 'Quantity',
+      render: (value: number | undefined) => (
+        <span className="text-sm text-gray-900">{value || '-'}</span>
+      ),
+    },
+    {
+      key: 'name' as keyof Item,
+      header: 'Item Name',
+      align: 'left',
+      render: (value: string, item: Item) => (
+        <div>
+          <Link
+            href={`/items/${item.id}`}
+            className="font-medium text-blue-600 hover:text-blue-800">
+            {item.name} {' - '}
+          </Link>
+          {item.description && <span className="text-sm text-gray-500 mt-1">{item.description}</span>}
+        </div>
+      ),
+    },
+    {
+      key: 'measure' as keyof Item,
+      header: 'Measure',
+      render: (value: string | undefined) => (
+        <span className="text-sm text-gray-600">{value || '-'}</span>
+      ),
+    },
+    {
       key: 'imageUrl' as keyof Item,
       header: 'Image',
       render: (_: unknown, item: Item) => (
@@ -63,22 +99,20 @@ export default function ItemsPage() {
       ),
     },
     {
-      key: 'name' as keyof Item,
-      header: 'Item Name',
-      render: (value: string, item: Item) => (
-        <div>
-          <Link
-            href={`/items/${item.id}`}
-            className="font-medium text-blue-600 hover:text-blue-800">
-            {item.name}
-          </Link>
-          {item.description && <p className="text-sm text-gray-500 mt-1">{item.description}</p>}
-        </div>
-      ),
+      key: '_count' as keyof Item,
+      header: 'Tasks',
+      render: (value: Item['_count'], item: Item) => {
+        const completedTasks = item.tasks?.filter(t => t.status === 'COMPLETED').length || 0;
+        const totalTasks = item._count.tasks;
+        return (
+          <span className="text-sm text-gray-600">{completedTasks}/{totalTasks}</span>
+        );
+      },
     },
     {
       key: 'project' as keyof Item,
       header: 'Project',
+      align: 'left',
       render: (value: Item['project'], item: Item) => (
         <Link
           href={`/projects/${item.project.id}`}
@@ -93,19 +127,11 @@ export default function ItemsPage() {
       render: (value: string, item: Item) => <StatusBadge status={item.status} />,
     },
     {
-      key: '_count' as keyof Item,
-      header: 'Tasks',
-      render: (value: Item['_count'], item: Item) => (
-        <span className="text-sm text-gray-600">
-          {item._count.tasks} {item._count.tasks === 1 ? 'task' : 'tasks'}
-        </span>
-      ),
-    },
-    {
       key: 'updatedAt' as keyof Item,
       header: 'Last Updated',
-      render: (value: string, item: Item) => (
-        <span className="text-sm text-gray-500">{new Date(item.updatedAt).toLocaleDateString()}</span>
+      sortable: true,
+      render: (value: string) => (
+        <span className="text-sm text-gray-500">{new Date(value).toLocaleDateString()}</span>
       ),
     },
   ];

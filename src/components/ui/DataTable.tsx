@@ -9,6 +9,7 @@ interface Column<T> {
   width?: string; // e.g., "150px", "20%", "auto"
   minWidth?: string; // e.g., "100px"
   maxWidth?: string; // e.g., "300px" - prevents columns from being too wide
+  align?: 'left' | 'center' | 'right'; // Horizontal alignment (default: center)
   id?: string; // Unique identifier for the column (optional, defaults to key)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   render?: (value: any, item: T) => React.ReactNode;
@@ -267,20 +268,25 @@ export default function DataTable<T extends { id: string }>({
                 key={item.id}
                 className={`${onRowClick ? 'cursor-pointer hover:bg-gray-50' : ''} transition-colors duration-150`}
                 onClick={() => onRowClick?.(item)}>
-                {columns.map((column) => (
-                  <td
-                    key={column.id || String(column.key)}
-                    className="px-6 py-4 text-sm text-gray-900"
-                    style={{
-                      width: column.width,
-                      minWidth: column.minWidth || '120px',
-                      maxWidth: column.maxWidth || '250px',
-                    }}>
-                    <div className="break-words">
-                      {column.render ? column.render(item[column.key], item) : String(item[column.key] || '')}
-                    </div>
-                  </td>
-                ))}
+                {columns.map((column) => {
+                  const alignment = column.align || 'center';
+                  const justifyClass = alignment === 'left' ? 'justify-start' : alignment === 'right' ? 'justify-end' : 'justify-center';
+                  
+                  return (
+                    <td
+                      key={column.id || String(column.key)}
+                      className="px-6 py-4 text-sm text-gray-900 align-middle"
+                      style={{
+                        width: column.width,
+                        minWidth: column.minWidth || '120px',
+                        maxWidth: column.maxWidth || '250px',
+                      }}>
+                      <div className={`break-words flex ${justifyClass}`}>
+                        {column.render ? column.render(item[column.key], item) : String(item[column.key] || '')}
+                      </div>
+                    </td>
+                  );
+                })}
                 {actions && (
                   <td className="sticky right-0 bg-white px-6 py-4 text-right text-sm font-medium border-l border-gray-200">
                     <div className="flex justify-end">{actions(item)}</div>
