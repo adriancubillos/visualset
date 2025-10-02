@@ -10,6 +10,7 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import TableActions from '@/components/ui/TableActions';
 import { ProjectColorIndicator } from '@/components/ui/ColorIndicator';
 import StatisticsCards from '@/components/ui/StatisticsCards';
+import ImageViewer from '@/components/ui/ImageViewer';
 import { PROJECT_STATUS } from '@/config/workshop-properties';
 import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 
@@ -34,6 +35,7 @@ interface Project {
   status: string;
   color?: string | null;
   pattern?: string | null;
+  imageUrl?: string | null;
   createdAt: string;
   updatedAt: string;
   items?: Array<{
@@ -53,6 +55,17 @@ const defaultColumns: Column<Project>[] = [
         size="md"
         showTooltip={true}
         tooltipText={`${project.name} color`}
+      />
+    ),
+  },
+  {
+    key: 'imageUrl',
+    header: 'Image',
+    render: (_: unknown, project: Project) => (
+      <ImageViewer
+        imageUrl={project.imageUrl}
+        alt={project.name}
+        size="small"
       />
     ),
   },

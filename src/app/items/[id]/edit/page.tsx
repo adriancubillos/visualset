@@ -129,6 +129,8 @@ export default function EditItemPage() {
           description: formData.description,
           status: formData.status,
           quantity: formData.quantity,
+          measure: formData.measure,
+          imageUrl: formData.imageUrl,
           projectId: formData.projectId,
         }),
       });

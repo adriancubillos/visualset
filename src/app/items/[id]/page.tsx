@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import StatusBadge from '@/components/ui/StatusBadge';
 import DataTable from '@/components/ui/DataTable';
 import TableActions from '@/components/ui/TableActions';
+import ImageViewer from '@/components/ui/ImageViewer';
 import PageContainer from '@/components/layout/PageContainer';
 import { checkItemCompletionReadiness } from '@/utils/itemValidation';
 import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -39,6 +40,8 @@ interface Item {
   name: string;
   description: string;
   status: string;
+  measure?: string;
+  imageUrl?: string | null;
   project: {
     id: string;
     name: string;
@@ -268,8 +271,28 @@ export default function ItemDetailPage() {
         { label: item.name },
       ]}>
 
-      {/* Item Info Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Created and Updated Info */}
+      <div className="mb-4 flex items-center space-x-6 text-sm text-gray-500">
+        <span>Created: {new Date(item.createdAt).toLocaleDateString()}</span>
+        <span>Last Updated: {new Date(item.updatedAt).toLocaleDateString()}</span>
+        {item.measure && <span>Measurements: {item.measure}</span>}
+      </div>
+
+      {/* Image and Info Row */}
+      <div className="mb-6 flex items-start gap-6">
+        {/* Item Image */}
+        {item.imageUrl && (
+          <div className="flex-shrink-0">
+            <ImageViewer
+              imageUrl={item.imageUrl}
+              alt={item.name}
+              size="extraLarge"
+            />
+          </div>
+        )}
+
+        {/* Item Info Cards */}
+        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Project</h3>
           <Link
@@ -406,6 +429,7 @@ export default function ItemDetailPage() {
               </>
             );
           })()}
+        </div>
         </div>
       </div>
 

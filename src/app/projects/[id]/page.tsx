@@ -7,6 +7,7 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import { logger } from '@/utils/logger';
 import PageContainer from '@/components/layout/PageContainer';
 import ColorIndicator from '@/components/ui/ColorIndicator';
+import ImageViewer from '@/components/ui/ImageViewer';
 import { PatternType } from '@/utils/entityColors';
 import { checkProjectCompletionReadiness } from '@/utils/projectValidation';
 import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -20,6 +21,7 @@ interface Project {
   status: string;
   color?: string;
   pattern?: string;
+  imageUrl?: string | null;
   createdAt: string;
   updatedAt: string;
   items?: Array<{
@@ -209,21 +211,44 @@ export default function ProjectDetailPage() {
         { label: project.name },
       ]}>
 
-      <div className="flex items-center space-x-4">
-        <ColorIndicator
-          entity={{
-            id: project.id,
-            color: project.color,
-            pattern: project.pattern as PatternType,
-          }}
-          entityType="project"
-          size="lg"
-        />
-        <div>
-          <div className="flex space-x-6 mt-2 text-sm text-gray-500">
-            <span>Created: {new Date(project.createdAt).toLocaleDateString()}</span>
-            <span>Last Updated: {new Date(project.updatedAt).toLocaleDateString()}</span>
+      {/* Created and Updated Info */}
+      <div className="mb-4 flex items-center space-x-6 text-sm text-gray-500">
+        <div className="flex items-center space-x-2">
+          <ColorIndicator
+            entity={{
+              id: project.id,
+              color: project.color,
+              pattern: project.pattern as PatternType,
+            }}
+            entityType="project"
+            size="lg"
+          />
+        </div>
+        <span>Created: {new Date(project.createdAt).toLocaleDateString()}</span>
+        <span>Last Updated: {new Date(project.updatedAt).toLocaleDateString()}</span>
+      </div>
+
+      {/* Image and Statistics Row */}
+      <div className="mb-6 flex items-start gap-6">
+        {/* Project Image */}
+        {project.imageUrl && (
+          <div className="flex-shrink-0">
+            <ImageViewer
+              imageUrl={project.imageUrl}
+              alt={project.name}
+              size="extraLarge"
+            />
           </div>
+        )}
+
+        {/* Statistics Cards */}
+        <div className="flex-1">
+          <StatisticsCards
+            stats={statisticsCards}
+            loading={loading}
+            showWhenEmpty={true}
+            columns={project.imageUrl ? 2 : 5}
+          />
         </div>
       </div>
 
@@ -265,17 +290,6 @@ export default function ProjectDetailPage() {
             </div>
           );
         })()}
-      </div>
-
-
-      {/* Statistics Cards */}
-      <div className="mb-8">
-        <StatisticsCards
-          stats={statisticsCards}
-          loading={loading}
-          showWhenEmpty={true}
-          columns={5}
-        />
       </div>
 
       {/* Project Items Section */}

@@ -8,6 +8,7 @@ import DataTable from '@/components/ui/DataTable';
 import SearchFilter from '@/components/ui/SearchFilter';
 import StatusBadge from '@/components/ui/StatusBadge';
 import TableActions from '@/components/ui/TableActions';
+import ImageViewer from '@/components/ui/ImageViewer';
 import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { logger } from '@/utils/logger';
 import StatisticsCards from '@/components/ui/StatisticsCards';
@@ -29,6 +30,8 @@ interface Item {
   name: string;
   description: string;
   status: string;
+  measure?: string;
+  imageUrl?: string | null;
   project: {
     id: string;
     name: string;
@@ -48,6 +51,17 @@ export default function ItemsPage() {
 
   // Default column configuration
   const defaultColumns: Column<Item>[] = [
+    {
+      key: 'imageUrl' as keyof Item,
+      header: 'Image',
+      render: (_: unknown, item: Item) => (
+        <ImageViewer
+          imageUrl={item.imageUrl}
+          alt={item.name}
+          size="small"
+        />
+      ),
+    },
     {
       key: 'name' as keyof Item,
       header: 'Item Name',
