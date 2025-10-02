@@ -19,6 +19,9 @@ export async function POST(request: Request): Promise<NextResponse> {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
+    // Read the request body as a Blob
+    const fileBlob = await request.blob();
+
     // Generate a meaningful filename with folder structure
     const fileExtension = filename.split('.').pop();
     const timestamp = Date.now();
@@ -35,7 +38,10 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (projectName) {
       // Create folder structure: projects/project-name/entity-type/filename
       const sanitizedProject = sanitizeName(projectName);
-      const sanitizedEntity = entityName ? sanitizeName(entityName) : 'unnamed';
+      
+      // Use entity name if available, otherwise use original filename without extension
+      const nameWithoutExt = filename.substring(0, filename.lastIndexOf('.')) || 'file';
+      const sanitizedEntity = entityName ? sanitizeName(entityName) : sanitizeName(nameWithoutExt);
       
       if (entityType === 'project') {
         // Format: projects/project-name/project-name-timestamp.ext
@@ -58,7 +64,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     // Upload to Vercel Blob
-    const blob = await put(newFilename, request.body, {
+    const blob = await put(newFilename, fileBlob, {
       access: 'public',
     });
 
