@@ -20,7 +20,7 @@ interface PageContainerProps {
   breadcrumbs?: BreadcrumbItem[];
   variant?: 'list' | 'detail' | 'form';
   className?: string;
-  maxWidth?: 'none' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '4xl' | '6xl' | '7xl';
+  maxWidth?: 'none' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '4xl' | '6xl' | '7xl' | 'full';
   loading?: boolean;
   loadingComponent?: React.ReactNode;
 }
@@ -31,22 +31,9 @@ const PageContainer: React.FC<PageContainerProps> = ({
   breadcrumbs,
   variant = 'list',
   className = '',
-  maxWidth = '7xl',
   loading = false,
   loadingComponent,
 }) => {
-  const maxWidthClasses = {
-    none: '',
-    sm: 'max-w-sm',
-    md: 'max-w-md',
-    lg: 'max-w-lg',
-    xl: 'max-w-xl',
-    '2xl': 'max-w-2xl',
-    '4xl': 'max-w-4xl',
-    '6xl': 'max-w-6xl',
-    '7xl': 'max-w-7xl',
-  };
-
   const variantClasses = {
     list: 'space-y-6',
     detail: 'space-y-8',
@@ -54,7 +41,6 @@ const PageContainer: React.FC<PageContainerProps> = ({
   };
 
   const containerClass = `
-    ${maxWidthClasses[maxWidth]} 
     mx-auto 
     py-6 
     px-4 
@@ -62,6 +48,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
     lg:px-8 
     ${variantClasses[variant]}
     ${className}
+    md:w-[95%]
   `.trim();
 
   // Default loading component
@@ -88,7 +75,11 @@ const PageContainer: React.FC<PageContainerProps> = ({
           <ol className="flex items-center space-x-4">
             {breadcrumbs.map((item, index) => (
               <React.Fragment key={index}>
-                {index > 0 && <li><span className="text-gray-400">/</span></li>}
+                {index > 0 && (
+                  <li>
+                    <span className="text-gray-400">/</span>
+                  </li>
+                )}
                 <li>
                   {item.href ? (
                     <Link
@@ -115,20 +106,19 @@ const PageContainer: React.FC<PageContainerProps> = ({
             ) : (
               <h1 className="text-3xl font-bold text-gray-900">{header.title}</h1>
             )}
-            {header.description && (
-              typeof header.description === 'string' ? (
+            {header.description &&
+              (typeof header.description === 'string' ? (
                 <p className="mt-2 text-gray-600 max-w-4xl">{header.description}</p>
               ) : (
                 <div className="mt-2">{header.description}</div>
-              )
-            )}
+              ))}
           </div>
           {header.actions && <div className="flex-shrink-0 ml-4">{header.actions}</div>}
         </div>
       )}
 
       {/* Content or Loading */}
-      {loading ? (loadingComponent || defaultLoadingComponent) : children}
+      {loading ? loadingComponent || defaultLoadingComponent : children}
     </div>
   );
 };

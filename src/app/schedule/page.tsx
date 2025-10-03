@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import ScheduleCalendar from '@/components/ScheduleCalendar';
 import { logger } from '@/utils/logger';
 import GanttChart from '@/components/gantt/GanttChart';
+import PageContainer from '@/components/layout/PageContainer';
 
 interface GanttTask {
   id: string;
@@ -172,12 +173,11 @@ export default function SchedulePage() {
     }
   };
   return (
-    <div className="container mx-auto p-4">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Production Schedule</h1>
-        <p className="text-gray-600">View schedules in calendar or Gantt chart format</p>
-      </div>
-
+    <PageContainer
+      header={{
+        title: 'Production Schedule',
+        description: 'View schedules in calendar or Gantt chart format',
+      }}>
       {/* Tab Navigation */}
       <div className="border-b border-gray-200 mb-6">
         <nav className="-mb-px flex space-x-8">
@@ -318,6 +318,6 @@ export default function SchedulePage() {
           )}
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }
