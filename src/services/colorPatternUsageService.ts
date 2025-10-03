@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { ApiError } from '@/lib/errors';
 
 export type UsedCombination = {
   color: string;
@@ -23,7 +24,11 @@ export function registerEntityFetcher(entityType: string, fetcher: EntityFetcher
 export async function fetchUsedCombinations(prisma: PrismaClient, entityType: string, opts: FetchOptions = {}) {
   const fetcher = registry.get(entityType);
   if (!fetcher) {
-    throw new Error(`Unsupported entityType: ${entityType}`);
+    throw new ApiError({
+      code: 'UNSUPPORTED_ENTITY_TYPE',
+      message: `Unsupported entityType: ${entityType}`,
+      status: 400,
+    });
   }
 
   return fetcher(prisma, opts);
