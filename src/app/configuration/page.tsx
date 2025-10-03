@@ -223,7 +223,7 @@ export default function ConfigurationPage() {
             <button
               onClick={handleCreate}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-              Add {categoryLabels[activeTab].slice(0, -1)}
+              Add {categoryLabels[activeTab]}
             </button>
           </div>
 
@@ -277,23 +277,21 @@ export default function ConfigurationPage() {
                   </div>
                 </div>
 
-                <div className="flex space-x-3">
+                <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Cancel
+                  </button>
                   <button
                     type="button"
                     onClick={handleSave}
                     disabled={!isFormValid}
-                    className={`py-2 px-4 rounded-lg transition-colors ${
-                      isFormValid
-                        ? 'bg-blue-600 text-white hover:bg-blue-700'
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                      isFormValid ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'
                     }`}>
                     {isCreating ? 'Create' : 'Update'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCancel}
-                    className="bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors">
-                    Cancel
                   </button>
                 </div>
               </form>
