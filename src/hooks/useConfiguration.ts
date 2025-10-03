@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ConfigurationCategory } from '@prisma/client';
 
 interface Configuration {
@@ -23,29 +23,29 @@ export const useConfiguration = (category: ConfigurationCategory) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchConfigurations = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await fetch(`/api/configuration?category=${category}`);
+  const fetchConfigurations = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch(`/api/configuration?category=${category}`);
 
-        if (response.ok) {
-          const data = await response.json();
-          setConfigurations(data);
-        } else {
-          throw new Error('Failed to fetch configurations');
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
-        console.error('Error fetching configurations:', err);
-      } finally {
-        setLoading(false);
+      if (response.ok) {
+        const data = await response.json();
+        setConfigurations(data);
+      } else {
+        throw new Error('Failed to fetch configurations');
       }
-    };
-
-    fetchConfigurations();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      console.error('Error fetching configurations:', err);
+    } finally {
+      setLoading(false);
+    }
   }, [category]);
+
+  useEffect(() => {
+    fetchConfigurations();
+  }, [fetchConfigurations]);
 
   // Convert configurations to options format for dropdowns
   const options: ConfigurationOption[] = configurations
@@ -61,10 +61,7 @@ export const useConfiguration = (category: ConfigurationCategory) => {
     options,
     loading,
     error,
-    refetch: () => {
-      setLoading(true);
-      // Re-run the useEffect
-    },
+    refetch: fetchConfigurations, // Now properly calls the fetch function
   };
 };
 
@@ -74,29 +71,29 @@ export const useAllConfigurations = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchConfigurations = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await fetch('/api/configuration');
+  const fetchConfigurations = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch('/api/configuration');
 
-        if (response.ok) {
-          const data = await response.json();
-          setConfigurations(data);
-        } else {
-          throw new Error('Failed to fetch configurations');
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
-        console.error('Error fetching configurations:', err);
-      } finally {
-        setLoading(false);
+      if (response.ok) {
+        const data = await response.json();
+        setConfigurations(data);
+      } else {
+        throw new Error('Failed to fetch configurations');
       }
-    };
-
-    fetchConfigurations();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      console.error('Error fetching configurations:', err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchConfigurations();
+  }, [fetchConfigurations]);
 
   // Get configurations by category
   const getByCategory = (category: ConfigurationCategory): ConfigurationOption[] => {
@@ -114,10 +111,7 @@ export const useAllConfigurations = () => {
     loading,
     error,
     getByCategory,
-    refetch: () => {
-      setLoading(true);
-      // Re-run the useEffect
-    },
+    refetch: fetchConfigurations, // Now properly calls the fetch function
   };
 };
 

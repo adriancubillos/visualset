@@ -3,12 +3,9 @@
 import { useState } from 'react';
 import { ConfigurationCategory } from '@prisma/client';
 import PageContainer from '@/components/layout/PageContainer';
-import DataTable from '@/components/ui/DataTable';
 import SearchFilter from '@/components/ui/SearchFilter';
-import StatusBadge from '@/components/ui/StatusBadge';
-import ConfigurationModal from '@/components/ui/ConfigurationModal';
+import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useAllConfigurations } from '@/hooks/useConfiguration';
-import { Column } from '@/types/table';
 import toast from 'react-hot-toast';
 
 interface Configuration {
@@ -39,9 +36,15 @@ export default function ConfigurationPage() {
   const { configurations, loading, error, refetch } = useAllConfigurations();
   const [activeTab, setActiveTab] = useState<ConfigurationCategory>('AVAILABLE_SKILLS');
   const [editingConfig, setEditingConfig] = useState<Configuration | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [searchValue, setSearchValue] = useState('');
+  const [formData, setFormData] = useState({
+    value: '',
+    label: '',
+  });
+
+  // Form validation
+  const isFormValid = formData.value.trim() !== '' && formData.label.trim() !== '';
 
   const showError = (message: string) => {
     toast.error(message);
@@ -54,20 +57,48 @@ export default function ConfigurationPage() {
   const handleCreate = () => {
     setEditingConfig(null);
     setIsCreating(true);
-    setIsModalOpen(true);
+    setFormData({
+      value: '',
+      label: '',
+    });
+    // Scroll to top to show the form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleEdit = (config: Configuration) => {
     setEditingConfig(config);
     setIsCreating(false);
-    setIsModalOpen(true);
+    setFormData({
+      value: config.value,
+      label: config.label,
+    });
+    // Scroll to top to show the form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this configuration entry?')) {
-      return;
-    }
+  const handleCancel = () => {
+    setEditingConfig(null);
+    setIsCreating(false);
+    setFormData({
+      value: '',
+      label: '',
+    });
+  };
 
+  const handleDelete = (id: string, configLabel?: string) => {
+    showConfirmDialog({
+      title: 'Delete Configuration',
+      message: `Are you sure you want to delete configuration "${
+        configLabel || 'this entry'
+      }"? This action cannot be undone.`,
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      variant: 'danger',
+      onConfirm: () => performDelete(id),
+    });
+  };
+
+  const performDelete = async (id: string) => {
     try {
       const response = await fetch(`/api/configuration/${id}`, {
         method: 'DELETE',
@@ -108,13 +139,29 @@ export default function ConfigurationPage() {
       }
 
       refetch();
-      setIsModalOpen(false);
-      setEditingConfig(null);
+      handleCancel();
       showSuccess(`Configuration ${isCreating ? 'created' : 'updated'} successfully`);
     } catch (error) {
       console.error(`Error ${isCreating ? 'creating' : 'updating'} configuration:`, error);
       showError(`Failed to ${isCreating ? 'create' : 'update'} configuration`);
     }
+  };
+
+  const handleSave = async () => {
+    // Additional validation check
+    if (!isFormValid) {
+      showError('Please fill in all required fields');
+      return;
+    }
+
+    const data = {
+      category: activeTab,
+      value: formData.value.trim(),
+      label: formData.label.trim(),
+      sortOrder: 1,
+      isActive: true,
+    };
+    await handleModalSave(data);
   };
 
   const filteredConfigurations = configurations.filter(
@@ -123,52 +170,6 @@ export default function ConfigurationPage() {
       (config.value.toLowerCase().includes(searchValue.toLowerCase()) ||
         config.label.toLowerCase().includes(searchValue.toLowerCase())),
   );
-
-  const maxSortOrder = Math.max(0, ...configurations.filter((c) => c.category === activeTab).map((c) => c.sortOrder));
-
-  const columns: Column<Configuration>[] = [
-    {
-      key: 'value',
-      header: 'Value',
-    },
-    {
-      key: 'label',
-      header: 'Label',
-    },
-    {
-      key: 'sortOrder',
-      header: 'Sort Order',
-      render: (value: number) => <span className="text-sm text-gray-600">{value}</span>,
-    },
-    {
-      key: 'isActive',
-      header: 'Status',
-      render: (value: boolean) => (
-        <StatusBadge
-          status={value ? 'active' : 'inactive'}
-          variant={value ? 'success' : 'default'}
-        />
-      ),
-    },
-    {
-      key: 'id',
-      header: 'Actions',
-      render: (value: string, item: Configuration) => (
-        <div className="flex space-x-2">
-          <button
-            onClick={() => handleEdit(item)}
-            className="text-blue-600 hover:text-blue-800 text-sm">
-            Edit
-          </button>
-          <button
-            onClick={() => handleDelete(item.id)}
-            className="text-red-600 hover:text-red-800 text-sm">
-            Delete
-          </button>
-        </div>
-      ),
-    },
-  ];
 
   if (error) {
     return (
@@ -183,62 +184,200 @@ export default function ConfigurationPage() {
 
   return (
     <PageContainer>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">Configuration</h1>
-          <button
-            onClick={handleCreate}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-            Add Configuration
-          </button>
-        </div>
+      <div className="flex h-screen bg-gray-50">
+        {/* Left Sidebar - Categories */}
+        <div className="w-80 bg-white shadow-sm border-r border-gray-200">
+          <div className="p-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-6">Configuration</h1>
 
-        {/* Category Tabs */}
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8">
-            {categoryTabs.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === tab.key
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}>
-                {tab.label}
-              </button>
-            ))}
-          </nav>
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-          <div className="flex-1">
-            <SearchFilter
-              searchValue={searchValue}
-              onSearch={setSearchValue}
-              placeholder="Search configurations..."
-            />
+            {/* Category List */}
+            <nav className="space-y-2">
+              {categoryTabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                    activeTab === tab.key
+                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}>
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium">{tab.label}</span>
+                    <span className="text-sm text-gray-500">
+                      {configurations.filter((c) => c.category === tab.key).length}
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </nav>
           </div>
         </div>
 
-        <DataTable
-          data={filteredConfigurations}
-          columns={columns}
-          loading={loading}
-        />
+        {/* Right Content Area */}
+        <div className="flex-1 p-6">
+          <div className="mb-6 flex justify-between items-center">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">{categoryLabels[activeTab]}</h2>
+              <p className="text-sm text-gray-500 mt-1">Manage {categoryLabels[activeTab].toLowerCase()}</p>
+            </div>
+            <button
+              onClick={handleCreate}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+              Add {categoryLabels[activeTab].slice(0, -1)}
+            </button>
+          </div>
 
-        <ConfigurationModal
-          isOpen={isModalOpen}
-          onClose={() => {
-            setIsModalOpen(false);
-            setEditingConfig(null);
-          }}
-          onSave={handleModalSave}
-          config={editingConfig}
-          category={activeTab}
-          maxSortOrder={maxSortOrder}
-          isCreating={isCreating}
-        />
+          {/* Search or Form */}
+          {isCreating || editingConfig ? (
+            <div className="mb-6 bg-white border border-gray-200 rounded-lg p-4">
+              <div className="mb-4">
+                <h3 className="text-lg font-medium text-gray-900">
+                  {isCreating
+                    ? `Add New ${categoryLabels[activeTab].slice(0, -1)}`
+                    : `Edit ${categoryLabels[activeTab].slice(0, -1)}`}
+                </h3>
+              </div>
+
+              <form className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Value <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.value}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, value: e.target.value }))}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                        formData.value.trim() === '' ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                      placeholder="Enter value"
+                      required
+                    />
+                    {formData.value.trim() === '' && (
+                      <p className="text-red-500 text-xs mt-1">This field is required</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Label <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.label}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, label: e.target.value }))}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                        formData.label.trim() === '' ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                      placeholder="Enter label"
+                      required
+                    />
+                    {formData.label.trim() === '' && (
+                      <p className="text-red-500 text-xs mt-1">This field is required</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex space-x-3">
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    disabled={!isFormValid}
+                    className={`py-2 px-4 rounded-lg transition-colors ${
+                      isFormValid
+                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    }`}>
+                    {isCreating ? 'Create' : 'Update'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    className="bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors">
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          ) : (
+            <div className="mb-6">
+              <SearchFilter
+                searchValue={searchValue}
+                onSearch={setSearchValue}
+                placeholder="Search configurations..."
+              />
+            </div>
+          )}
+
+          {/* Configuration Items */}
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+          ) : filteredConfigurations.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-500">No {categoryLabels[activeTab].toLowerCase()} found</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filteredConfigurations.map((config) => (
+                <div
+                  key={config.id}
+                  className={`bg-white rounded-lg border p-4 hover:shadow-md transition-shadow ${
+                    editingConfig?.id === config.id ? 'ring-2 ring-blue-500' : ''
+                  }`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3">
+                        <h3 className="font-medium text-gray-900">{config.label}</h3>
+                      </div>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Value: <span className="font-mono">{config.value}</span>
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => handleEdit(config)}
+                        className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
+                        title="Edit">
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleDelete(config.id, config.label)}
+                        className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
+                        title="Delete">
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </PageContainer>
   );
