@@ -1,54 +1,13 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import ganttService from '@/services/ganttService';
+import { mapErrorToResponse } from '@/lib/errors';
 import { logger } from '@/utils/logger';
 
 // GET /api/gantt
 export async function GET() {
   try {
-    const projects = await prisma.project.findMany({
-      where: {
-        status: {
-          in: ['ACTIVE', 'COMPLETED'], // Only show active and completed projects
-        },
-      },
-      include: {
-        items: {
-          include: {
-            tasks: {
-              where: {
-                timeSlots: {
-                  some: {}, // Only include tasks that have time slots
-                },
-              },
-              include: {
-                operator: {
-                  select: {
-                    id: true,
-                    name: true,
-                    color: true,
-                  },
-                },
-                machine: {
-                  select: {
-                    id: true,
-                    name: true,
-                    type: true,
-                  },
-                },
-                timeSlots: {
-                  orderBy: {
-                    startDateTime: 'asc',
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-      orderBy: {
-        name: 'asc',
-      },
-    });
+    const projects = await ganttService.fetchProjectsWithScheduledTasks(prisma);
 
     // Transform the data for the Gantt chart
     const ganttData = {
@@ -104,8 +63,9 @@ export async function GET() {
       .filter((project) => project.items.length > 0);
 
     return NextResponse.json(ganttData);
-  } catch (error) {
-    logger.error('Error fetching Gantt data,', error);
-    return NextResponse.json({ error: 'Failed to fetch Gantt data' }, { status: 500 });
+  } catch (error: unknown) {
+    logger.apiError('gantt', '/api/gantt', error);
+    const mapped = mapErrorToResponse(error);
+    return NextResponse.json(mapped.body, { status: mapped.status });
   }
 }

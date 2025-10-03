@@ -29,22 +29,22 @@ type PrismaMock = {
     findFirst: MockFn;
     create: MockFn;
   };
-  project?: {
-    findMany?: MockFn;
-    create?: MockFn;
-    findFirst?: MockFn;
+  project: {
+    findMany: MockFn;
+    create: MockFn;
+    findFirst: MockFn;
   };
-  configuration?: {
-    findMany?: MockFn;
-    create?: MockFn;
+  configuration: {
+    findMany: MockFn;
+    create: MockFn;
   };
-  machine?: {
-    findMany?: MockFn;
-    create?: MockFn;
+  machine: {
+    findMany: MockFn;
+    create: MockFn;
   };
-  operator?: {
-    findMany?: MockFn;
-    create?: MockFn;
+  operator: {
+    findMany: MockFn;
+    create: MockFn;
   };
 };
 
