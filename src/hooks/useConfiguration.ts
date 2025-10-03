@@ -6,8 +6,6 @@ interface Configuration {
   category: ConfigurationCategory;
   value: string;
   label: string;
-  sortOrder: number;
-  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -48,13 +46,10 @@ export const useConfiguration = (category: ConfigurationCategory) => {
   }, [fetchConfigurations]);
 
   // Convert configurations to options format for dropdowns
-  const options: ConfigurationOption[] = configurations
-    .filter((config) => config.isActive)
-    .sort((a, b) => a.sortOrder - b.sortOrder)
-    .map((config) => ({
-      value: config.value,
-      label: config.label,
-    }));
+  const options: ConfigurationOption[] = configurations.map((config) => ({
+    value: config.value,
+    label: config.label,
+  }));
 
   return {
     configurations,
@@ -98,8 +93,7 @@ export const useAllConfigurations = () => {
   // Get configurations by category
   const getByCategory = (category: ConfigurationCategory): ConfigurationOption[] => {
     return configurations
-      .filter((config) => config.category === category && config.isActive)
-      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .filter((config) => config.category === category)
       .map((config) => ({
         value: config.value,
         label: config.label,

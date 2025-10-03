@@ -6,10 +6,11 @@
     "dev": "next dev",
     "dev:turbo": "next dev --turbopack",
     "build": "prisma generate && next build",
-    "build:production": "prisma generate && npx prisma migrate deploy && next build",
+    "build:production": "prisma generate && npx prisma migrate deploy && next build && npm run seed:auto",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest",
+    "seed:auto": "npx tsx prisma/scripts/seed-configurations-auto.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {

@@ -4,10 +4,11 @@ import { PrismaClient, ConfigurationCategory } from '@prisma/client';
 const prisma = new PrismaClient();
 
 // GET /api/configuration/[id] - Get specific configuration
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const configuration = await prisma.configuration.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!configuration) {
@@ -22,9 +23,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 }
 
 // PUT /api/configuration/[id] - Update configuration
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { category, value, label, sortOrder, isActive } = await request.json();
+    const { id } = await params;
+    const { category, value, label } = await request.json();
 
     // Validate category if provided
     if (category && !Object.values(ConfigurationCategory).includes(category)) {
@@ -32,13 +34,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 
     const configuration = await prisma.configuration.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...(category && { category }),
         ...(value && { value }),
         ...(label && { label }),
-        ...(sortOrder !== undefined && { sortOrder }),
-        ...(isActive !== undefined && { isActive }),
       },
     });
 
@@ -64,10 +64,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 }
 
 // DELETE /api/configuration/[id] - Delete configuration
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     await prisma.configuration.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ message: 'Configuration deleted successfully' });

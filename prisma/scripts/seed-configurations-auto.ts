@@ -33,35 +33,45 @@ const configurationData: Record<ConfigurationCategory, Array<{ value: string; la
   ],
 };
 
-async function seedConfigurations() {
-  console.log('🌱 Starting configuration seeding...');
+async function seedConfigurationsIfEmpty() {
+  console.log('🌱 Checking if configuration seeding is needed...');
 
   try {
-    // Clear existing configuration data
-    await prisma.configuration.deleteMany({});
-    console.log('🗑️  Cleared existing configurations');
+    // Check current environment
+    const nodeEnv = process.env.NODE_ENV || 'development';
+    console.log(`🔧 Environment: ${nodeEnv}`);
+
+    // Check if configurations already exist
+    const existingCount = await prisma.configuration.count();
+    console.log(`📊 Found ${existingCount} existing configurations`);
+
+    if (existingCount > 0) {
+      console.log('✅ Configurations already exist - skipping seeding');
+      return { seeded: false, reason: 'Database already has configurations' };
+    }
+
+    console.log('🌱 Database is empty - starting seeding...');
 
     // Seed each category
+    let totalSeeded = 0;
     for (const [category, items] of Object.entries(configurationData)) {
       console.log(`📝 Seeding ${category}...`);
 
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i];
+      for (const item of items) {
         await prisma.configuration.create({
           data: {
             category: category as ConfigurationCategory,
             value: item.value,
             label: item.label,
-            sortOrder: i + 1,
-            isActive: true,
           },
         });
+        totalSeeded++;
       }
 
       console.log(`✅ Seeded ${items.length} items for ${category}`);
     }
 
-    console.log('🎉 Configuration seeding completed successfully!');
+    console.log(`🎉 Configuration seeding completed! (${totalSeeded} total)`);
 
     // Display summary
     const counts = await prisma.configuration.groupBy({
@@ -75,6 +85,8 @@ async function seedConfigurations() {
     counts.forEach(({ category, _count }) => {
       console.log(`   ${category}: ${_count.category} items`);
     });
+
+    return { seeded: true, total: totalSeeded };
   } catch (error) {
     console.error('❌ Error seeding configurations:', error);
     throw error;
@@ -83,7 +95,12 @@ async function seedConfigurations() {
 
 async function main() {
   try {
-    await seedConfigurations();
+    const result = await seedConfigurationsIfEmpty();
+    if (result.seeded) {
+      console.log(`✅ Seeded ${result.total} configurations`);
+    } else {
+      console.log(`ℹ️  ${result.reason}`);
+    }
   } catch (error) {
     console.error('❌ Seeding failed:', error);
     process.exit(1);
@@ -97,4 +114,4 @@ if (require.main === module) {
   main();
 }
 
-export { seedConfigurations };
+export { seedConfigurationsIfEmpty };

@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
 
     const configurations = await prisma.configuration.findMany({
       where: category ? { category } : undefined,
-      orderBy: [{ category: 'asc' }, { sortOrder: 'asc' }, { label: 'asc' }],
+      orderBy: [{ category: 'asc' }, { label: 'asc' }],
     });
 
     return NextResponse.json(configurations);
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 // POST /api/configuration - Create new configuration
 export async function POST(request: NextRequest) {
   try {
-    const { category, value, label, sortOrder = 0 } = await request.json();
+    const { category, value, label } = await request.json();
 
     // Validate required fields
     if (!category || !value || !label) {
@@ -41,7 +41,6 @@ export async function POST(request: NextRequest) {
         category,
         value,
         label,
-        sortOrder,
       },
     });
 

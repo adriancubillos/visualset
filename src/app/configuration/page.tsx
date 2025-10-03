@@ -13,8 +13,6 @@ interface Configuration {
   category: ConfigurationCategory;
   value: string;
   label: string;
-  sortOrder: number;
-  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -116,12 +114,7 @@ export default function ConfigurationPage() {
     }
   };
 
-  const handleModalSave = async (data: {
-    category: ConfigurationCategory;
-    value: string;
-    label: string;
-    sortOrder: number;
-  }) => {
+  const handleModalSave = async (data: { category: ConfigurationCategory; value: string; label: string }) => {
     try {
       const method = isCreating ? 'POST' : 'PUT';
       const url = isCreating ? '/api/configuration' : `/api/configuration/${editingConfig?.id}`;
@@ -158,8 +151,6 @@ export default function ConfigurationPage() {
       category: activeTab,
       value: formData.value.trim(),
       label: formData.label.trim(),
-      sortOrder: 1,
-      isActive: true,
     };
     await handleModalSave(data);
   };
