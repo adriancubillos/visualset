@@ -56,6 +56,9 @@ type PrismaMock = {
   operator: {
     findMany: MockFn;
     create: MockFn;
+    findUnique: MockFn;
+    update: MockFn;
+    delete: MockFn;
   };
 };
 
@@ -105,6 +108,9 @@ function makeMockPrisma(): PrismaMock {
     operator: {
       findMany: makeMock(),
       create: makeMock(),
+      findUnique: makeMock(),
+      update: makeMock(),
+      delete: makeMock(),
     },
   };
 }

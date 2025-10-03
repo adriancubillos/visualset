@@ -1,32 +1,30 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import operatorService from '@/services/operatorService';
 import { logger } from '@/utils/logger';
+import { mapErrorToResponse } from '@/lib/errors';
 
 // GET /api/operators
 export async function GET() {
-  const operators = await prisma.operator.findMany();
-  return NextResponse.json(operators);
+  try {
+    const operators = await operatorService.listOperators(prisma);
+    return NextResponse.json(operators);
+  } catch (error) {
+    logger.apiError('Fetch operators', '/api/operators', error);
+    const mapped = mapErrorToResponse(error);
+    return NextResponse.json(mapped.body, { status: mapped.status });
+  }
 }
 
 // POST /api/operators
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const operator = await prisma.operator.create({
-      data: {
-        name: body.name,
-        email: body.email || null,
-        skills: body.skills ?? [],
-        status: body.status ?? 'ACTIVE',
-        shift: body.shift || null,
-        color: body.color || null,
-        pattern: body.pattern || null,
-        availability: body.availability ?? {},
-      },
-    });
+    const operator = await operatorService.createOperator(prisma, body);
     return NextResponse.json(operator);
   } catch (error) {
-    logger.dbError('Create operator', 'operator', error);
-    return NextResponse.json({ error: 'Failed to create operator' }, { status: 500 });
+    logger.apiError('Create operator', '/api/operators', error);
+    const mapped = mapErrorToResponse(error);
+    return NextResponse.json(mapped.body, { status: mapped.status });
   }
 }
