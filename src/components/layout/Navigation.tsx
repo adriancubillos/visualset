@@ -12,6 +12,7 @@ const navigationItems = [
   { name: 'Tasks', href: '/tasks', icon: '✅' },
   { name: 'Machines', href: '/machines', icon: '⚙️' },
   { name: 'Operators', href: '/operators', icon: '👥' },
+  { name: 'Configuration', href: '/configuration', icon: '🔧' },
 ];
 
 export default function Navigation() {

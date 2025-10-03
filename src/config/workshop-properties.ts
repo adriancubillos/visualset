@@ -1,5 +1,7 @@
 // Workshop Properties Configuration
-// Centralized definitions for skills, machine types, and other workshop-related constants
+// Centralized definitions for static workshop-related constants
+// Note: AVAILABLE_SKILLS, MACHINE_TYPES, TASK_TITLES, TASK_PRIORITY, and OPERATOR_SHIFTS
+// are now managed through the database and can be configured via /configuration page
 
 // UI Configuration
 export const UI_CONFIG = {
@@ -10,48 +12,11 @@ export const UI_CONFIG = {
   SELECT_MAX_HEIGHT: 500,
 } as const;
 
-export const AVAILABLE_SKILLS = [
-  { value: 'CNC_MILL', label: 'CNC Mill' },
-  { value: 'CNC_LATHE', label: 'CNC Lathe' },
-  { value: 'WELDING', label: 'Welding' },
-  { value: 'GRINDER', label: 'Grinder' },
-  { value: 'DRILL_PRESS', label: 'Drill Press' },
-  { value: 'BANDSAW', label: 'Bandsaw' },
-  { value: 'ASSEMBLY', label: 'Assembly' },
-  { value: 'QUALITY_CONTROL', label: 'Quality Control' },
-  { value: '3D_PRINTING', label: '3D Printing' },
-  { value: 'LASER_CUTTING', label: 'Laser Cutting' },
-  { value: 'PLASMA_CUTTING', label: 'Plasma Cutting' },
-  { value: 'SHEET_METAL', label: 'Sheet Metal' },
-] as const;
-
-export const MACHINE_TYPES = [
-  { value: 'CNC', label: 'CNC Machine' },
-  { value: 'Welding', label: 'Welding Equipment' },
-  { value: 'Drilling', label: 'Drilling Equipment' },
-  { value: 'Grinding', label: 'Grinding Equipment' },
-  { value: 'Cutting', label: 'Cutting Equipment' },
-  { value: '3D_Printer', label: '3D Printer' },
-  { value: 'Laser', label: 'Laser Equipment' },
-  { value: 'Plasma', label: 'Plasma Equipment' },
-  { value: 'Press', label: 'Press Equipment' },
-  { value: 'Assembly', label: 'Assembly Station' },
-  { value: 'Quality', label: 'Quality Control' },
-  { value: 'Other', label: 'Other Equipment' },
-] as const;
-
 export const OPERATOR_STATUS = [
   { value: 'ACTIVE', label: 'Active' },
   { value: 'INACTIVE', label: 'Inactive' },
   { value: 'ON_LEAVE', label: 'On Leave' },
   { value: 'TRAINING', label: 'In Training' },
-] as const;
-
-export const OPERATOR_SHIFTS = [
-  { value: 'DAY', label: 'Day Shift (8AM - 4PM)' },
-  { value: 'EVENING', label: 'Evening Shift (4PM - 12AM)' },
-  { value: 'NIGHT', label: 'Night Shift (12AM - 8AM)' },
-  { value: 'FLEXIBLE', label: 'Flexible Hours' },
 ] as const;
 
 export const MACHINE_STATUS = [
@@ -69,13 +34,6 @@ export const TASK_STATUS = [
   { value: 'BLOCKED', label: 'Blocked' },
 ] as const;
 
-export const TASK_PRIORITY = [
-  { value: 'LOW', label: 'Low Priority' },
-  { value: 'MEDIUM', label: 'Medium Priority' },
-  { value: 'HIGH', label: 'High Priority' },
-  { value: 'URGENT', label: 'Urgent' },
-] as const;
-
 export const PROJECT_STATUS = [
   { value: 'PLANNING', label: 'Planning' },
   { value: 'ACTIVE', label: 'Active' },
@@ -90,36 +48,9 @@ export const ITEM_STATUS = [
   { value: 'COMPLETED', label: 'Completed' },
 ] as const;
 
-export const TASK_TITLES = [
-  { value: 'ARCHIVOS_IMPRESION_CORTE', label: 'Archivos impresion y corte' },
-  { value: 'CABLEADO_ILUMINACION', label: 'Cableado iluminación' },
-  { value: 'CARPINTERIA', label: 'Carpinteria' },
-  { value: 'COMPRA_MATERIALES', label: 'Compra de materiales' },
-  { value: 'CORTE', label: 'Corte' },
-  { value: 'CUENTA_MATERIALES', label: 'Cuenta de materiales' },
-  { value: 'EMPAQUE', label: 'Empaque' },
-  { value: 'ENSAMBLE', label: 'Ensamble' },
-  { value: 'IMPRESION', label: 'Impresion' },
-  { value: 'INSTALACION', label: 'Instalacion' },
-  { value: 'LAMINADO', label: 'Laminado' },
-  { value: 'ORNAMENTACION', label: 'Ornamentacion' },
-  { value: 'PINTURA', label: 'Pintura' },
-  { value: 'PLANOS_ESTRUCTURAS', label: 'Planos estructuras' },
-  { value: 'PLANO_GENERAL_VISUAL', label: 'Plano general y visual' },
-  { value: 'TRANSPORTE', label: 'Transporte' },
-] as const;
-
-// Helper functions to get labels by value
-export const getSkillLabel = (value: string) => AVAILABLE_SKILLS.find((skill) => skill.value === value)?.label || value;
-
-export const getMachineTypeLabel = (value: string) =>
-  MACHINE_TYPES.find((type) => type.value === value)?.label || value;
-
+// Helper functions to get labels by value for static arrays
 export const getOperatorStatusLabel = (value: string) =>
   OPERATOR_STATUS.find((status) => status.value === value)?.label || value;
-
-export const getOperatorShiftLabel = (value: string) =>
-  OPERATOR_SHIFTS.find((shift) => shift.value === value)?.label || value;
 
 export const getMachineStatusLabel = (value: string) =>
   MACHINE_STATUS.find((status) => status.value === value)?.label || value;
@@ -127,11 +58,13 @@ export const getMachineStatusLabel = (value: string) =>
 export const getTaskStatusLabel = (value: string) =>
   TASK_STATUS.find((status) => status.value === value)?.label || value;
 
-export const getTaskPriorityLabel = (value: string) =>
-  TASK_PRIORITY.find((priority) => priority.value === value)?.label || value;
-
 export const getProjectStatusLabel = (value: string) =>
   PROJECT_STATUS.find((status) => status.value === value)?.label || value;
 
 export const getItemStatusLabel = (value: string) =>
   ITEM_STATUS.find((status) => status.value === value)?.label || value;
+
+// For database-managed configurations, use the helper functions from @/hooks/useConfiguration
+// Example:
+// import { getConfigurationLabel } from '@/hooks/useConfiguration';
+// const label = getConfigurationLabel(configurations, 'CNC_MILL');
