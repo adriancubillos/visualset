@@ -19,6 +19,7 @@ interface PageContainerProps {
   header?: PageHeaderProps;
   breadcrumbs?: BreadcrumbItem[];
   variant?: 'list' | 'detail' | 'form';
+  customWidth?: string;
   className?: string;
   maxWidth?: 'none' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '4xl' | '6xl' | '7xl' | 'full';
   loading?: boolean;
@@ -31,6 +32,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
   breadcrumbs,
   variant = 'list',
   className = '',
+  customWidth = 'md:w-[95%]',
   loading = false,
   loadingComponent,
 }) => {
@@ -47,8 +49,9 @@ const PageContainer: React.FC<PageContainerProps> = ({
     sm:px-6 
     lg:px-8 
     ${variantClasses[variant]}
-    ${className}
-    md:w-[95%]
+    ${className} 
+    ${customWidth} 
+    
   `.trim();
 
   // Default loading component

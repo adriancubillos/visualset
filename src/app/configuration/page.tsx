@@ -174,7 +174,7 @@ export default function ConfigurationPage() {
   }
 
   return (
-    <PageContainer>
+    <PageContainer customWidth="w-[70%]">
       <div className="flex h-screen bg-gray-50">
         {/* Left Sidebar - Categories */}
         <div className="w-80 bg-white shadow-sm border-r border-gray-200">
