@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import PageContainer from '@/components/layout/PageContainer';
-import { TASK_PRIORITY, TASK_STATUS } from '@/config/workshop-properties';
+import { TASK_STATUS } from '@/config/workshop-properties';
+import { useTaskPriority } from '@/hooks/useConfiguration';
 import { useTaskFormData } from '@/hooks/useTaskFormData';
 import { TaskResponseDTO } from '@/types/api';
 import ProjectItemSelect from '@/components/forms/ProjectItemSelect';
@@ -20,6 +21,7 @@ import TaskTitleSelect from '@/components/forms/TaskTitleSelect';
 export default function EditTaskPage() {
   const params = useParams();
   const router = useRouter();
+  const { options: taskPriorities } = useTaskPriority();
   const { projects, items, machines, operators, loading: dataLoading } = useTaskFormData();
 
   const [task, setTask] = useState<TaskResponseDTO | null>(null);
@@ -308,7 +310,7 @@ export default function EditTaskPage() {
                 value={formData.priority}
                 onChange={handleChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                {TASK_PRIORITY.map((priority) => (
+                {taskPriorities.map((priority) => (
                   <option
                     key={priority.value}
                     value={priority.value}>

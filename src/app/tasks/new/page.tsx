@@ -3,7 +3,8 @@
 import { Suspense, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import PageContainer from '@/components/layout/PageContainer';
-import { TASK_PRIORITY, TASK_STATUS } from '@/config/workshop-properties';
+import { TASK_STATUS } from '@/config/workshop-properties';
+import { useTaskPriority } from '@/hooks/useConfiguration';
 import { useTaskFormData } from '@/hooks/useTaskFormData';
 import ProjectItemSelect from '@/components/forms/ProjectItemSelect';
 import AssignmentSelect from '@/components/forms/AssignmentSelect';
@@ -17,6 +18,7 @@ import toast from 'react-hot-toast';
 function NewTaskPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { options: taskPriorities } = useTaskPriority();
   const projectIdFromUrl = searchParams.get('project');
   const itemIdFromUrl = searchParams.get('item');
   const returnUrl = searchParams.get('returnUrl');
@@ -245,7 +247,7 @@ function NewTaskPageContent() {
                 value={formData.priority}
                 onChange={handleChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                {TASK_PRIORITY.map((priority) => (
+                {taskPriorities.map((priority) => (
                   <option
                     key={priority.value}
                     value={priority.value}>

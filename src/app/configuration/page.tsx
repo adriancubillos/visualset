@@ -20,11 +20,11 @@ interface Configuration {
 }
 
 const categoryLabels: Record<ConfigurationCategory, string> = {
-  AVAILABLE_SKILLS: 'Available Skills',
-  MACHINE_TYPES: 'Machine Types',
-  TASK_TITLES: 'Task Titles',
+  AVAILABLE_SKILLS: 'Available Skill',
+  MACHINE_TYPES: 'Machine Type',
+  TASK_TITLES: 'Task Title',
   TASK_PRIORITY: 'Task Priority',
-  OPERATOR_SHIFTS: 'Operator Shifts',
+  OPERATOR_SHIFTS: 'Operator Shift',
 };
 
 const categoryTabs = Object.entries(categoryLabels).map(([key, label]) => ({
@@ -232,9 +232,7 @@ export default function ConfigurationPage() {
             <div className="mb-6 bg-white border border-gray-200 rounded-lg p-4">
               <div className="mb-4">
                 <h3 className="text-lg font-medium text-gray-900">
-                  {isCreating
-                    ? `Add New ${categoryLabels[activeTab].slice(0, -1)}`
-                    : `Edit ${categoryLabels[activeTab].slice(0, -1)}`}
+                  {isCreating ? `Add New ${categoryLabels[activeTab]}` : `Edit ${categoryLabels[activeTab]}`}
                 </h3>
               </div>
 

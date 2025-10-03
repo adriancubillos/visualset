@@ -12,7 +12,8 @@ import StatisticsCards from '@/components/ui/StatisticsCards';
 import { MachineColorIndicator } from '@/components/ui/ColorIndicator';
 import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { logger } from '@/utils/logger';
-import { MACHINE_TYPES, MACHINE_STATUS } from '@/config/workshop-properties';
+import { MACHINE_STATUS } from '@/config/workshop-properties';
+import { useMachineTypes } from '@/hooks/useConfiguration';
 import { Column } from '@/types/table';
 import FilterProvider from '@/components/layout/FilterProvider';
 
@@ -143,6 +144,7 @@ function MachinesPageContent({
   updateFilters,
   clearAll,
 }: ReturnType<typeof import('@/hooks/useSimpleFilters').useSimpleFilters>) {
+  const { options: machineTypes } = useMachineTypes();
   const [machines, setMachines] = useState<Machine[]>([]);
   const [loading, setLoading] = useState(true);
   const [columns, setColumns] = useState<Column<Machine>[]>(getInitialColumns);
@@ -229,7 +231,7 @@ function MachinesPageContent({
     {
       key: 'type',
       label: 'All Types',
-      options: MACHINE_TYPES.map((type) => ({
+      options: machineTypes.map((type) => ({
         value: type.value,
         label: type.label,
       })),

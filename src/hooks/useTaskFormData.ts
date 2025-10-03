@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { logger } from '@/utils/logger';
-import { TASK_TITLES } from '@/config/workshop-properties';
+import { useTaskTitles } from '@/hooks/useConfiguration';
 
 export interface DropdownOption {
   id: string;
@@ -24,6 +24,7 @@ export interface TaskFormData {
 }
 
 export function useTaskFormData() {
+  const { options: taskTitlesConfig } = useTaskTitles();
   const [data, setData] = useState<TaskFormData>({
     projects: [],
     items: [],
@@ -82,7 +83,7 @@ export function useTaskFormData() {
           name: o.name,
         }));
 
-        const taskTitles = TASK_TITLES.map((title) => ({
+        const taskTitles = taskTitlesConfig.map((title) => ({
           id: title.value,
           name: title.label,
         }));
@@ -107,7 +108,7 @@ export function useTaskFormData() {
     };
 
     fetchData();
-  }, []);
+  }, [taskTitlesConfig]);
 
   return data;
 }

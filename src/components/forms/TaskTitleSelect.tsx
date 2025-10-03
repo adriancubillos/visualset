@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { TASK_TITLES } from '@/config/workshop-properties';
+import { useTaskTitles } from '@/hooks/useConfiguration';
 
 interface TaskTitleSelectProps {
   options?: Array<{ id: string; name: string }>; // Keep for compatibility
@@ -11,20 +11,21 @@ interface TaskTitleSelectProps {
 }
 
 export default function TaskTitleSelect({ value, onChange, disabled }: TaskTitleSelectProps) {
+  const { options: taskTitles } = useTaskTitles();
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Get the display value - either from TASK_TITLES or the current value
+  // Get the display value - either from taskTitles or the current value
   const getDisplayValue = () => {
-    const matchedTitle = TASK_TITLES.find((title) => title.label === value);
+    const matchedTitle = taskTitles.find((title) => title.label === value);
     return matchedTitle ? matchedTitle.label : value;
   };
 
   // Filter options based on search query
   const filteredOptions = searchQuery.trim()
-    ? TASK_TITLES.filter((title) => title.label.toLowerCase().includes(searchQuery.toLowerCase()))
-    : TASK_TITLES; // Show all options when no search query
+    ? taskTitles.filter((title) => title.label.toLowerCase().includes(searchQuery.toLowerCase()))
+    : taskTitles; // Show all options when no search query
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
@@ -108,7 +109,7 @@ export default function TaskTitleSelect({ value, onChange, disabled }: TaskTitle
       {isOpen && (
         <div className="absolute z-50 mt-1 w-full bg-white rounded-md shadow-lg max-h-60 overflow-auto ring-1 ring-black ring-opacity-5 focus:outline-none">
           {/* Current input as custom option if it doesn't match existing titles */}
-          {searchQuery && !TASK_TITLES.some((title) => title.label.toLowerCase() === searchQuery.toLowerCase()) && (
+          {searchQuery && !taskTitles.some((title) => title.label.toLowerCase() === searchQuery.toLowerCase()) && (
             <div
               className="px-3 py-2 text-gray-900 cursor-pointer hover:bg-blue-50"
               onMouseDown={(e) => {

@@ -12,7 +12,8 @@ import { OperatorColorIndicator } from '@/components/ui/ColorIndicator';
 import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { logger } from '@/utils/logger';
 import StatisticsCards from '@/components/ui/StatisticsCards';
-import { AVAILABLE_SKILLS, OPERATOR_STATUS, OPERATOR_SHIFTS } from '@/config/workshop-properties';
+import { OPERATOR_STATUS } from '@/config/workshop-properties';
+import { useAvailableSkills, useOperatorShifts } from '@/hooks/useConfiguration';
 import { Column } from '@/types/table';
 import FilterProvider from '@/components/layout/FilterProvider';
 
@@ -159,6 +160,8 @@ function OperatorsPageContent({
   updateFilters,
   clearAll,
 }: ReturnType<typeof import('@/hooks/useSimpleFilters').useSimpleFilters>) {
+  const { options: availableSkills } = useAvailableSkills();
+  const { options: operatorShifts } = useOperatorShifts();
   const [operators, setOperators] = useState<Operator[]>([]);
   const [loading, setLoading] = useState(true);
   const [columns, setColumns] = useState<Column<Operator>[]>(getInitialColumns);
@@ -246,7 +249,7 @@ function OperatorsPageContent({
     {
       key: 'shift',
       label: 'All Shifts',
-      options: OPERATOR_SHIFTS.map((shift) => ({
+      options: operatorShifts.map((shift) => ({
         value: shift.value,
         label: shift.label,
       })),
@@ -254,7 +257,7 @@ function OperatorsPageContent({
     {
       key: 'skill',
       label: 'All Skills',
-      options: AVAILABLE_SKILLS.map((skill) => ({
+      options: availableSkills.map((skill) => ({
         value: skill.value,
         label: skill.label,
       })),

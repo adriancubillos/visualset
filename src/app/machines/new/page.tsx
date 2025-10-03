@@ -1,18 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import PageContainer from '@/components/layout/PageContainer';
 import VisualIdentifier from '@/components/ui/VisualIdentifier';
 import { PatternType } from '@/utils/entityColors';
-import { MACHINE_TYPES, MACHINE_STATUS } from '@/config/workshop-properties';
+import { MACHINE_STATUS } from '@/config/workshop-properties';
+import { useMachineTypes } from '@/hooks/useConfiguration';
 import { logger } from '@/utils/logger';
 
 export default function NewMachinePage() {
   const router = useRouter();
+  const { options: machineTypes } = useMachineTypes();
+
   const [formData, setFormData] = useState({
     name: '',
-    type: MACHINE_TYPES[0].value,
+    type: '', // Will be set once machine types load
     status: 'AVAILABLE',
     location: '',
     color: '#ef4444', // Red - first color in palette
@@ -20,6 +23,13 @@ export default function NewMachinePage() {
   });
   const [loading, setLoading] = useState(false);
   const [isColorPatternValid, setIsColorPatternValid] = useState(true);
+
+  // Set default machine type once types are loaded
+  useEffect(() => {
+    if (machineTypes.length > 0 && !formData.type) {
+      setFormData((prev) => ({ ...prev, type: machineTypes[0].value }));
+    }
+  }, [machineTypes, formData.type]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,7 +114,7 @@ export default function NewMachinePage() {
               value={formData.type}
               onChange={handleChange}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-              {MACHINE_TYPES.map((type) => (
+              {machineTypes.map((type) => (
                 <option
                   key={type.value}
                   value={type.value}>
@@ -185,15 +195,16 @@ export default function NewMachinePage() {
                 !formData.pattern ||
                 !isColorPatternValid
               }
-              className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${loading ||
-                  !formData.name.trim() ||
-                  !formData.location.trim() ||
-                  !formData.color ||
-                  !formData.pattern ||
-                  !isColorPatternValid
+              className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                loading ||
+                !formData.name.trim() ||
+                !formData.location.trim() ||
+                !formData.color ||
+                !formData.pattern ||
+                !isColorPatternValid
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700'
-                }`}>
+              }`}>
               {loading ? 'Adding...' : 'Add Machine'}
             </button>
           </div>

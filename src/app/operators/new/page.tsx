@@ -3,13 +3,16 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import PageContainer from '@/components/layout/PageContainer';
-import { AVAILABLE_SKILLS, OPERATOR_STATUS, OPERATOR_SHIFTS } from '@/config/workshop-properties';
+import { OPERATOR_STATUS } from '@/config/workshop-properties';
+import { useAvailableSkills, useOperatorShifts } from '@/hooks/useConfiguration';
 import VisualIdentifier from '@/components/ui/VisualIdentifier';
 import { PatternType } from '@/utils/entityColors';
 import { logger } from '@/utils/logger';
 
 export default function NewOperatorPage() {
   const router = useRouter();
+  const { options: availableSkills } = useAvailableSkills();
+  const { options: operatorShifts } = useOperatorShifts();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -22,8 +25,6 @@ export default function NewOperatorPage() {
   });
   const [loading, setLoading] = useState(false);
   const [isColorPatternValid, setIsColorPatternValid] = useState(true);
-
-  const availableSkills = AVAILABLE_SKILLS;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,8 +135,9 @@ export default function NewOperatorPage() {
                     onChange={() => handleSkillToggle(skill.value)}
                   />
                   <div
-                    className={`w-4 h-4 rounded border-2 mr-3 flex items-center justify-center ${formData.skills.includes(skill.value) ? 'bg-blue-600 border-blue-600' : 'border-gray-300'
-                      }`}>
+                    className={`w-4 h-4 rounded border-2 mr-3 flex items-center justify-center ${
+                      formData.skills.includes(skill.value) ? 'bg-blue-600 border-blue-600' : 'border-gray-300'
+                    }`}>
                     {formData.skills.includes(skill.value) && (
                       <svg
                         className="w-3 h-3 text-white"
@@ -182,7 +184,7 @@ export default function NewOperatorPage() {
               value={formData.shift}
               onChange={handleChange}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-              {OPERATOR_SHIFTS.map((shift) => (
+              {operatorShifts.map((shift) => (
                 <option
                   key={shift.value}
                   value={shift.value}>
@@ -234,16 +236,17 @@ export default function NewOperatorPage() {
                 !formData.pattern ||
                 !isColorPatternValid
               }
-              className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${loading ||
-                  !formData.name.trim() ||
-                  !formData.email.trim() ||
-                  formData.skills.length === 0 ||
-                  !formData.color ||
-                  !formData.pattern ||
-                  !isColorPatternValid
+              className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                loading ||
+                !formData.name.trim() ||
+                !formData.email.trim() ||
+                formData.skills.length === 0 ||
+                !formData.color ||
+                !formData.pattern ||
+                !isColorPatternValid
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700'
-                }`}>
+              }`}>
               {loading ? 'Adding...' : 'Add Operator'}
             </button>
           </div>
