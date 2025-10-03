@@ -22,3 +22,17 @@ export class ApiError extends Error {
 export function isApiError(err: unknown): err is ApiError {
   return err instanceof ApiError;
 }
+
+export function mapErrorToResponse(err: unknown) {
+  if (isApiError(err)) {
+    return {
+      body: { error: { code: err.code, message: err.message, details: err.details } },
+      status: err.status,
+    };
+  }
+
+  return {
+    body: { error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } },
+    status: 500,
+  };
+}
