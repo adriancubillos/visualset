@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient, ConfigurationCategory } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { ConfigurationCategory } from '@prisma/client';
+import prisma from '@/lib/prisma';
 
 // GET /api/configuration/[id] - Get specific configuration
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

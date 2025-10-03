@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import prisma from '@/lib/prisma';
 import { mapTaskToResponse, TaskWithRelationsDTO } from '@/types/api';
 import { checkSchedulingConflicts, createConflictErrorResponse } from '@/utils/conflictDetection';
 import { logger } from '@/utils/logger';
-
-const prisma = new PrismaClient();
 
 interface TimeSlotInput {
   id?: string;
@@ -70,24 +68,21 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       for (let j = i + 1; j < timeSlots.length; j++) {
         const slotA = timeSlots[i];
         const slotB = timeSlots[j];
-        
+
         if (slotA.startDateTime && slotB.startDateTime) {
           const startA = new Date(slotA.startDateTime);
           const endA = new Date(startA.getTime() + (slotA.durationMin || 60) * 60 * 1000);
           const startB = new Date(slotB.startDateTime);
           const endB = new Date(startB.getTime() + (slotB.durationMin || 60) * 60 * 1000);
-          
+
           // Check if time slots overlap
           if (startA < endB && endA > startB) {
-            return NextResponse.json(
-              { error: 'Time slots within the same task cannot overlap' },
-              { status: 400 }
-            );
+            return NextResponse.json({ error: 'Time slots within the same task cannot overlap' }, { status: 400 });
           }
         }
       }
     }
-    
+
     // Then check for conflicts with other tasks
     for (const slot of timeSlots) {
       if (slot.startDateTime && (body.machineId || body.operatorId)) {

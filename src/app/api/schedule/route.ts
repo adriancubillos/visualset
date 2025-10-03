@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import prisma from '@/lib/prisma';
 import { logger } from '@/utils/logger';
 import { mapTaskToResponse } from '@/types/api';
 import { checkSchedulingConflicts, createConflictErrorResponse } from '@/utils/conflictDetection';
-
-const prisma = new PrismaClient();
 
 // ----------------- GET -----------------
 // Fetch all scheduled tasks, optionally filtered by date range

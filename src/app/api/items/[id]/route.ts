@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import prisma from '@/lib/prisma';
 import { logger } from '@/utils/logger';
-
-const prisma = new PrismaClient();
 
 // GET /api/items/[id]
 export async function GET(req: Request, context: { params: Promise<{ id: string }> }) {
