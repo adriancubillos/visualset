@@ -24,6 +24,7 @@ type PrismaMock = {
     findUnique: MockFn;
     update: MockFn;
     delete: MockFn;
+    count: MockFn;
   };
   item: {
     findMany: MockFn;
@@ -45,6 +46,9 @@ type PrismaMock = {
   machine: {
     findMany: MockFn;
     create: MockFn;
+    findUnique: MockFn;
+    update: MockFn;
+    delete: MockFn;
   };
   operator: {
     findMany: MockFn;
@@ -66,6 +70,7 @@ function makeMockPrisma(): PrismaMock {
       findUnique: makeMock(),
       update: makeMock(),
       delete: makeMock(),
+      count: makeMock(),
     },
     item: {
       findMany: makeMock(),
@@ -87,6 +92,9 @@ function makeMockPrisma(): PrismaMock {
     machine: {
       findMany: makeMock(),
       create: makeMock(),
+      findUnique: makeMock(),
+      update: makeMock(),
+      delete: makeMock(),
     },
     operator: {
       findMany: makeMock(),
