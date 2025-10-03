@@ -42,6 +42,9 @@ type PrismaMock = {
   configuration: {
     findMany: MockFn;
     create: MockFn;
+    findUnique: MockFn;
+    update: MockFn;
+    delete: MockFn;
   };
   machine: {
     findMany: MockFn;
@@ -88,6 +91,9 @@ function makeMockPrisma(): PrismaMock {
     configuration: {
       findMany: makeMock(),
       create: makeMock(),
+      findUnique: makeMock(),
+      update: makeMock(),
+      delete: makeMock(),
     },
     machine: {
       findMany: makeMock(),

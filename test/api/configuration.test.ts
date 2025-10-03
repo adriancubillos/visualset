@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import * as route from '@/app/api/configuration/route';
+import * as idRoute from '@/app/api/configuration/[id]/route';
+import prisma from '@/lib/prisma';
 import configurationService from '@/services/configurationService';
 import { logger } from '@/utils/logger';
 
@@ -149,5 +151,191 @@ describe('configuration route', () => {
     expect(res.opts?.status).toBe(500);
     expect(res.body.error).toHaveProperty('code', 'INTERNAL_ERROR');
     expect(spy).toHaveBeenCalled();
+  });
+
+  // --- Tests for id-based route: /api/configuration/[id] ---
+  it('GET /api/configuration/[id] returns configuration on success', async () => {
+    const fake = { id: 'c10', category: 'MACHINE_TYPES', value: 'lathe', label: 'Lathe' } as unknown as Awaited<
+      ReturnType<typeof prisma.configuration.findUnique>
+    >;
+    vi.spyOn(prisma.configuration, 'findUnique').mockResolvedValue(fake);
+
+    const req = new Request('http://localhost');
+    const context = { params: Promise.resolve({ id: 'c10' }) } as { params: Promise<{ id: string }> };
+    const res = await idRoute.GET(makeNextRequest(req), context);
+
+    expect(res).toHaveProperty('body');
+    expect(res.body).toEqual(fake);
+    expect(prisma.configuration.findUnique).toHaveBeenCalledWith({ where: { id: 'c10' } });
+  });
+
+  it('GET /api/configuration/[id] returns 404 when missing', async () => {
+    vi.spyOn(prisma.configuration, 'findUnique').mockResolvedValue(
+      null as Awaited<ReturnType<typeof prisma.configuration.findUnique>>,
+    );
+    const req = new Request('http://localhost');
+    const context = { params: Promise.resolve({ id: 'missing' }) } as { params: Promise<{ id: string }> };
+    const res = (await idRoute.GET(makeNextRequest(req), context)) as unknown as {
+      body: { error: unknown };
+      opts?: { status?: number };
+    };
+
+    // route returns a 404 payload for missing
+    expect(res.opts?.status).toBe(404);
+    expect(res.body.error).toBeDefined();
+  });
+
+  it('PUT /api/configuration/[id] updates configuration on success', async () => {
+    const fake = { id: 'c11', category: 'TASK_TITLES', value: 't', label: 'T' } as unknown as Awaited<
+      ReturnType<typeof prisma.configuration.update>
+    >;
+    vi.spyOn(prisma.configuration, 'update').mockResolvedValue(fake);
+
+    const req = new Request('http://localhost', { method: 'PUT', body: JSON.stringify({ value: 't' }) });
+    const context = { params: Promise.resolve({ id: 'c11' }) } as { params: Promise<{ id: string }> };
+    const res = await idRoute.PUT(makeNextRequest(req), context);
+
+    expect(res).toHaveProperty('body');
+    expect(res.body).toEqual(fake);
+    expect(prisma.configuration.update).toHaveBeenCalledWith({ where: { id: 'c11' }, data: { value: 't' } });
+  });
+
+  it('PUT /api/configuration/[id] returns 400 for invalid category', async () => {
+    const req = new Request('http://localhost', { method: 'PUT', body: JSON.stringify({ category: 'BAD' }) });
+    const context = { params: Promise.resolve({ id: 'c12' }) } as { params: Promise<{ id: string }> };
+    const res = (await idRoute.PUT(makeNextRequest(req), context)) as unknown as {
+      body: { error: unknown };
+      opts?: { status?: number };
+    };
+
+    expect(res.opts?.status).toBe(400);
+    // route returns a simple error string for invalid category
+    expect(res.body.error).toEqual('Invalid category');
+  });
+
+  it('PUT maps Prisma P2025 to 404 and P2002 to 409', async () => {
+    // P2025 -> not found
+    vi.spyOn(prisma.configuration, 'update').mockRejectedValueOnce({ code: 'P2025' } as unknown as { code: string });
+    const req1 = new Request('http://localhost', { method: 'PUT', body: JSON.stringify({ value: 'v' }) });
+    const context1 = { params: Promise.resolve({ id: 'nope' }) } as { params: Promise<{ id: string }> };
+    const res1 = (await idRoute.PUT(makeNextRequest(req1), context1)) as unknown as {
+      body: { error: unknown };
+      opts?: { status?: number };
+    };
+    expect(res1.opts?.status).toBe(404);
+
+    // P2002 -> conflict
+    vi.spyOn(prisma.configuration, 'update').mockRejectedValueOnce({ code: 'P2002' } as unknown as { code: string });
+    const req2 = new Request('http://localhost', { method: 'PUT', body: JSON.stringify({ value: 'dup' }) });
+    const context2 = { params: Promise.resolve({ id: 'dup' }) } as { params: Promise<{ id: string }> };
+    const res2 = (await idRoute.PUT(makeNextRequest(req2), context2)) as unknown as {
+      body: { error: unknown };
+      opts?: { status?: number };
+    };
+    expect(res2.opts?.status).toBe(409);
+  });
+
+  it('PUT /api/configuration/[id] updates category and label when provided', async () => {
+    const fake = { id: 'c20', category: 'TASK_TITLES', value: 'v', label: 'L' } as unknown as Awaited<
+      ReturnType<typeof prisma.configuration.update>
+    >;
+    vi.spyOn(prisma.configuration, 'update').mockResolvedValue(fake);
+
+    const req = new Request('http://localhost', {
+      method: 'PUT',
+      body: JSON.stringify({ category: 'TASK_TITLES', label: 'L' }),
+    });
+    const context = { params: Promise.resolve({ id: 'c20' }) } as { params: Promise<{ id: string }> };
+    const res = await idRoute.PUT(makeNextRequest(req), context);
+
+    expect(res).toHaveProperty('body');
+    expect(res.body).toEqual(fake);
+    expect(prisma.configuration.update).toHaveBeenCalledWith({
+      where: { id: 'c20' },
+      data: { category: 'TASK_TITLES', label: 'L' },
+    });
+  });
+
+  it('PUT /api/configuration/[id] updates label only when provided', async () => {
+    const fake = { id: 'c21', category: 'TASK_TITLES', value: 'v', label: 'Only' } as unknown as Awaited<
+      ReturnType<typeof prisma.configuration.update>
+    >;
+    vi.spyOn(prisma.configuration, 'update').mockResolvedValue(fake);
+
+    const req = new Request('http://localhost', { method: 'PUT', body: JSON.stringify({ label: 'Only' }) });
+    const context = { params: Promise.resolve({ id: 'c21' }) } as { params: Promise<{ id: string }> };
+    const res = await idRoute.PUT(makeNextRequest(req), context);
+
+    expect(res).toHaveProperty('body');
+    expect(res.body).toEqual(fake);
+    expect(prisma.configuration.update).toHaveBeenCalledWith({ where: { id: 'c21' }, data: { label: 'Only' } });
+  });
+
+  it('DELETE /api/configuration/[id] deletes configuration on success', async () => {
+    vi.spyOn(prisma.configuration, 'delete').mockResolvedValue({ message: 'ok' } as unknown as Awaited<
+      ReturnType<typeof prisma.configuration.delete>
+    >);
+
+    const req = new Request('http://localhost', { method: 'DELETE' });
+    const context = { params: Promise.resolve({ id: 'c13' }) } as { params: Promise<{ id: string }> };
+    const res = await idRoute.DELETE(makeNextRequest(req), context);
+
+    expect(res).toHaveProperty('body');
+    expect(res.body).toHaveProperty('message');
+    expect(prisma.configuration.delete).toHaveBeenCalledWith({ where: { id: 'c13' } });
+  });
+
+  it('DELETE /api/configuration/[id] maps P2025 to 404', async () => {
+    vi.spyOn(prisma.configuration, 'delete').mockRejectedValue({ code: 'P2025' } as unknown as { code: string });
+
+    const req = new Request('http://localhost', { method: 'DELETE' });
+    const context = { params: Promise.resolve({ id: 'missing' }) } as { params: Promise<{ id: string }> };
+    const res = (await idRoute.DELETE(makeNextRequest(req), context)) as unknown as {
+      body: { error: unknown };
+      opts?: { status?: number };
+    };
+
+    expect(res.opts?.status).toBe(404);
+    expect(res.body.error).toBeDefined();
+  });
+
+  // Generic error branch tests to exercise the catch blocks and increase coverage
+  it('GET /api/configuration/[id] returns 500 on unexpected error', async () => {
+    vi.spyOn(prisma.configuration, 'findUnique').mockRejectedValue(new Error('boom'));
+    const req = new Request('http://localhost');
+    const context = { params: Promise.resolve({ id: 'err' }) } as { params: Promise<{ id: string }> };
+    const res = (await idRoute.GET(makeNextRequest(req), context)) as unknown as {
+      body: { error: unknown };
+      opts?: { status?: number };
+    };
+
+    expect(res.opts?.status).toBe(500);
+    expect(res.body.error).toBe('Failed to fetch configuration');
+  });
+
+  it('PUT /api/configuration/[id] returns 500 on unexpected error', async () => {
+    vi.spyOn(prisma.configuration, 'update').mockRejectedValue(new Error('boom'));
+    const req = new Request('http://localhost', { method: 'PUT', body: JSON.stringify({ value: 'x' }) });
+    const context = { params: Promise.resolve({ id: 'err' }) } as { params: Promise<{ id: string }> };
+    const res = (await idRoute.PUT(makeNextRequest(req), context)) as unknown as {
+      body: { error: unknown };
+      opts?: { status?: number };
+    };
+
+    expect(res.opts?.status).toBe(500);
+    expect((res as unknown as { body: { error: string } }).body.error).toBe('Failed to update configuration');
+  });
+
+  it('DELETE /api/configuration/[id] returns 500 on unexpected error', async () => {
+    vi.spyOn(prisma.configuration, 'delete').mockRejectedValue(new Error('boom'));
+    const req = new Request('http://localhost', { method: 'DELETE' });
+    const context = { params: Promise.resolve({ id: 'err' }) } as { params: Promise<{ id: string }> };
+    const res = (await idRoute.DELETE(makeNextRequest(req), context)) as unknown as {
+      body: { error: unknown };
+      opts?: { status?: number };
+    };
+
+    expect(res.opts?.status).toBe(500);
+    expect(res.body.error).toBe('Failed to delete configuration');
   });
 });
