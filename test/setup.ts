@@ -63,6 +63,9 @@ type PrismaMock = {
     update: MockFn;
     delete: MockFn;
   };
+  taskTimeSlot: {
+    findMany: MockFn;
+  };
 };
 
 function makeMockPrisma(): PrismaMock {
@@ -80,6 +83,9 @@ function makeMockPrisma(): PrismaMock {
       update: makeMock(),
       delete: makeMock(),
       count: makeMock(),
+    },
+    taskTimeSlot: {
+      findMany: makeMock(),
     },
     item: {
       findMany: makeMock(),

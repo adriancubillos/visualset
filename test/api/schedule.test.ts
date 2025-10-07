@@ -10,31 +10,44 @@ describe('Schedule routes', () => {
     prismaMock.task.findMany.mockReset();
     prismaMock.task.findUnique.mockReset();
     prismaMock.task.update.mockReset();
+    prismaMock.taskTimeSlot.findMany.mockReset();
     prismaMock.item.findFirst.mockReset();
     prismaMock.item.create.mockReset();
   });
 
-  it.skip('GET returns scheduled tasks (no params)', async () => {
+  it('GET returns scheduled tasks (no params)', async () => {
     const fakeTasks: TaskWithRelationsDTO[] = [
       {
         id: 't1',
         title: 'Task 1',
         description: null,
-        durationMin: 60,
         status: 'PENDING',
+        quantity: 0,
+        completed_quantity: 0,
         item: {
           id: 'i1',
           projectId: 'p1',
           name: 'Item 1',
           description: null,
           status: 'ACTIVE',
+          quantity: 0,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         },
         itemId: 'i1',
         machine: null,
         operator: null,
-        scheduledAt: new Date().toISOString(),
+        timeSlots: [
+          {
+            id: 'ts1',
+            taskId: 't1',
+            startDateTime: new Date().toISOString(),
+            endDateTime: null,
+            durationMin: 60,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        ],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
@@ -49,7 +62,7 @@ describe('Schedule routes', () => {
     // map should include project as null because item.project isn't populated in this mock
   });
 
-  it.skip('POST schedules a task (happy path no conflicts)', async () => {
+  it('POST schedules a task (happy path no conflicts)', async () => {
     const taskId = 't-schedule-1';
     const scheduledAt = new Date('2025-09-20T10:00:00.000Z');
     const durationMin = 30;
@@ -58,15 +71,16 @@ describe('Schedule routes', () => {
     const existingTask: Partial<TaskWithRelationsDTO> = {
       id: taskId,
       title: 'To schedule',
-      durationMin: 60,
       status: 'PENDING',
+      quantity: 0,
+      completed_quantity: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
     prismaMock.task.findUnique.mockResolvedValue(existingTask);
-    // no conflicts
-    prismaMock.task.findMany.mockResolvedValue([]);
+    // no conflicts (taskTimeSlot model is queried by conflict detection)
+    prismaMock.taskTimeSlot.findMany.mockResolvedValue([]);
     // item lookup/create
     prismaMock.item.findFirst.mockResolvedValue(null);
     prismaMock.item.create.mockResolvedValue({
@@ -83,14 +97,16 @@ describe('Schedule routes', () => {
       id: taskId,
       title: 'To schedule',
       description: null,
-      durationMin,
       status: 'SCHEDULED',
+      quantity: 0,
+      completed_quantity: 0,
       item: {
         id: 'new-item',
         projectId: 'p1',
         name: 'Default Item',
         description: null,
         status: 'ACTIVE',
+        quantity: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
@@ -105,7 +121,17 @@ describe('Schedule routes', () => {
         updatedAt: new Date().toISOString(),
       },
       operator: null,
-      scheduledAt: scheduledAt.toISOString(),
+      timeSlots: [
+        {
+          id: 'ts-upd-1',
+          taskId,
+          startDateTime: scheduledAt.toISOString(),
+          endDateTime: null,
+          durationMin,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -119,7 +145,7 @@ describe('Schedule routes', () => {
     expect(res.body).toHaveProperty('status', 'SCHEDULED');
   });
 
-  it.skip('POST returns machine conflict when overlap occurs', async () => {
+  it('POST returns machine conflict when overlap occurs', async () => {
     const taskId = 't-conflict-machine';
     const scheduledAt = new Date('2025-09-20T10:00:00.000Z');
     const durationMin = 60;
@@ -127,39 +153,46 @@ describe('Schedule routes', () => {
     prismaMock.task.findUnique.mockResolvedValue({
       id: taskId,
       title: 'conflict-task',
-      durationMin: 30,
+      status: 'PENDING',
+      quantity: 0,
+      completed_quantity: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
 
     // existing task that overlaps: scheduled at 10:15 for 30min -> otherEnd 10:45 which overlaps our start 10:00-11:00
     const conflictStart = new Date(scheduledAt.getTime() + 15 * 60 * 1000);
-    const machineConflict = {
-      id: 'c1',
-      title: 'other',
-      scheduledAt: conflictStart,
-      durationMin: 30,
-      machine: {
-        id: 'm1',
-        name: 'Mach',
-        type: 'X',
-        status: 'AVAILABLE',
-        location: 'L1',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+    // conflict detection queries taskTimeSlot and returns slots with task included
+    prismaMock.taskTimeSlot.findMany.mockResolvedValue([
+      {
+        id: 'ts-c1',
+        startDateTime: conflictStart.toISOString(),
+        endDateTime: null,
+        durationMin: 30,
+        task: {
+          id: 'c1',
+          title: 'other',
+          timeSlots: undefined,
+          machine: {
+            id: 'm1',
+            name: 'Mach',
+          },
+        },
       },
-    } as const;
-    prismaMock.task.findMany.mockResolvedValue([machineConflict]);
+    ]);
 
     const body = { taskId, machineId: 'm1', scheduledAt: scheduledAt.toISOString(), durationMin };
     const req = new Request('http://localhost', { method: 'POST', body: JSON.stringify(body) });
     const res = (await scheduleRoute.POST(req)) as unknown as ResponseMock<unknown>;
     expect(res.opts).toBeDefined();
-    expect(res.opts?.status).toBe(400);
-    // body should include conflict info
+    expect(res.opts?.status).toBe(409);
+    // unified ApiError mapping: error.code and error.details.conflict
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const resBody = res.body as any;
-    expect(resBody).toHaveProperty('conflict');
+    expect(resBody).toHaveProperty('error');
+    expect(resBody.error).toHaveProperty('code', 'SCHEDULING_CONFLICT');
+    expect(resBody.error).toHaveProperty('details');
+    expect(resBody.error.details).toHaveProperty('conflict');
   });
 
   it('POST returns 400 when required params missing', async () => {

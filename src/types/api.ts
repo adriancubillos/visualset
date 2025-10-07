@@ -55,6 +55,18 @@ export interface TaskTimeSlotDTO {
   updatedAt: string;
 }
 
+// Request DTO for scheduling a task
+export interface ScheduleTaskRequestDTO {
+  taskId: string;
+  // optional: either itemId or projectId may be provided to create/associate an item
+  itemId?: string | null;
+  projectId?: string | null;
+  machineId?: string | null;
+  operatorId?: string | null;
+  scheduledAt: string; // ISO datetime
+  durationMin: number;
+}
+
 export interface TaskWithRelationsDTO {
   id: string;
   title: string;
