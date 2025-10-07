@@ -1,11 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -23,21 +19,9 @@
       }
     ],
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"]
     }
   },
-  "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    "prisma/scripts/seed.cjs"
-  ],
-  "exclude": [
-    "node_modules",
-    "vitest.config.ts",
-    "coverage/**/*"
-  ]
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "prisma/scripts/seed.cjs"],
+  "exclude": ["node_modules", "vitest.config.ts", "coverage/**/*"]
 }
