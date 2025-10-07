@@ -5,11 +5,15 @@
   "scripts": {
     "dev": "next dev",
     "dev:turbo": "next dev --turbopack",
-    "build": "prisma generate && next build",
-    "build:production": "prisma generate && npx prisma migrate deploy && next build",
+    "dev:with-tests": "npm run enable-test-types && next dev",
+    "build": "npm run disable-test-types && prisma generate && next build",
+    "build:production": "npm run disable-test-types && prisma generate && npx prisma migrate deploy && next build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest",
+    "test:typecheck": "vitest typecheck",
+    "enable-test-types": "node -e \"const fs=require('fs');const cfg=JSON.parse(fs.readFileSync('tsconfig.json','utf8'));cfg.exclude=cfg.exclude.filter(e=>e!=='test/**/*');fs.writeFileSync('tsconfig.json',JSON.stringify(cfg,null,2))\"",
+    "disable-test-types": "node -e \"const fs=require('fs');const cfg=JSON.parse(fs.readFileSync('tsconfig.json','utf8'));if(!cfg.exclude.includes('test/**/*'))cfg.exclude.push('test/**/*');fs.writeFileSync('tsconfig.json',JSON.stringify(cfg,null,2))\"",
     "postinstall": "prisma generate"
   },
   "dependencies": {
