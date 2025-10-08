@@ -1,3 +1,26 @@
+# TESTS TODO
+
+Missing Tests
+    UI Components:
+        DataTable.tsx (0% coverage) - 437 lines ✅ DONE!
+            Complex component using TanStack Table Column resizing, sorting, row clicks This is a large, important component
+        VisualIdentifier.tsx (0% coverage) - 256 lines ✅ DONE!
+            Color and pattern selection for operators/machines Async data fetching Complex validation logic
+    Form Components:
+        ImageUpload.tsx (0% coverage) - 259 lines ✅ DONE!
+        ProjectItemSelect.tsx (0% coverage) - 84 lines
+        TaskTitleSelect.tsx (0% coverage) - 166 lines
+        TimeSlotsManager.tsx (0% coverage) - 286 lines ✅ DONE!
+    Layout Components:
+        Navigation.tsx (0% coverage) - 110 lines
+    Gantt Components:
+        GanttChart.tsx (0% coverage) - 744 lines Main Gantt chart component Very complex with drag-and-drop
+    Task Components:
+        TaskModal.tsx (0% coverage) - 257 lines ✅ DONE!
+        TaskStatusQuickActions.tsx (0% coverage) - 83 lines
+    Other:
+        ScheduleCalendar.tsx (0% coverage) - 713 lines React-big-calendar integration Complex calendar component
+
 # CHANGES October 1,2 2025
 
 ✅ FIXED: Migrate breadcrumbs - Replace manual breadcrumb code with breadcrumbs prop
