@@ -2,6 +2,7 @@
 import { vi } from 'vitest';
 import type { PrismaClient } from '@prisma/client';
 import type { Mock } from 'vitest';
+import '@testing-library/jest-dom/vitest';
 
 // Provide a lightweight NextResponse mock that returns a plain object
 vi.mock('next/server', async () => {
