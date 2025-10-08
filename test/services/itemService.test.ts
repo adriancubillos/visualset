@@ -31,6 +31,20 @@ describe('itemService', () => {
     expect(res).toEqual(fake);
   });
 
+  it('getItem returns item when found', async () => {
+    const fakeItem = { id: 'i1', name: 'Item 1', project: { id: 'p1', name: 'Project 1' }, tasks: [] };
+    prismaMock.item.findUnique.mockResolvedValue(fakeItem);
+    const res = await itemService.getItem(prismaMock as unknown as PrismaClient, 'i1');
+    expect(prismaMock.item.findUnique).toHaveBeenCalledWith({
+      where: { id: 'i1' },
+      include: expect.objectContaining({
+        project: expect.any(Object),
+        tasks: expect.any(Object),
+      }),
+    });
+    expect(res).toEqual(fakeItem);
+  });
+
   it('getItem throws ApiError when not found', async () => {
     prismaMock.item.findUnique.mockResolvedValue(null);
     await expect(itemService.getItem(prismaMock as unknown as PrismaClient, 'missing')).rejects.toThrow();
