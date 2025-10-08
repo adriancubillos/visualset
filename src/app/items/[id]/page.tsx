@@ -35,6 +35,12 @@ interface Task {
     id: string;
     name: string;
   } | null;
+  timeSlots: {
+    id: string;
+    startDateTime: string;
+    endDateTime: string | null;
+    durationMin: number;
+  }[];
   createdAt: string;
   updatedAt: string;
 }
@@ -332,13 +338,38 @@ export default function ItemDetailPage() {
       ),
     },
     {
-      key: 'estimatedHours' as keyof Task,
-      header: 'Hours',
-      render: (value: number, task: Task) => (
-        <span className="text-sm text-gray-600">
-          {task.actualHours || 0} / {value || 0}h
-        </span>
-      ),
+      key: 'timeSlots' as keyof Task,
+      header: 'Scheduled',
+      render: (value: Task['timeSlots']) => {
+        if (!value || value.length === 0) {
+          return <span className="text-sm text-gray-400 italic">Not scheduled</span>;
+        }
+        
+        // Show all time slots in a compact format
+        return (
+          <div className="space-y-1.5">
+            {value.map((slot, index) => {
+              const start = new Date(slot.startDateTime);
+              const end = slot.endDateTime 
+                ? new Date(slot.endDateTime)
+                : new Date(start.getTime() + slot.durationMin * 60000);
+              
+              return (
+                <div key={slot.id || index} className="text-xs">
+                  <div className="font-medium text-gray-700">
+                    {start.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
+                  </div>
+                  <div className="text-gray-600">
+                    {start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {' - '}
+                    {end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      },
     },
   ];
 

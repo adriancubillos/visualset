@@ -57,6 +57,7 @@ export async function getItem(prisma: PrismaClient, id: string) {
         include: {
           machine: { select: { id: true, name: true } },
           operator: { select: { id: true, name: true } },
+          timeSlots: { orderBy: { startDateTime: 'asc' } },
         },
         orderBy: { updatedAt: 'desc' },
       },
