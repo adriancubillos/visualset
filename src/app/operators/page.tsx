@@ -32,7 +32,8 @@ interface Operator {
 }
 
 // Default column configuration
-const defaultColumns: Column<Operator>[] = [
+// Function to create columns with access to configuration data
+const createColumns = (availableSkills: { value: string; label: string }[]): Column<Operator>[] => [
   {
     key: 'color',
     header: 'Color',
@@ -62,22 +63,30 @@ const defaultColumns: Column<Operator>[] = [
     header: 'Skills',
     align: 'left',
     sortable: false,
-    render: (skills: string[]) => (
-      <div className="flex flex-wrap gap-1">
-        {skills.slice(0, 3).map((skill, index) => (
-          <span
-            key={index}
-            className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-            {skill}
-          </span>
-        ))}
-        {skills.length > 3 && (
-          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-            +{skills.length - 3}
-          </span>
-        )}
-      </div>
-    ),
+    render: (skills: string[]) => {
+      // Convert skill values to labels
+      const getSkillLabel = (skillValue: string) => {
+        const skill = availableSkills.find((s) => s.value === skillValue);
+        return skill?.label || skillValue;
+      };
+
+      return (
+        <div className="flex flex-wrap gap-1">
+          {skills.slice(0, 3).map((skill, index) => (
+            <span
+              key={index}
+              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              {getSkillLabel(skill)}
+            </span>
+          ))}
+          {skills.length > 3 && (
+            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+              +{skills.length - 3}
+            </span>
+          )}
+        </div>
+      );
+    },
   },
   {
     key: 'status',
@@ -114,29 +123,31 @@ const defaultColumns: Column<Operator>[] = [
 ];
 
 // Function to get initial column order from localStorage
-const getInitialColumns = (): Column<Operator>[] => {
-  if (typeof window === 'undefined') return defaultColumns;
+const getInitialColumns = (baseColumns: Column<Operator>[]): Column<Operator>[] => {
+  if (typeof window === 'undefined') return baseColumns;
 
   try {
     const saved = localStorage.getItem('operatorsColumnOrder');
-    if (!saved) return defaultColumns;
+    if (!saved) return baseColumns;
 
     const savedOrder = JSON.parse(saved);
-    if (!Array.isArray(savedOrder)) return defaultColumns;
+    if (!Array.isArray(savedOrder)) return baseColumns;
 
     // Reorder columns based on saved order
     const orderedColumns: Column<Operator>[] = [];
 
     // Add columns in saved order
     for (const savedCol of savedOrder) {
-      const matchingColumn = defaultColumns.find((col) => (col.id || col.key) === (savedCol.id || savedCol.key));
+      const matchingColumn = baseColumns.find(
+        (col: Column<Operator>) => (col.id || col.key) === (savedCol.id || savedCol.key),
+      );
       if (matchingColumn) {
         orderedColumns.push(matchingColumn);
       }
     }
 
     // Add any new columns that weren't in saved order
-    for (const defaultCol of defaultColumns) {
+    for (const defaultCol of baseColumns) {
       const exists = orderedColumns.some((col) => (col.id || col.key) === (defaultCol.id || defaultCol.key));
       if (!exists) {
         orderedColumns.push(defaultCol);
@@ -146,7 +157,7 @@ const getInitialColumns = (): Column<Operator>[] => {
     return orderedColumns;
   } catch (error) {
     logger.error('Error loading column order', error);
-    return defaultColumns;
+    return baseColumns;
   }
 };
 
@@ -165,7 +176,19 @@ function OperatorsPageContent({
   const { options: operatorShifts } = useOperatorShifts();
   const [operators, setOperators] = useState<Operator[]>([]);
   const [loading, setLoading] = useState(true);
-  const [columns, setColumns] = useState<Column<Operator>[]>(getInitialColumns);
+
+  // Create columns with access to configuration data
+  const baseColumns = useMemo(() => createColumns(availableSkills), [availableSkills]);
+  const [columns, setColumns] = useState<Column<Operator>[]>([]);
+  const [columnsInitialized, setColumnsInitialized] = useState(false);
+
+  // Initialize columns once when baseColumns is ready
+  useEffect(() => {
+    if (!columnsInitialized && availableSkills.length > 0) {
+      setColumns(getInitialColumns(baseColumns));
+      setColumnsInitialized(true);
+    }
+  }, [baseColumns, columnsInitialized, availableSkills.length]);
 
   // Filter operators based on search and filters
   const filteredOperators = useMemo(() => {
@@ -233,8 +256,14 @@ function OperatorsPageContent({
   };
 
   const handleResetColumns = () => {
-    setColumns(defaultColumns);
+    setColumns(baseColumns);
+    setColumnsInitialized(false);
     localStorage.removeItem('operatorsColumnOrder');
+    // Re-initialize with base columns
+    setTimeout(() => {
+      setColumns(getInitialColumns(baseColumns));
+      setColumnsInitialized(true);
+    }, 0);
   };
 
   // Dynamic filters based on current data
