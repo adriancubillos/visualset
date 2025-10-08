@@ -11,7 +11,7 @@ describe('machineService', () => {
     prismaMock.machine.findUnique.mockReset?.();
     prismaMock.machine.update.mockReset?.();
     prismaMock.machine.delete.mockReset?.();
-    prismaMock.task.count.mockReset?.();
+    prismaMock.taskMachine.count.mockReset?.();
   });
 
   it('listMachines returns machines', async () => {
@@ -104,14 +104,14 @@ describe('machineService', () => {
   });
 
   it('deleteMachine throws when has tasks', async () => {
-    prismaMock.task.count.mockResolvedValue(2);
+    prismaMock.taskMachine.count.mockResolvedValue(2);
     await expect(machineService.deleteMachine(prismaMock as unknown as PrismaClient, 'm1')).rejects.toMatchObject({
       code: 'MACHINE_HAS_TASKS',
     });
   });
 
   it('deleteMachine deletes when no tasks and exists', async () => {
-    prismaMock.task.count.mockResolvedValue(0);
+    prismaMock.taskMachine.count.mockResolvedValue(0);
     prismaMock.machine.findUnique.mockResolvedValue({ id: 'm1' });
     prismaMock.machine.delete.mockResolvedValue({ id: 'm1' });
     const res = await machineService.deleteMachine(prismaMock as unknown as PrismaClient, 'm1');
@@ -120,7 +120,7 @@ describe('machineService', () => {
   });
 
   it('deleteMachine throws when no tasks but machine missing', async () => {
-    prismaMock.task.count.mockResolvedValue(0);
+    prismaMock.taskMachine.count.mockResolvedValue(0);
     prismaMock.machine.findUnique.mockResolvedValue(null);
     await expect(machineService.deleteMachine(prismaMock as unknown as PrismaClient, 'm4')).rejects.toMatchObject({
       code: 'MACHINE_NOT_FOUND',

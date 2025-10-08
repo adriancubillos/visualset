@@ -11,7 +11,7 @@ describe('operatorService', () => {
     prismaMock.operator.findUnique.mockReset?.();
     prismaMock.operator.update.mockReset?.();
     prismaMock.operator.delete.mockReset?.();
-    prismaMock.task.count.mockReset?.();
+    prismaMock.taskOperator.count.mockReset?.();
   });
 
   it('listOperators calls prisma.findMany', async () => {
@@ -43,7 +43,7 @@ describe('operatorService', () => {
   });
 
   it('deleteOperator maps tasksCount >0 to ApiError', async () => {
-    prismaMock.task.count.mockResolvedValue(1);
+    prismaMock.taskOperator.count.mockResolvedValue(1);
     await expect(
       operatorService.deleteOperator(prismaMock as unknown as PrismaClient, 'withtasks'),
     ).rejects.toBeDefined();
@@ -57,7 +57,7 @@ describe('operatorService additional branches', () => {
     prismaMock.operator.findUnique.mockReset?.();
     prismaMock.operator.update.mockReset?.();
     prismaMock.operator.delete.mockReset?.();
-    prismaMock.task.count.mockReset?.();
+    prismaMock.taskOperator.count.mockReset?.();
   });
 
   it('createOperator uses provided availability object and defaults', async () => {
@@ -127,7 +127,7 @@ describe('operatorService additional branches', () => {
   });
 
   it('deleteOperator deletes when no tasks and operator exists', async () => {
-    prismaMock.task.count.mockResolvedValue(0);
+    prismaMock.taskOperator.count.mockResolvedValue(0);
     prismaMock.operator.findUnique.mockResolvedValue({ id: 'd1', name: 'Del' });
     prismaMock.operator.delete.mockResolvedValue({});
 
@@ -137,7 +137,7 @@ describe('operatorService additional branches', () => {
   });
 
   it('deleteOperator throws ApiError when operator not found', async () => {
-    prismaMock.task.count.mockResolvedValue(0);
+    prismaMock.taskOperator.count.mockResolvedValue(0);
     prismaMock.operator.findUnique.mockResolvedValue(null);
 
     await expect(

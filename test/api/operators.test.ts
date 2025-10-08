@@ -47,7 +47,7 @@ describe('Operators id route', () => {
     prismaMock.operator.findUnique.mockReset?.();
     prismaMock.operator.update.mockReset?.();
     prismaMock.operator.delete.mockReset?.();
-    prismaMock.task.count.mockReset?.();
+    prismaMock.taskOperator.count.mockReset?.();
   });
 
   it('GET returns operator when found', async () => {
@@ -83,7 +83,7 @@ describe('Operators id route', () => {
   });
 
   it('DELETE returns 400 when operator has tasks', async () => {
-    prismaMock.task.count.mockResolvedValue(2);
+    prismaMock.taskOperator.count.mockResolvedValue(2);
     const req = new Request('http://localhost', { method: 'DELETE' });
     const context = { params: Promise.resolve({ id: 'o13' }) } as { params: Promise<{ id: string }> };
     const res = (await idRoute.DELETE(makeNextRequest(req), context)) as unknown as {
@@ -95,7 +95,7 @@ describe('Operators id route', () => {
   });
 
   it('DELETE deletes operator on success', async () => {
-    prismaMock.task.count.mockResolvedValue(0);
+    prismaMock.taskOperator.count.mockResolvedValue(0);
     prismaMock.operator.findUnique.mockResolvedValue({ id: 'o14', name: 'OK' });
     prismaMock.operator.delete.mockResolvedValue({ message: 'ok' });
     const req = new Request('http://localhost', { method: 'DELETE' });

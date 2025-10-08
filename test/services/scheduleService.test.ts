@@ -50,8 +50,8 @@ describe('scheduleService', () => {
         where: {},
         include: {
           item: { include: { project: true } },
-          machine: true,
-          operator: true,
+          taskMachines: { include: { machine: true } },
+          taskOperators: { include: { operator: true } },
           timeSlots: { orderBy: { startDateTime: 'asc' } },
         },
         orderBy: { createdAt: 'asc' },
@@ -85,8 +85,8 @@ describe('scheduleService', () => {
         },
         include: {
           item: { include: { project: true } },
-          machine: true,
-          operator: true,
+          taskMachines: { include: { machine: true } },
+          taskOperators: { include: { operator: true } },
           timeSlots: { orderBy: { startDateTime: 'asc' } },
         },
         orderBy: { createdAt: 'asc' },
@@ -107,8 +107,8 @@ describe('scheduleService', () => {
         where: {},
         include: {
           item: { include: { project: true } },
-          machine: true,
-          operator: true,
+          taskMachines: { include: { machine: true } },
+          taskOperators: { include: { operator: true } },
           timeSlots: { orderBy: { startDateTime: 'asc' } },
         },
         orderBy: { createdAt: 'asc' },
@@ -136,7 +136,7 @@ describe('scheduleService', () => {
 
       expect(prismaMock.task.findUnique).toHaveBeenCalledWith({
         where: { id: 't1' },
-        include: { machine: true, operator: true },
+        include: { taskMachines: { include: { machine: true } }, taskOperators: { include: { operator: true } } },
       });
       expect(result).toEqual(mockTask);
     });
@@ -233,8 +233,8 @@ describe('scheduleService', () => {
       expect(checkSchedulingConflicts).toHaveBeenCalledWith({
         scheduledAt: validRequest.scheduledAt,
         durationMin: validRequest.durationMin,
-        machineId: validRequest.machineId,
-        operatorId: validRequest.operatorId,
+        machineIds: [validRequest.machineId],
+        operatorIds: [validRequest.operatorId],
         excludeTaskId: validRequest.taskId,
       });
     });
@@ -274,7 +274,22 @@ describe('scheduleService', () => {
       };
 
       prismaMock.task.findUnique.mockResolvedValue(mockTask);
+
+      // Mock transaction operations
       prismaMock.task.update.mockResolvedValue(mockUpdatedTask);
+      prismaMock.taskMachine.deleteMany.mockResolvedValue({ count: 0 });
+      prismaMock.taskOperator.deleteMany.mockResolvedValue({ count: 0 });
+      prismaMock.taskTimeSlot.deleteMany.mockResolvedValue({ count: 0 });
+      prismaMock.taskTimeSlot.create.mockResolvedValue({
+        id: 'ts1',
+        taskId: 't1',
+        startDateTime: new Date('2025-01-01T10:00:00Z'),
+        endDateTime: new Date('2025-01-01T11:00:00Z'),
+        durationMin: 60,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      prismaMock.task.findUnique.mockResolvedValueOnce(mockTask).mockResolvedValueOnce(mockUpdatedTask);
 
       const { checkSchedulingConflicts } = await import('@/utils/conflictDetection');
       (checkSchedulingConflicts as ReturnType<typeof vi.fn>).mockClear();
@@ -291,19 +306,17 @@ describe('scheduleService', () => {
         where: { id: 't1' },
         data: {
           itemId: null,
-          machineId: null,
-          operatorId: null,
           status: 'SCHEDULED',
-          timeSlots: {
-            deleteMany: {},
-            create: {
-              startDateTime: new Date('2025-01-01T10:00:00Z'),
-              endDateTime: new Date('2025-01-01T11:00:00Z'),
-              durationMin: 60,
-            },
-          },
         },
-        include: { item: true, machine: true, operator: true, timeSlots: true },
+      });
+
+      expect(prismaMock.taskTimeSlot.create).toHaveBeenCalledWith({
+        data: {
+          taskId: 't1',
+          startDateTime: new Date('2025-01-01T10:00:00Z'),
+          endDateTime: new Date('2025-01-01T11:00:00Z'),
+          durationMin: 60,
+        },
       });
 
       expect(result).toEqual(mockUpdatedTask);
@@ -369,7 +382,24 @@ describe('scheduleService', () => {
       };
 
       prismaMock.task.findUnique.mockResolvedValue(mockTask);
+
+      // Mock transaction operations
       prismaMock.task.update.mockResolvedValue(mockUpdatedTask);
+      prismaMock.taskMachine.deleteMany.mockResolvedValue({ count: 0 });
+      prismaMock.taskOperator.deleteMany.mockResolvedValue({ count: 0 });
+      prismaMock.taskMachine.create.mockResolvedValue({ taskId: 't1', machineId: 'm1' });
+      prismaMock.taskOperator.create.mockResolvedValue({ taskId: 't1', operatorId: 'o1' });
+      prismaMock.taskTimeSlot.deleteMany.mockResolvedValue({ count: 0 });
+      prismaMock.taskTimeSlot.create.mockResolvedValue({
+        id: 'ts1',
+        taskId: 't1',
+        startDateTime: new Date('2025-01-01T10:00:00Z'),
+        endDateTime: new Date('2025-01-01T11:00:00Z'),
+        durationMin: 60,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      prismaMock.task.findUnique.mockResolvedValueOnce(mockTask).mockResolvedValueOnce(mockUpdatedTask);
 
       const { checkSchedulingConflicts } = await import('@/utils/conflictDetection');
       (checkSchedulingConflicts as ReturnType<typeof vi.fn>).mockResolvedValue({
@@ -385,8 +415,8 @@ describe('scheduleService', () => {
       expect(checkSchedulingConflicts).toHaveBeenCalledWith({
         scheduledAt: validRequest.scheduledAt,
         durationMin: validRequest.durationMin,
-        machineId: validRequest.machineId,
-        operatorId: validRequest.operatorId,
+        machineIds: [validRequest.machineId],
+        operatorIds: [validRequest.operatorId],
         excludeTaskId: validRequest.taskId,
       });
 
@@ -394,19 +424,25 @@ describe('scheduleService', () => {
         where: { id: 't1' },
         data: {
           itemId: 'i1',
-          machineId: 'm1',
-          operatorId: 'o1',
           status: 'SCHEDULED',
-          timeSlots: {
-            deleteMany: {},
-            create: {
-              startDateTime: new Date('2025-01-01T10:00:00Z'),
-              endDateTime: new Date('2025-01-01T11:00:00Z'),
-              durationMin: 60,
-            },
-          },
         },
-        include: { item: true, machine: true, operator: true, timeSlots: true },
+      });
+
+      expect(prismaMock.taskMachine.create).toHaveBeenCalledWith({
+        data: { taskId: 't1', machineId: 'm1' },
+      });
+
+      expect(prismaMock.taskOperator.create).toHaveBeenCalledWith({
+        data: { taskId: 't1', operatorId: 'o1' },
+      });
+
+      expect(prismaMock.taskTimeSlot.create).toHaveBeenCalledWith({
+        data: {
+          taskId: 't1',
+          startDateTime: new Date('2025-01-01T10:00:00Z'),
+          endDateTime: new Date('2025-01-01T11:00:00Z'),
+          durationMin: 60,
+        },
       });
 
       expect(result).toEqual(mockUpdatedTask);
