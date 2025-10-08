@@ -76,6 +76,14 @@ type PrismaMock = {
     createMany: MockFn;
     deleteMany: MockFn;
   };
+  taskMachine: {
+    createMany: MockFn;
+    deleteMany: MockFn;
+  };
+  taskOperator: {
+    createMany: MockFn;
+    deleteMany: MockFn;
+  };
   $transaction: MockFn;
 };
 
@@ -97,6 +105,14 @@ function makeMockPrisma(): PrismaMock {
     },
     taskTimeSlot: {
       findMany: makeMock(),
+      createMany: makeMock(),
+      deleteMany: makeMock(),
+    },
+    taskMachine: {
+      createMany: makeMock(),
+      deleteMany: makeMock(),
+    },
+    taskOperator: {
       createMany: makeMock(),
       deleteMany: makeMock(),
     },

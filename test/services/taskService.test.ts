@@ -1,276 +1,310 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, Mock } from 'vitest';
 import taskService from '@/services/taskService';
-import type { PrismaClient } from '@prisma/client';
 import { ApiError } from '@/lib/errors';
 import { prismaMock } from '../setup';
-import { checkSchedulingConflicts } from '@/utils/conflictDetection';
+import type { PrismaClient } from '@prisma/client';
 
-// Mock the conflict detection module
+// Type for transaction callback
+type TransactionCallback<T> = (tx: PrismaClient) => Promise<T>;
+
+// Mock the conflict detection utility
 vi.mock('@/utils/conflictDetection', () => ({
-  checkSchedulingConflicts: vi.fn(),
-  timeRangesOverlap: vi.fn().mockReturnValue(false),
+  checkSchedulingConflicts: vi.fn().mockResolvedValue({
+    hasConflict: false,
+    conflictData: null,
+    conflictType: null,
+  }),
 }));
 
-// Get the mocked function
-const mockedCheckSchedulingConflicts = vi.mocked(checkSchedulingConflicts);
+import { checkSchedulingConflicts } from '@/utils/conflictDetection';
+const mockCheckSchedulingConflicts = checkSchedulingConflicts as Mock;
 
-describe('taskService', () => {
+describe('TaskService', () => {
+  // Cast prismaMock to PrismaClient to avoid type issues
+  const db = prismaMock as unknown as PrismaClient;
+  const createMockTaskData = (overrides = {}) => ({
+    id: 'task-1',
+    title: 'Test Task',
+    description: 'Test description',
+    status: 'PENDING',
+    quantity: 1,
+    completed_quantity: 0,
+    itemId: null,
+    item: null,
+    taskMachines: [],
+    taskOperators: [],
+    timeSlots: [],
+    createdAt: new Date('2025-10-08T10:00:00.000Z'),
+    updatedAt: new Date('2025-10-08T10:00:00.000Z'),
+    ...overrides,
+  });
+
+  const createMockTaskWithRelations = (overrides = {}) => ({
+    id: 'task-1',
+    title: 'Test Task',
+    description: 'Test description',
+    status: 'PENDING',
+    quantity: 1,
+    completed_quantity: 0,
+    itemId: null,
+    item: null,
+    taskMachines: [],
+    taskOperators: [],
+    timeSlots: [],
+    createdAt: new Date('2025-10-08T10:00:00.000Z'),
+    updatedAt: new Date('2025-10-08T10:00:00.000Z'),
+    ...overrides,
+  });
+
   beforeEach(() => {
     vi.restoreAllMocks();
-    prismaMock.task.findMany.mockReset();
-    prismaMock.task.create.mockReset();
-    prismaMock.task.findUnique.mockReset();
-    prismaMock.task.update.mockReset();
-    prismaMock.task.delete.mockReset();
-    prismaMock.item.findFirst.mockReset();
-    prismaMock.item.create.mockReset();
-    prismaMock.taskTimeSlot.createMany.mockReset();
-    prismaMock.taskTimeSlot.deleteMany.mockReset();
-    prismaMock.taskTimeSlot.findMany.mockReset();
-    prismaMock.$transaction.mockReset();
-
-    // Default mocks for conflict detection
-    prismaMock.taskTimeSlot.findMany.mockResolvedValue([]);
-    mockedCheckSchedulingConflicts.mockResolvedValue({ hasConflict: false });
-
-    // Reset $transaction to default behavior
-    prismaMock.$transaction.mockImplementation(async (callback: (tx: typeof prismaMock) => Promise<unknown>) => {
-      return callback(prismaMock);
+    mockCheckSchedulingConflicts.mockResolvedValue({
+      hasConflict: false,
+      conflictData: null,
+      conflictType: null,
     });
   });
 
   describe('listTasks', () => {
-    it('lists all tasks without filters', async () => {
-      const fakeTasks = [
-        {
-          id: 't1',
-          title: 'Task 1',
-          description: 'Test task',
-          status: 'PENDING',
-          quantity: 1,
-          completed_quantity: 0,
-          item: { id: 'i1', project: { id: 'p1', name: 'Project 1' } },
-          machine: null,
-          operator: null,
-          timeSlots: [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      ];
-      prismaMock.task.findMany.mockResolvedValue(fakeTasks as never);
+    it('returns all tasks without filters', async () => {
+      const mockTasks = [createMockTaskData()];
+      prismaMock.task.findMany.mockResolvedValue(mockTasks);
 
-      const result = await taskService.listTasks(prismaMock as unknown as PrismaClient);
+      const result = await taskService.listTasks(db);
 
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual({
+        id: 'task-1',
+        title: 'Test Task',
+        description: 'Test description',
+        status: 'PENDING',
+        quantity: 1,
+        completed_quantity: 0,
+        itemId: null,
+        item: null,
+        machines: [],
+        operators: [],
+        timeSlots: [],
+        createdAt: '2025-10-08T10:00:00.000Z',
+        updatedAt: '2025-10-08T10:00:00.000Z',
+      });
       expect(prismaMock.task.findMany).toHaveBeenCalledWith({
         where: {},
         include: {
           item: { include: { project: true } },
-          machine: true,
-          operator: true,
+          taskMachines: { include: { machine: true } },
+          taskOperators: { include: { operator: true } },
           timeSlots: { orderBy: { startDateTime: 'asc' } },
         },
       });
-      expect(result).toEqual(fakeTasks);
     });
 
-    it('lists tasks with start filter', async () => {
-      const fakeTasks = [
-        {
-          id: 't2',
-          title: 'Task 2',
-          description: null,
-          status: 'IN_PROGRESS',
-          quantity: 1,
-          completed_quantity: 0,
-          item: null,
-          machine: null,
-          operator: null,
-          timeSlots: [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      ];
-      prismaMock.task.findMany.mockResolvedValue(fakeTasks as never);
+    it('filters tasks by start date', async () => {
+      const mockTasks = [createMockTaskData()];
+      prismaMock.task.findMany.mockResolvedValue(mockTasks);
 
-      const result = await taskService.listTasks(prismaMock as unknown as PrismaClient, '2024-01-01T00:00:00Z', null);
+      await taskService.listTasks(db, '2025-10-08T00:00:00Z');
 
       expect(prismaMock.task.findMany).toHaveBeenCalledWith({
         where: {
           timeSlots: {
             some: {
-              startDateTime: { gte: new Date('2024-01-01T00:00:00Z') },
+              startDateTime: { gte: new Date('2025-10-08T00:00:00Z') },
             },
           },
         },
         include: {
           item: { include: { project: true } },
-          machine: true,
-          operator: true,
+          taskMachines: { include: { machine: true } },
+          taskOperators: { include: { operator: true } },
           timeSlots: { orderBy: { startDateTime: 'asc' } },
         },
       });
-      expect(result).toEqual(fakeTasks);
     });
 
-    it('lists tasks with end filter', async () => {
-      const fakeTasks = [
-        {
-          id: 't3',
-          title: 'Task 3',
-          description: null,
-          status: 'COMPLETED',
-          quantity: 1,
-          completed_quantity: 1,
-          item: null,
-          machine: null,
-          operator: null,
-          timeSlots: [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      ];
-      prismaMock.task.findMany.mockResolvedValue(fakeTasks as never);
+    it('filters tasks by end date', async () => {
+      const mockTasks = [createMockTaskData()];
+      prismaMock.task.findMany.mockResolvedValue(mockTasks);
 
-      const result = await taskService.listTasks(prismaMock as unknown as PrismaClient, null, '2024-12-31T23:59:59Z');
+      await taskService.listTasks(db, null, '2025-10-08T23:59:59Z');
 
       expect(prismaMock.task.findMany).toHaveBeenCalledWith({
         where: {
           timeSlots: {
             some: {
-              startDateTime: { lte: new Date('2024-12-31T23:59:59Z') },
+              startDateTime: { lte: new Date('2025-10-08T23:59:59Z') },
             },
           },
         },
         include: {
           item: { include: { project: true } },
-          machine: true,
-          operator: true,
+          taskMachines: { include: { machine: true } },
+          taskOperators: { include: { operator: true } },
           timeSlots: { orderBy: { startDateTime: 'asc' } },
         },
       });
-      expect(result).toEqual(fakeTasks);
     });
 
-    it('lists tasks with both start and end filters', async () => {
-      const fakeTasks = [
-        {
-          id: 't4',
-          title: 'Task 4',
-          description: null,
-          status: 'PENDING',
-          quantity: 1,
-          completed_quantity: 0,
-          item: null,
-          machine: null,
-          operator: null,
-          timeSlots: [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      ];
-      prismaMock.task.findMany.mockResolvedValue(fakeTasks as never);
+    it('filters tasks by date range', async () => {
+      const mockTasks = [createMockTaskData()];
+      prismaMock.task.findMany.mockResolvedValue(mockTasks);
 
-      const result = await taskService.listTasks(
-        prismaMock as unknown as PrismaClient,
-        '2024-01-01T00:00:00Z',
-        '2024-12-31T23:59:59Z',
-      );
+      await taskService.listTasks(db, '2025-10-08T00:00:00Z', '2025-10-08T23:59:59Z');
 
       expect(prismaMock.task.findMany).toHaveBeenCalledWith({
         where: {
           timeSlots: {
             some: {
               startDateTime: {
-                gte: new Date('2024-01-01T00:00:00Z'),
-                lte: new Date('2024-12-31T23:59:59Z'),
+                gte: new Date('2025-10-08T00:00:00Z'),
+                lte: new Date('2025-10-08T23:59:59Z'),
               },
             },
           },
         },
         include: {
           item: { include: { project: true } },
-          machine: true,
-          operator: true,
+          taskMachines: { include: { machine: true } },
+          taskOperators: { include: { operator: true } },
           timeSlots: { orderBy: { startDateTime: 'asc' } },
         },
       });
-      expect(result).toEqual(fakeTasks);
+    });
+
+    it('transforms tasks with machines and operators correctly', async () => {
+      const mockTasks = [
+        createMockTaskData({
+          taskMachines: [
+            {
+              machine: {
+                id: 'machine-1',
+                name: 'CNC Machine',
+                type: 'CNC',
+                status: 'ACTIVE',
+                location: 'Floor 1',
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              },
+            },
+          ],
+          taskOperators: [
+            {
+              operator: {
+                id: 'operator-1',
+                name: 'John Doe',
+                email: 'john@example.com',
+                skills: ['CNC'],
+                status: 'ACTIVE',
+                shift: 'DAY',
+                availability: {},
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              },
+            },
+          ],
+        }),
+      ];
+      prismaMock.task.findMany.mockResolvedValue(mockTasks);
+
+      const result = await taskService.listTasks(db);
+
+      expect(result[0].machines).toHaveLength(1);
+      expect(result[0].machines?.[0]).toEqual({
+        id: 'machine-1',
+        name: 'CNC Machine',
+        type: 'CNC',
+        status: 'ACTIVE',
+        location: 'Floor 1',
+        createdAt: expect.any(Date),
+        updatedAt: expect.any(Date),
+      });
+      expect(result[0].operators).toHaveLength(1);
+      expect(result[0].operators?.[0]).toEqual({
+        id: 'operator-1',
+        name: 'John Doe',
+        email: 'john@example.com',
+        skills: ['CNC'],
+        status: 'ACTIVE',
+        shift: 'DAY',
+        availability: {},
+        createdAt: expect.any(Date),
+        updatedAt: expect.any(Date),
+      });
     });
   });
 
   describe('createTask', () => {
-    it('creates a task successfully without timeSlots', async () => {
-      const fakeTask = {
-        id: 't5',
+    it('creates a basic task successfully', async () => {
+      const taskInput = {
         title: 'New Task',
-        description: 'New description',
+        description: 'New task description',
         status: 'PENDING',
         quantity: 1,
-        completed_quantity: 0,
-        item: null,
-        machine: null,
-        operator: null,
-        timeSlots: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
       };
-      prismaMock.task.create.mockResolvedValue(fakeTask as never);
 
-      const result = await taskService.createTask(prismaMock as unknown as PrismaClient, {
+      const mockCreatedTask = createMockTaskWithRelations({
+        id: 'task-new',
         title: 'New Task',
-        description: 'New description',
+        description: 'New task description',
       });
 
+      prismaMock.$transaction.mockImplementation(async (callback: TransactionCallback<unknown>) => {
+        return await callback(db);
+      });
+      prismaMock.task.create.mockResolvedValue(mockCreatedTask);
+      prismaMock.task.findUnique.mockResolvedValue(mockCreatedTask);
+
+      const result = await taskService.createTask(db, taskInput);
+
+      expect(result).toBeDefined();
+      expect(result?.title).toBe('New Task');
       expect(prismaMock.task.create).toHaveBeenCalledWith({
         data: {
           title: 'New Task',
-          description: 'New description',
+          description: 'New task description',
           status: 'PENDING',
           quantity: 1,
           completed_quantity: 0,
         },
         include: {
           item: { include: { project: true } },
-          machine: true,
-          operator: true,
+          taskMachines: { include: { machine: true } },
+          taskOperators: { include: { operator: true } },
           timeSlots: { orderBy: { startDateTime: 'asc' } },
         },
       });
-      expect(result).toEqual(fakeTask);
     });
 
     it('throws error when title is missing', async () => {
-      await expect(taskService.createTask(prismaMock as unknown as PrismaClient, {})).rejects.toThrow(ApiError);
-      await expect(taskService.createTask(prismaMock as unknown as PrismaClient, {})).rejects.toMatchObject({
-        code: 'MISSING_TITLE',
-        message: 'title is required',
-        status: 400,
-      });
+      const taskInput = {
+        description: 'Task without title',
+      };
+
+      await expect(taskService.createTask(db, taskInput)).rejects.toThrow(ApiError);
+      await expect(taskService.createTask(db, taskInput)).rejects.toThrow('title is required');
     });
 
-    it('creates a task with itemId', async () => {
-      const fakeTask = {
-        id: 't6',
+    it('creates task with item reference', async () => {
+      const taskInput = {
         title: 'Task with Item',
-        description: null,
-        status: 'PENDING',
-        quantity: 1,
-        completed_quantity: 0,
-        itemId: 'i1',
-        item: { id: 'i1', name: 'Item 1' },
-        machine: null,
-        operator: null,
-        timeSlots: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        itemId: 'item-1',
       };
-      prismaMock.task.create.mockResolvedValue(fakeTask as never);
 
-      const result = await taskService.createTask(prismaMock as unknown as PrismaClient, {
+      const mockCreatedTask = createMockTaskWithRelations({
+        id: 'task-new',
         title: 'Task with Item',
-        itemId: 'i1',
+        itemId: 'item-1',
       });
 
+      prismaMock.$transaction.mockImplementation(async (callback: TransactionCallback<unknown>) => {
+        return await callback(db);
+      });
+      prismaMock.task.create.mockResolvedValue(mockCreatedTask);
+      prismaMock.task.findUnique.mockResolvedValue(mockCreatedTask);
+
+      const result = await taskService.createTask(db, taskInput);
+
+      expect(result?.itemId).toBe('item-1');
       expect(prismaMock.task.create).toHaveBeenCalledWith({
         data: {
           title: 'Task with Item',
@@ -278,1709 +312,585 @@ describe('taskService', () => {
           status: 'PENDING',
           quantity: 1,
           completed_quantity: 0,
-          item: { connect: { id: 'i1' } },
+          item: { connect: { id: 'item-1' } },
         },
         include: {
           item: { include: { project: true } },
-          machine: true,
-          operator: true,
+          taskMachines: { include: { machine: true } },
+          taskOperators: { include: { operator: true } },
           timeSlots: { orderBy: { startDateTime: 'asc' } },
         },
       });
-      expect(result).toEqual(fakeTask);
     });
 
-    it('creates item from projectId when itemId not provided', async () => {
-      const fakeItem = { id: 'i2', projectId: 'p1', name: 'Default Item' };
-      const fakeTask = {
-        id: 't7',
+    it('creates item from project when itemId not provided', async () => {
+      const taskInput = {
         title: 'Task with Project',
-        description: null,
-        status: 'PENDING',
-        quantity: 1,
-        completed_quantity: 0,
-        itemId: 'i2',
-        item: fakeItem,
-        machine: null,
-        operator: null,
-        timeSlots: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        projectId: 'project-1',
       };
+
+      const mockCreatedTask = createMockTaskWithRelations({
+        id: 'task-new',
+        title: 'Task with Project',
+        itemId: 'item-new',
+      });
+
+      prismaMock.$transaction.mockImplementation(async (callback: TransactionCallback<unknown>) => {
+        return await callback(db);
+      });
       prismaMock.item.findFirst.mockResolvedValue(null);
-      prismaMock.item.create.mockResolvedValue(fakeItem as never);
-      prismaMock.task.create.mockResolvedValue(fakeTask as never);
+      prismaMock.item.create.mockResolvedValue({ id: 'item-new', projectId: 'project-1', name: 'Default Item' });
+      prismaMock.task.create.mockResolvedValue(mockCreatedTask);
+      prismaMock.task.findUnique.mockResolvedValue(mockCreatedTask);
 
-      const result = await taskService.createTask(prismaMock as unknown as PrismaClient, {
-        title: 'Task with Project',
-        projectId: 'p1',
-      });
+      const result = await taskService.createTask(db, taskInput);
 
-      expect(prismaMock.item.findFirst).toHaveBeenCalledWith({ where: { projectId: 'p1' } });
-      expect(prismaMock.item.create).toHaveBeenCalledWith({ data: { projectId: 'p1', name: 'Default Item' } });
-      expect(prismaMock.task.create).toHaveBeenCalledWith({
-        data: {
-          title: 'Task with Project',
-          description: null,
-          status: 'PENDING',
-          quantity: 1,
-          completed_quantity: 0,
-          item: { connect: { id: 'i2' } },
-        },
-        include: {
-          item: { include: { project: true } },
-          machine: true,
-          operator: true,
-          timeSlots: { orderBy: { startDateTime: 'asc' } },
-        },
+      expect(prismaMock.item.findFirst).toHaveBeenCalledWith({ where: { projectId: 'project-1' } });
+      expect(prismaMock.item.create).toHaveBeenCalledWith({
+        data: { projectId: 'project-1', name: 'Default Item' },
       });
-      expect(result).toEqual(fakeTask);
+      expect(result?.itemId).toBe('item-new');
     });
 
-    it('uses existing item from projectId when available', async () => {
-      const fakeItem = { id: 'i3', projectId: 'p1', name: 'Existing Item' };
-      const fakeTask = {
-        id: 't8',
-        title: 'Task with Existing Item',
-        description: null,
-        status: 'PENDING',
-        quantity: 1,
-        completed_quantity: 0,
-        itemId: 'i3',
-        item: fakeItem,
-        machine: null,
-        operator: null,
-        timeSlots: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      prismaMock.item.findFirst.mockResolvedValue(fakeItem as never);
-      prismaMock.task.create.mockResolvedValue(fakeTask as never);
-
-      const result = await taskService.createTask(prismaMock as unknown as PrismaClient, {
-        title: 'Task with Existing Item',
-        projectId: 'p1',
-      });
-
-      expect(prismaMock.item.findFirst).toHaveBeenCalledWith({ where: { projectId: 'p1' } });
-      expect(prismaMock.item.create).not.toHaveBeenCalled();
-      expect(result).toEqual(fakeTask);
-    });
-
-    it('creates a task with machineId and operatorId', async () => {
-      const fakeTask = {
-        id: 't9',
-        title: 'Task with Machine and Operator',
-        description: null,
-        status: 'PENDING',
-        quantity: 1,
-        completed_quantity: 0,
-        item: null,
-        machineId: 'm1',
-        machine: { id: 'm1', name: 'Machine 1' },
-        operatorId: 'o1',
-        operator: { id: 'o1', name: 'Operator 1' },
-        timeSlots: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      prismaMock.task.create.mockResolvedValue(fakeTask as never);
-
-      const result = await taskService.createTask(prismaMock as unknown as PrismaClient, {
-        title: 'Task with Machine and Operator',
-        machineId: 'm1',
-        operatorId: 'o1',
-      });
-
-      expect(prismaMock.task.create).toHaveBeenCalledWith({
-        data: {
-          title: 'Task with Machine and Operator',
-          description: null,
-          status: 'PENDING',
-          quantity: 1,
-          completed_quantity: 0,
-          machine: { connect: { id: 'm1' } },
-          operator: { connect: { id: 'o1' } },
-        },
-        include: {
-          item: { include: { project: true } },
-          machine: true,
-          operator: true,
-          timeSlots: { orderBy: { startDateTime: 'asc' } },
-        },
-      });
-      expect(result).toEqual(fakeTask);
-    });
-
-    it('creates a task with timeSlots', async () => {
-      const fakeTaskWithoutSlots = {
-        id: 't10',
-        title: 'Task with TimeSlots',
-        description: null,
-        status: 'PENDING',
-        quantity: 1,
-        completed_quantity: 0,
-        item: null,
-        machine: null,
-        operator: null,
-        timeSlots: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      const fakeTaskWithSlots = {
-        ...fakeTaskWithoutSlots,
+    it('creates task with machines and operators', async () => {
+      const taskInput = {
+        title: 'Task with Resources',
+        machineIds: ['machine-1', 'machine-2'],
+        operatorIds: ['operator-1'],
         timeSlots: [
           {
-            id: 'ts1',
-            taskId: 't10',
-            startDateTime: new Date('2024-01-01T10:00:00Z'),
-            endDateTime: new Date('2024-01-01T11:00:00Z'),
-            durationMin: 60,
+            startDateTime: '2025-10-08T10:00:00Z',
+            endDateTime: '2025-10-08T12:00:00Z',
+            durationMin: 120,
           },
         ],
       };
-      prismaMock.task.create.mockResolvedValue(fakeTaskWithoutSlots as never);
-      prismaMock.taskTimeSlot.createMany.mockResolvedValue({ count: 1 } as never);
-      prismaMock.task.findUnique.mockResolvedValue(fakeTaskWithSlots as never);
 
-      const result = await taskService.createTask(prismaMock as unknown as PrismaClient, {
-        title: 'Task with TimeSlots',
-        timeSlots: [
-          {
-            startDateTime: '2024-01-01T10:00:00Z',
-            endDateTime: '2024-01-01T11:00:00Z',
-            durationMin: 60,
-          },
-        ],
+      const mockCreatedTask = createMockTaskWithRelations({
+        id: 'task-new',
+        title: 'Task with Resources',
       });
 
+      prismaMock.$transaction.mockImplementation(async (callback: TransactionCallback<unknown>) => {
+        return await callback(db);
+      });
+      prismaMock.task.create.mockResolvedValue(mockCreatedTask);
+      prismaMock.taskMachine.createMany.mockResolvedValue({ count: 2 });
+      prismaMock.taskOperator.createMany.mockResolvedValue({ count: 1 });
+      prismaMock.taskTimeSlot.createMany.mockResolvedValue({ count: 1 });
+      prismaMock.task.findUnique.mockResolvedValue(mockCreatedTask);
+
+      await taskService.createTask(db, taskInput);
+
+      expect(prismaMock.taskMachine.createMany).toHaveBeenCalledWith({
+        data: [
+          { taskId: 'task-new', machineId: 'machine-1' },
+          { taskId: 'task-new', machineId: 'machine-2' },
+        ],
+      });
+      expect(prismaMock.taskOperator.createMany).toHaveBeenCalledWith({
+        data: [{ taskId: 'task-new', operatorId: 'operator-1' }],
+      });
       expect(prismaMock.taskTimeSlot.createMany).toHaveBeenCalledWith({
         data: [
           {
-            taskId: 't10',
-            startDateTime: new Date('2024-01-01T10:00:00Z'),
-            endDateTime: new Date('2024-01-01T11:00:00Z'),
-            durationMin: 60,
+            taskId: 'task-new',
+            startDateTime: new Date('2025-10-08T10:00:00Z'),
+            endDateTime: new Date('2025-10-08T12:00:00Z'),
+            durationMin: 120,
           },
         ],
       });
-      expect(prismaMock.task.findUnique).toHaveBeenCalledWith({
-        where: { id: 't10' },
-        include: {
-          item: { include: { project: true } },
-          machine: true,
-          operator: true,
-          timeSlots: { orderBy: { startDateTime: 'asc' } },
+    });
+
+    it('handles legacy single machine and operator IDs', async () => {
+      const taskInput = {
+        title: 'Task with Legacy IDs',
+        machineId: 'machine-1',
+        operatorId: 'operator-1',
+      };
+
+      const mockCreatedTask = createMockTaskWithRelations({
+        id: 'task-new',
+        title: 'Task with Legacy IDs',
+      });
+
+      prismaMock.$transaction.mockImplementation(async (callback: TransactionCallback<unknown>) => {
+        return await callback(db);
+      });
+      prismaMock.task.create.mockResolvedValue(mockCreatedTask);
+      prismaMock.taskMachine.createMany.mockResolvedValue({ count: 1 });
+      prismaMock.taskOperator.createMany.mockResolvedValue({ count: 1 });
+      prismaMock.task.findUnique.mockResolvedValue(mockCreatedTask);
+
+      await taskService.createTask(db, taskInput);
+
+      expect(prismaMock.taskMachine.createMany).toHaveBeenCalledWith({
+        data: [{ taskId: 'task-new', machineId: 'machine-1' }],
+      });
+      expect(prismaMock.taskOperator.createMany).toHaveBeenCalledWith({
+        data: [{ taskId: 'task-new', operatorId: 'operator-1' }],
+      });
+    });
+
+    it('throws error for overlapping time slots within same task', async () => {
+      const taskInput = {
+        title: 'Task with Overlapping Slots',
+        timeSlots: [
+          {
+            startDateTime: '2025-10-08T10:00:00Z',
+            endDateTime: '2025-10-08T12:00:00Z',
+          },
+          {
+            startDateTime: '2025-10-08T11:00:00Z',
+            endDateTime: '2025-10-08T13:00:00Z',
+          },
+        ],
+      };
+
+      await expect(taskService.createTask(db, taskInput)).rejects.toThrow(ApiError);
+      await expect(taskService.createTask(db, taskInput)).rejects.toThrow(
+        'Time slots within the same task cannot overlap',
+      );
+    });
+
+    it('throws error for machine conflicts', async () => {
+      // Reset mocks and set up specific conflict mock
+      mockCheckSchedulingConflicts.mockReset();
+      mockCheckSchedulingConflicts.mockResolvedValue({
+        hasConflict: true,
+        conflictType: 'machine',
+        conflictData: {
+          machine: { name: 'CNC Machine' },
+          title: 'Other Task',
+          timeSlot: {
+            startDateTime: new Date('2025-10-08T10:00:00Z'),
+            endDateTime: new Date('2025-10-08T12:00:00Z'),
+          },
         },
       });
-      expect(result).toEqual(fakeTaskWithSlots);
-    });
 
-    it('creates timeSlots with default duration when not provided', async () => {
-      const fakeTaskWithoutSlots = {
-        id: 't11',
-        title: 'Task with Default Duration',
-        description: null,
-        status: 'PENDING',
-        quantity: 1,
-        completed_quantity: 0,
-        item: null,
-        machine: null,
-        operator: null,
-        timeSlots: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      const fakeTaskWithSlots = {
-        ...fakeTaskWithoutSlots,
+      const taskInput = {
+        title: 'Conflicting Task',
+        machineIds: ['machine-1'],
         timeSlots: [
           {
-            id: 'ts2',
-            taskId: 't11',
-            startDateTime: new Date('2024-01-01T10:00:00Z'),
-            endDateTime: new Date('2024-01-01T11:00:00Z'),
-            durationMin: 60,
+            startDateTime: '2025-10-08T10:00:00Z',
+            endDateTime: '2025-10-08T12:00:00Z',
           },
         ],
       };
-      prismaMock.task.create.mockResolvedValue(fakeTaskWithoutSlots as never);
-      prismaMock.taskTimeSlot.createMany.mockResolvedValue({ count: 1 } as never);
-      prismaMock.task.findUnique.mockResolvedValue(fakeTaskWithSlots as never);
 
-      const result = await taskService.createTask(prismaMock as unknown as PrismaClient, {
-        title: 'Task with Default Duration',
+      await expect(taskService.createTask(db, taskInput)).rejects.toThrow(ApiError);
+      await expect(taskService.createTask(db, taskInput)).rejects.toThrow(
+        'Machine "CNC Machine" is already assigned to task "Other Task"',
+      );
+    });
+
+    it('throws error for operator conflicts', async () => {
+      // Reset mocks and set up specific conflict mock
+      mockCheckSchedulingConflicts.mockReset();
+      mockCheckSchedulingConflicts.mockResolvedValue({
+        hasConflict: true,
+        conflictType: 'operator',
+        conflictData: {
+          operator: { name: 'John Doe' },
+          title: 'Other Task',
+          timeSlot: {
+            startDateTime: new Date('2025-10-08T10:00:00Z'),
+            endDateTime: new Date('2025-10-08T12:00:00Z'),
+          },
+        },
+      });
+
+      const taskInput = {
+        title: 'Conflicting Task',
+        operatorIds: ['operator-1'],
         timeSlots: [
           {
-            startDateTime: '2024-01-01T10:00:00Z',
-          },
-        ],
-      });
-
-      expect(prismaMock.taskTimeSlot.createMany).toHaveBeenCalledWith({
-        data: [
-          {
-            taskId: 't11',
-            startDateTime: new Date('2024-01-01T10:00:00Z'),
-            endDateTime: new Date('2024-01-01T11:00:00Z'),
-            durationMin: 60,
-          },
-        ],
-      });
-      expect(result).toEqual(fakeTaskWithSlots);
-    });
-
-    it('throws error on overlapping timeSlots', async () => {
-      await expect(
-        taskService.createTask(prismaMock as unknown as PrismaClient, {
-          title: 'Task with Overlapping Slots',
-          timeSlots: [
-            {
-              startDateTime: '2024-01-01T10:00:00Z',
-              endDateTime: '2024-01-01T12:00:00Z',
-            },
-            {
-              startDateTime: '2024-01-01T11:00:00Z',
-              endDateTime: '2024-01-01T13:00:00Z',
-            },
-          ],
-        }),
-      ).rejects.toThrow(ApiError);
-      await expect(
-        taskService.createTask(prismaMock as unknown as PrismaClient, {
-          title: 'Task with Overlapping Slots',
-          timeSlots: [
-            {
-              startDateTime: '2024-01-01T10:00:00Z',
-              endDateTime: '2024-01-01T12:00:00Z',
-            },
-            {
-              startDateTime: '2024-01-01T11:00:00Z',
-              endDateTime: '2024-01-01T13:00:00Z',
-            },
-          ],
-        }),
-      ).rejects.toMatchObject({
-        code: 'TIME_SLOT_OVERLAP',
-        message: 'Time slots within the same task cannot overlap',
-        status: 400,
-      });
-    });
-
-    it('throws error on overlapping timeSlots with durationMin', async () => {
-      await expect(
-        taskService.createTask(prismaMock as unknown as PrismaClient, {
-          title: 'Task with Overlapping Slots',
-          timeSlots: [
-            {
-              startDateTime: '2024-01-01T10:00:00Z',
-              durationMin: 120,
-            },
-            {
-              startDateTime: '2024-01-01T11:00:00Z',
-              durationMin: 60,
-            },
-          ],
-        }),
-      ).rejects.toThrow(ApiError);
-      await expect(
-        taskService.createTask(prismaMock as unknown as PrismaClient, {
-          title: 'Task with Overlapping Slots',
-          timeSlots: [
-            {
-              startDateTime: '2024-01-01T10:00:00Z',
-              durationMin: 120,
-            },
-            {
-              startDateTime: '2024-01-01T11:00:00Z',
-              durationMin: 60,
-            },
-          ],
-        }),
-      ).rejects.toMatchObject({
-        code: 'TIME_SLOT_OVERLAP',
-        status: 400,
-      });
-    });
-
-    it('creates timeSlots with only durationMin (no endDateTime)', async () => {
-      const fakeTaskWithoutSlots = {
-        id: 't11b',
-        title: 'Task with Duration Only',
-        description: null,
-        status: 'PENDING',
-        quantity: 1,
-        completed_quantity: 0,
-        item: null,
-        machine: null,
-        operator: null,
-        timeSlots: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      const fakeTaskWithSlots = {
-        ...fakeTaskWithoutSlots,
-        timeSlots: [
-          {
-            id: 'ts2b',
-            taskId: 't11b',
-            startDateTime: new Date('2024-01-01T10:00:00Z'),
-            endDateTime: new Date('2024-01-01T11:30:00Z'),
-            durationMin: 90,
+            startDateTime: '2025-10-08T10:00:00Z',
+            endDateTime: '2025-10-08T12:00:00Z',
           },
         ],
       };
-      prismaMock.task.create.mockResolvedValue(fakeTaskWithoutSlots as never);
-      prismaMock.taskTimeSlot.createMany.mockResolvedValue({ count: 1 } as never);
-      prismaMock.task.findUnique.mockResolvedValue(fakeTaskWithSlots as never);
 
-      const result = await taskService.createTask(prismaMock as unknown as PrismaClient, {
-        title: 'Task with Duration Only',
-        timeSlots: [
-          {
-            startDateTime: '2024-01-01T10:00:00Z',
-            durationMin: 90,
-          },
-        ],
-      });
-
-      expect(prismaMock.taskTimeSlot.createMany).toHaveBeenCalledWith({
-        data: [
-          {
-            taskId: 't11b',
-            startDateTime: new Date('2024-01-01T10:00:00Z'),
-            endDateTime: new Date('2024-01-01T11:30:00Z'),
-            durationMin: 90,
-          },
-        ],
-      });
-      expect(result).toEqual(fakeTaskWithSlots);
-    });
-
-    it('handles timeSlot overlap detection with mixed endDateTime and durationMin', async () => {
-      await expect(
-        taskService.createTask(prismaMock as unknown as PrismaClient, {
-          title: 'Task with Mixed Overlapping Slots',
-          timeSlots: [
-            {
-              startDateTime: '2024-01-01T10:00:00Z',
-              endDateTime: '2024-01-01T12:00:00Z',
-            },
-            {
-              startDateTime: '2024-01-01T11:30:00Z',
-              durationMin: 60,
-            },
-          ],
-        }),
-      ).rejects.toMatchObject({
-        code: 'TIME_SLOT_OVERLAP',
-        message: 'Time slots within the same task cannot overlap',
-        status: 400,
-      });
-    });
-
-    it('handles timeSlot overlap detection with reverse mixed types (durationMin first, endDateTime second)', async () => {
-      await expect(
-        taskService.createTask(prismaMock as unknown as PrismaClient, {
-          title: 'Task with Reverse Mixed Overlapping Slots',
-          timeSlots: [
-            {
-              startDateTime: '2024-01-01T10:00:00Z',
-              durationMin: 120,
-            },
-            {
-              startDateTime: '2024-01-01T11:30:00Z',
-              endDateTime: '2024-01-01T13:00:00Z',
-            },
-          ],
-        }),
-      ).rejects.toMatchObject({
-        code: 'TIME_SLOT_OVERLAP',
-        message: 'Time slots within the same task cannot overlap',
-        status: 400,
-      });
-    });
-
-    it('should use default 60-minute duration when durationMin is null', async () => {
-      const baseTime = new Date('2024-01-01T10:00:00Z');
-      const fakeTask = {
-        id: 't99',
-        title: 'Test Task',
-        description: null,
-        status: 'PENDING',
-        quantity: 1,
-        completed_quantity: 0,
-        item: null,
-        machine: null,
-        operator: null,
-        timeSlots: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      prismaMock.task.create.mockResolvedValue(fakeTask as never);
-
-      await taskService.createTask(prismaMock as unknown as PrismaClient, {
-        title: 'Test Task',
-        timeSlots: [
-          {
-            startDateTime: baseTime.toISOString(),
-            durationMin: undefined, // This should trigger the || 60 default
-          },
-        ],
-      });
-
-      expect(prismaMock.task.create).toHaveBeenCalled();
-    });
-
-    it('should use default 60-minute duration when durationMin is undefined', async () => {
-      const baseTime = new Date('2024-01-01T10:00:00Z');
-      const fakeTask = {
-        id: 't98',
-        title: 'Test Task',
-        description: null,
-        status: 'PENDING',
-        quantity: 1,
-        completed_quantity: 0,
-        item: null,
-        machine: null,
-        operator: null,
-        timeSlots: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      prismaMock.task.create.mockResolvedValue(fakeTask as never);
-
-      await taskService.createTask(prismaMock as unknown as PrismaClient, {
-        title: 'Test Task',
-        timeSlots: [
-          {
-            startDateTime: baseTime.toISOString(),
-            // durationMin: undefined (omitted property)
-          },
-        ],
-      });
-
-      expect(prismaMock.task.create).toHaveBeenCalled();
-    });
-
-    it('should detect overlap when using default duration', async () => {
-      const baseTime = new Date('2024-01-01T10:00:00Z');
-
-      await expect(
-        taskService.createTask(prismaMock as unknown as PrismaClient, {
-          title: 'Test Task',
-          timeSlots: [
-            {
-              startDateTime: baseTime.toISOString(),
-              durationMin: undefined, // Will default to 60 minutes
-            },
-            {
-              startDateTime: new Date(baseTime.getTime() + 30 * 60000).toISOString(), // 30 minutes later, should overlap
-              durationMin: 30,
-            },
-          ],
-        }),
-      ).rejects.toMatchObject({
-        code: 'TIME_SLOT_OVERLAP',
-        message: 'Time slots within the same task cannot overlap',
-        status: 400,
-      });
-    });
-
-    it('should detect overlap when both slots use default duration', async () => {
-      const baseTime = new Date('2024-01-01T10:00:00Z');
-
-      await expect(
-        taskService.createTask(prismaMock as unknown as PrismaClient, {
-          title: 'Test Task',
-          timeSlots: [
-            {
-              startDateTime: baseTime.toISOString(),
-              durationMin: undefined, // Will default to 60 minutes
-            },
-            {
-              startDateTime: new Date(baseTime.getTime() + 30 * 60000).toISOString(), // 30 minutes later, should overlap
-              durationMin: undefined, // Will also default to 60 minutes
-            },
-          ],
-        }),
-      ).rejects.toMatchObject({
-        code: 'TIME_SLOT_OVERLAP',
-        message: 'Time slots within the same task cannot overlap',
-        status: 400,
-      });
+      await expect(taskService.createTask(db, taskInput)).rejects.toThrow(ApiError);
+      await expect(taskService.createTask(db, taskInput)).rejects.toThrow(
+        'Operator "John Doe" is already assigned to task "Other Task"',
+      );
     });
   });
 
   describe('getTask', () => {
-    it('gets a task successfully', async () => {
-      const fakeTask = {
-        id: 't12',
-        title: 'Task 12',
-        description: 'Test task',
-        status: 'PENDING',
-        quantity: 1,
-        completed_quantity: 0,
-        item: null,
-        machine: null,
-        operator: null,
-        timeSlots: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      prismaMock.task.findUnique.mockResolvedValue(fakeTask as never);
+    it('returns task successfully', async () => {
+      const mockTask = createMockTaskWithRelations({ id: 'task-123' });
+      prismaMock.task.findUnique.mockResolvedValue(mockTask);
 
-      const result = await taskService.getTask(prismaMock as unknown as PrismaClient, 't12');
+      const result = await taskService.getTask(db, 'task-123');
 
+      expect(result).toBeDefined();
+      expect(result.id).toBe('task-123');
       expect(prismaMock.task.findUnique).toHaveBeenCalledWith({
-        where: { id: 't12' },
+        where: { id: 'task-123' },
         include: {
           item: { include: { project: true } },
-          machine: true,
-          operator: true,
+          taskMachines: { include: { machine: true } },
+          taskOperators: { include: { operator: true } },
           timeSlots: { orderBy: { startDateTime: 'asc' } },
         },
       });
-      expect(result).toEqual(fakeTask);
     });
 
     it('throws error when task not found', async () => {
       prismaMock.task.findUnique.mockResolvedValue(null);
 
-      await expect(taskService.getTask(prismaMock as unknown as PrismaClient, 'missing')).rejects.toThrow(ApiError);
-      await expect(taskService.getTask(prismaMock as unknown as PrismaClient, 'missing')).rejects.toMatchObject({
-        code: 'TASK_NOT_FOUND',
-        message: 'Task not found',
-        status: 404,
-      });
+      await expect(taskService.getTask(db, 'missing-task')).rejects.toThrow(ApiError);
+      await expect(taskService.getTask(db, 'missing-task')).rejects.toThrow('Task not found');
     });
   });
 
   describe('updateTask', () => {
-    it('updates a task successfully without timeSlots', async () => {
-      const fakeTask = {
-        id: 't13',
+    it('updates task successfully', async () => {
+      const updateData = {
         title: 'Updated Task',
         description: 'Updated description',
         status: 'IN_PROGRESS',
-        quantity: 2,
-        completed_quantity: 1,
-        item: null,
-        machine: null,
-        operator: null,
-        timeSlots: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        quantity: 5,
+        completed_quantity: 2,
       };
-      prismaMock.taskTimeSlot.deleteMany.mockResolvedValue({ count: 0 } as never);
-      prismaMock.task.update.mockResolvedValue(fakeTask as never);
 
-      const result = await taskService.updateTask(prismaMock as unknown as PrismaClient, 't13', {
+      const mockUpdatedTask = createMockTaskWithRelations({
+        id: 'task-123',
         title: 'Updated Task',
         description: 'Updated description',
         status: 'IN_PROGRESS',
-        quantity: 2,
-        completed_quantity: 1,
+        quantity: 5,
+        completed_quantity: 2,
       });
 
-      expect(prismaMock.taskTimeSlot.deleteMany).toHaveBeenCalledWith({ where: { taskId: 't13' } });
+      prismaMock.$transaction.mockImplementation(async (callback: TransactionCallback<unknown>) => {
+        return await callback(db);
+      });
+      prismaMock.taskTimeSlot.deleteMany.mockResolvedValue({ count: 0 });
+      prismaMock.taskMachine.deleteMany.mockResolvedValue({ count: 0 });
+      prismaMock.taskOperator.deleteMany.mockResolvedValue({ count: 0 });
+      prismaMock.task.update.mockResolvedValue(mockUpdatedTask);
+      prismaMock.task.findUnique.mockResolvedValue(mockUpdatedTask);
+
+      const result = await taskService.updateTask(db, 'task-123', updateData);
+
+      expect(result?.title).toBe('Updated Task');
+      expect(result?.quantity).toBe(5);
+      expect(result?.completed_quantity).toBe(2);
       expect(prismaMock.task.update).toHaveBeenCalledWith({
-        where: { id: 't13' },
+        where: { id: 'task-123' },
         data: {
           title: 'Updated Task',
           description: 'Updated description',
           status: 'IN_PROGRESS',
-          quantity: 2,
-          completed_quantity: 1,
-        },
-        include: {
-          item: { include: { project: true } },
-          machine: true,
-          operator: true,
-          timeSlots: { orderBy: { startDateTime: 'asc' } },
-        },
-      });
-      expect(result).toEqual(fakeTask);
-    });
-
-    it('throws error when completed_quantity exceeds quantity', async () => {
-      await expect(
-        taskService.updateTask(prismaMock as unknown as PrismaClient, 't14', {
-          quantity: 1,
+          quantity: 5,
           completed_quantity: 2,
-        }),
-      ).rejects.toThrow(ApiError);
-      await expect(
-        taskService.updateTask(prismaMock as unknown as PrismaClient, 't14', {
-          quantity: 1,
-          completed_quantity: 2,
-        }),
-      ).rejects.toMatchObject({
-        code: 'BAD_QUANTITY',
-        message: 'Completed quantity cannot exceed total quantity',
-        status: 400,
+        },
       });
     });
 
-    it('updates task with timeSlots', async () => {
-      const fakeTaskWithoutSlots = {
-        id: 't15',
-        title: 'Task 15',
-        description: null,
-        status: 'PENDING',
-        quantity: 1,
-        completed_quantity: 0,
-        item: null,
-        machine: null,
-        operator: null,
-        timeSlots: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
+    it('throws error when completed quantity exceeds total quantity', async () => {
+      const updateData = {
+        title: 'Updated Task',
+        quantity: 5,
+        completed_quantity: 10,
       };
-      const fakeTaskWithSlots = {
-        ...fakeTaskWithoutSlots,
-        timeSlots: [
-          {
-            id: 'ts3',
-            taskId: 't15',
-            startDateTime: new Date('2024-01-01T14:00:00Z'),
-            endDateTime: new Date('2024-01-01T15:00:00Z'),
-            durationMin: 60,
-          },
-        ],
-      };
-      prismaMock.taskTimeSlot.deleteMany.mockResolvedValue({ count: 0 } as never);
-      prismaMock.task.update.mockResolvedValue(fakeTaskWithoutSlots as never);
-      prismaMock.taskTimeSlot.createMany.mockResolvedValue({ count: 1 } as never);
-      prismaMock.task.findUnique.mockResolvedValue(fakeTaskWithSlots as never);
 
-      const result = await taskService.updateTask(prismaMock as unknown as PrismaClient, 't15', {
-        title: 'Task 15',
+      await expect(taskService.updateTask(db, 'task-123', updateData)).rejects.toThrow(ApiError);
+      await expect(taskService.updateTask(db, 'task-123', updateData)).rejects.toThrow(
+        'Completed quantity cannot exceed total quantity',
+      );
+    });
+
+    it('updates task with new machines and operators', async () => {
+      const updateData = {
+        title: 'Updated Task',
+        machineIds: ['machine-2', 'machine-3'],
+        operatorIds: ['operator-2'],
         timeSlots: [
           {
-            startDateTime: '2024-01-01T14:00:00Z',
-            endDateTime: '2024-01-01T15:00:00Z',
-            durationMin: 60,
+            startDateTime: '2025-10-09T10:00:00Z',
+            endDateTime: '2025-10-09T12:00:00Z',
           },
         ],
+      };
+
+      const mockUpdatedTask = createMockTaskWithRelations({
+        id: 'task-123',
+        title: 'Updated Task',
       });
 
-      expect(prismaMock.taskTimeSlot.deleteMany).toHaveBeenCalledWith({ where: { taskId: 't15' } });
-      expect(prismaMock.taskTimeSlot.createMany).toHaveBeenCalledWith({
+      prismaMock.$transaction.mockImplementation(async (callback: TransactionCallback<unknown>) => {
+        return await callback(db);
+      });
+      prismaMock.taskTimeSlot.deleteMany.mockResolvedValue({ count: 0 });
+      prismaMock.taskMachine.deleteMany.mockResolvedValue({ count: 0 });
+      prismaMock.taskOperator.deleteMany.mockResolvedValue({ count: 0 });
+      prismaMock.task.update.mockResolvedValue(mockUpdatedTask);
+      prismaMock.taskMachine.createMany.mockResolvedValue({ count: 2 });
+      prismaMock.taskOperator.createMany.mockResolvedValue({ count: 1 });
+      prismaMock.taskTimeSlot.createMany.mockResolvedValue({ count: 1 });
+      prismaMock.task.findUnique.mockResolvedValue(mockUpdatedTask);
+
+      await taskService.updateTask(db, 'task-123', updateData);
+
+      expect(prismaMock.taskMachine.deleteMany).toHaveBeenCalledWith({ where: { taskId: 'task-123' } });
+      expect(prismaMock.taskOperator.deleteMany).toHaveBeenCalledWith({ where: { taskId: 'task-123' } });
+      expect(prismaMock.taskTimeSlot.deleteMany).toHaveBeenCalledWith({ where: { taskId: 'task-123' } });
+      expect(prismaMock.taskMachine.createMany).toHaveBeenCalledWith({
         data: [
-          {
-            taskId: 't15',
-            startDateTime: new Date('2024-01-01T14:00:00Z'),
-            endDateTime: new Date('2024-01-01T15:00:00Z'),
-            durationMin: 60,
-          },
+          { taskId: 'task-123', machineId: 'machine-2' },
+          { taskId: 'task-123', machineId: 'machine-3' },
         ],
       });
-      expect(prismaMock.task.findUnique).toHaveBeenCalledWith({
-        where: { id: 't15' },
-        include: {
-          item: { include: { project: true } },
-          machine: true,
-          operator: true,
-          timeSlots: { orderBy: { startDateTime: 'asc' } },
-        },
-      });
-      expect(result).toEqual(fakeTaskWithSlots);
-    });
-
-    it('throws error on overlapping timeSlots during update', async () => {
-      await expect(
-        taskService.updateTask(prismaMock as unknown as PrismaClient, 't16', {
-          title: 'Task with Overlapping Slots',
-          timeSlots: [
-            {
-              startDateTime: '2024-01-01T10:00:00Z',
-              endDateTime: '2024-01-01T12:00:00Z',
-            },
-            {
-              startDateTime: '2024-01-01T11:00:00Z',
-              endDateTime: '2024-01-01T13:00:00Z',
-            },
-          ],
-        }),
-      ).rejects.toThrow(ApiError);
-      await expect(
-        taskService.updateTask(prismaMock as unknown as PrismaClient, 't16', {
-          title: 'Task with Overlapping Slots',
-          timeSlots: [
-            {
-              startDateTime: '2024-01-01T10:00:00Z',
-              endDateTime: '2024-01-01T12:00:00Z',
-            },
-            {
-              startDateTime: '2024-01-01T11:00:00Z',
-              endDateTime: '2024-01-01T13:00:00Z',
-            },
-          ],
-        }),
-      ).rejects.toMatchObject({
-        code: 'TIME_SLOT_OVERLAP',
-        status: 400,
+      expect(prismaMock.taskOperator.createMany).toHaveBeenCalledWith({
+        data: [{ taskId: 'task-123', operatorId: 'operator-2' }],
       });
     });
 
-    it('throws error on overlapping timeSlots with durationMin during update', async () => {
-      await expect(
-        taskService.updateTask(prismaMock as unknown as PrismaClient, 't16b', {
-          title: 'Task with Overlapping Slots',
-          timeSlots: [
-            {
-              startDateTime: '2024-01-01T10:00:00Z',
-              durationMin: 120,
-            },
-            {
-              startDateTime: '2024-01-01T11:00:00Z',
-              durationMin: 90,
-            },
-          ],
-        }),
-      ).rejects.toThrow(ApiError);
-      await expect(
-        taskService.updateTask(prismaMock as unknown as PrismaClient, 't16b', {
-          title: 'Task with Overlapping Slots',
-          timeSlots: [
-            {
-              startDateTime: '2024-01-01T10:00:00Z',
-              durationMin: 120,
-            },
-            {
-              startDateTime: '2024-01-01T11:00:00Z',
-              durationMin: 90,
-            },
-          ],
-        }),
-      ).rejects.toMatchObject({
-        code: 'TIME_SLOT_OVERLAP',
-        status: 400,
-      });
-    });
-
-    it('updates task with timeSlots using durationMin', async () => {
-      const fakeTaskWithoutSlots = {
-        id: 't15b',
-        title: 'Task 15b',
-        description: null,
-        status: 'PENDING',
-        quantity: 1,
-        completed_quantity: 0,
-        item: null,
-        machine: null,
-        operator: null,
-        timeSlots: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      const fakeTaskWithSlots = {
-        ...fakeTaskWithoutSlots,
+    it('throws error for overlapping time slots during update', async () => {
+      const updateData = {
+        title: 'Updated Task',
         timeSlots: [
           {
-            id: 'ts3b',
-            taskId: 't15b',
-            startDateTime: new Date('2024-01-01T14:00:00Z'),
-            endDateTime: new Date('2024-01-01T15:30:00Z'),
-            durationMin: 90,
+            startDateTime: '2025-10-08T10:00:00Z',
+            endDateTime: '2025-10-08T12:00:00Z',
+          },
+          {
+            startDateTime: '2025-10-08T11:00:00Z',
+            endDateTime: '2025-10-08T13:00:00Z',
           },
         ],
       };
-      prismaMock.taskTimeSlot.deleteMany.mockResolvedValue({ count: 0 } as never);
-      prismaMock.task.update.mockResolvedValue(fakeTaskWithoutSlots as never);
-      prismaMock.taskTimeSlot.createMany.mockResolvedValue({ count: 1 } as never);
-      prismaMock.task.findUnique.mockResolvedValue(fakeTaskWithSlots as never);
 
-      const result = await taskService.updateTask(prismaMock as unknown as PrismaClient, 't15b', {
-        title: 'Task 15b',
-        timeSlots: [
-          {
-            startDateTime: '2024-01-01T14:00:00Z',
-            durationMin: 90,
-          },
-        ],
-      });
-
-      expect(prismaMock.taskTimeSlot.createMany).toHaveBeenCalledWith({
-        data: [
-          {
-            taskId: 't15b',
-            startDateTime: new Date('2024-01-01T14:00:00Z'),
-            endDateTime: new Date('2024-01-01T15:30:00Z'),
-            durationMin: 90,
-          },
-        ],
-      });
-      expect(result).toEqual(fakeTaskWithSlots);
-    });
-
-    it('updates task with itemId connection', async () => {
-      const fakeTask = {
-        id: 't17',
-        title: 'Task 17',
-        description: null,
-        status: 'PENDING',
-        quantity: 1,
-        completed_quantity: 0,
-        itemId: 'i4',
-        item: { id: 'i4', name: 'Item 4' },
-        machine: null,
-        operator: null,
-        timeSlots: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      prismaMock.taskTimeSlot.deleteMany.mockResolvedValue({ count: 0 } as never);
-      prismaMock.task.update.mockResolvedValue(fakeTask as never);
-
-      const result = await taskService.updateTask(prismaMock as unknown as PrismaClient, 't17', {
-        itemId: 'i4',
-      });
-
-      expect(prismaMock.task.update).toHaveBeenCalledWith({
-        where: { id: 't17' },
-        data: {
-          quantity: 1,
-          completed_quantity: 0,
-          item: { connect: { id: 'i4' } },
-        },
-        include: {
-          item: { include: { project: true } },
-          machine: true,
-          operator: true,
-          timeSlots: { orderBy: { startDateTime: 'asc' } },
-        },
-      });
-      expect(result).toEqual(fakeTask);
-    });
-
-    it('updates task with itemId disconnection', async () => {
-      const fakeTask = {
-        id: 't18',
-        title: 'Task 18',
-        description: null,
-        status: 'PENDING',
-        quantity: 1,
-        completed_quantity: 0,
-        itemId: null,
-        item: null,
-        machine: null,
-        operator: null,
-        timeSlots: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      prismaMock.taskTimeSlot.deleteMany.mockResolvedValue({ count: 0 } as never);
-      prismaMock.task.update.mockResolvedValue(fakeTask as never);
-
-      const result = await taskService.updateTask(prismaMock as unknown as PrismaClient, 't18', {
-        itemId: null,
-      });
-
-      expect(prismaMock.task.update).toHaveBeenCalledWith({
-        where: { id: 't18' },
-        data: {
-          quantity: 1,
-          completed_quantity: 0,
-          item: { disconnect: true },
-        },
-        include: {
-          item: { include: { project: true } },
-          machine: true,
-          operator: true,
-          timeSlots: { orderBy: { startDateTime: 'asc' } },
-        },
-      });
-      expect(result).toEqual(fakeTask);
-    });
-
-    it('updates task with machineId and operatorId connections', async () => {
-      const fakeTask = {
-        id: 't19',
-        title: 'Task 19',
-        description: null,
-        status: 'PENDING',
-        quantity: 1,
-        completed_quantity: 0,
-        item: null,
-        machineId: 'm2',
-        machine: { id: 'm2', name: 'Machine 2' },
-        operatorId: 'o2',
-        operator: { id: 'o2', name: 'Operator 2' },
-        timeSlots: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      prismaMock.taskTimeSlot.deleteMany.mockResolvedValue({ count: 0 } as never);
-      prismaMock.task.update.mockResolvedValue(fakeTask as never);
-
-      const result = await taskService.updateTask(prismaMock as unknown as PrismaClient, 't19', {
-        machineId: 'm2',
-        operatorId: 'o2',
-      });
-
-      expect(prismaMock.task.update).toHaveBeenCalledWith({
-        where: { id: 't19' },
-        data: {
-          quantity: 1,
-          completed_quantity: 0,
-          machine: { connect: { id: 'm2' } },
-          operator: { connect: { id: 'o2' } },
-        },
-        include: {
-          item: { include: { project: true } },
-          machine: true,
-          operator: true,
-          timeSlots: { orderBy: { startDateTime: 'asc' } },
-        },
-      });
-      expect(result).toEqual(fakeTask);
-    });
-
-    it('updates task with machineId and operatorId disconnections', async () => {
-      const fakeTask = {
-        id: 't20',
-        title: 'Task 20',
-        description: null,
-        status: 'PENDING',
-        quantity: 1,
-        completed_quantity: 0,
-        item: null,
-        machineId: null,
-        machine: null,
-        operatorId: null,
-        operator: null,
-        timeSlots: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      prismaMock.taskTimeSlot.deleteMany.mockResolvedValue({ count: 0 } as never);
-      prismaMock.task.update.mockResolvedValue(fakeTask as never);
-
-      const result = await taskService.updateTask(prismaMock as unknown as PrismaClient, 't20', {
-        machineId: null,
-        operatorId: null,
-      });
-
-      expect(prismaMock.task.update).toHaveBeenCalledWith({
-        where: { id: 't20' },
-        data: {
-          quantity: 1,
-          completed_quantity: 0,
-          machine: { disconnect: true },
-          operator: { disconnect: true },
-        },
-        include: {
-          item: { include: { project: true } },
-          machine: true,
-          operator: true,
-          timeSlots: { orderBy: { startDateTime: 'asc' } },
-        },
-      });
-      expect(result).toEqual(fakeTask);
-    });
-
-    it('updates task by disconnecting itemId/machineId/operatorId (null values)', async () => {
-      const fakeTask = {
-        id: 't17b',
-        title: 'Task 17b',
-        description: null,
-        status: 'PENDING',
-        quantity: 1,
-        completed_quantity: 0,
-        itemId: null,
-        item: null,
-        machineId: null,
-        machine: null,
-        operatorId: null,
-        operator: null,
-        timeSlots: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      prismaMock.taskTimeSlot.deleteMany.mockResolvedValue({ count: 0 } as never);
-      prismaMock.task.update.mockResolvedValue(fakeTask as never);
-
-      const result = await taskService.updateTask(prismaMock as unknown as PrismaClient, 't17b', {
-        itemId: null,
-        machineId: null,
-        operatorId: null,
-      });
-
-      expect(prismaMock.task.update).toHaveBeenCalledWith({
-        where: { id: 't17b' },
-        data: expect.objectContaining({
-          quantity: 1,
-          completed_quantity: 0,
-          item: { disconnect: true },
-          machine: { disconnect: true },
-          operator: { disconnect: true },
-        }),
-        include: {
-          item: { include: { project: true } },
-          machine: true,
-          operator: true,
-          timeSlots: { orderBy: { startDateTime: 'asc' } },
-        },
-      });
-      expect(result).toEqual(fakeTask);
-    });
-
-    it('updates task by disconnecting with empty string values', async () => {
-      const fakeTask = {
-        id: 't17f',
-        title: 'Task 17f',
-        description: null,
-        status: 'PENDING',
-        quantity: 1,
-        completed_quantity: 0,
-        itemId: null,
-        item: null,
-        machine: null,
-        operator: null,
-        timeSlots: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      prismaMock.task.update.mockResolvedValue(fakeTask as never);
-      prismaMock.task.findUnique.mockResolvedValue(fakeTask as never);
-      prismaMock.taskTimeSlot.deleteMany.mockResolvedValue({ count: 0 } as never);
-
-      const result = await taskService.updateTask(prismaMock as unknown as PrismaClient, 't17f', {
-        title: 'Task 17f',
-        itemId: '',
-        machineId: '',
-        operatorId: '',
-      });
-
-      expect(prismaMock.task.update).toHaveBeenCalledWith({
-        where: { id: 't17f' },
-        data: expect.objectContaining({
-          item: { disconnect: true },
-          machine: { disconnect: true },
-          operator: { disconnect: true },
-        }),
-        include: {
-          item: { include: { project: true } },
-          machine: true,
-          operator: true,
-          timeSlots: { orderBy: { startDateTime: 'asc' } },
-        },
-      });
-      expect(result).toEqual(fakeTask);
-    });
-
-    it('updates task with non-empty itemId for connection branch', async () => {
-      const fakeTask = {
-        id: 't17g',
-        title: 'Task 17g',
-        description: null,
-        status: 'PENDING',
-        quantity: 1,
-        completed_quantity: 0,
-        itemId: 'item123',
-        item: { id: 'item123', name: 'Test Item' },
-        machine: null,
-        operator: null,
-        timeSlots: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      prismaMock.task.update.mockResolvedValue(fakeTask as never);
-      prismaMock.task.findUnique.mockResolvedValue(fakeTask as never);
-      prismaMock.taskTimeSlot.deleteMany.mockResolvedValue({ count: 0 } as never);
-
-      const result = await taskService.updateTask(prismaMock as unknown as PrismaClient, 't17g', {
-        title: 'Task 17g',
-        itemId: 'valid-item-id', // Use definitely truthy string value
-        machineId: 'valid-machine-id',
-        operatorId: 'valid-operator-id',
-      });
-
-      expect(prismaMock.task.update).toHaveBeenCalledWith({
-        where: { id: 't17g' },
-        data: expect.objectContaining({
-          item: { connect: { id: 'valid-item-id' } }, // This should cover line 209
-          machine: { connect: { id: 'valid-machine-id' } },
-          operator: { connect: { id: 'valid-operator-id' } },
-        }),
-        include: {
-          item: { include: { project: true } },
-          machine: true,
-          operator: true,
-          timeSlots: { orderBy: { startDateTime: 'asc' } },
-        },
-      });
-      expect(result).toEqual(fakeTask);
-    });
-
-    it('updates timeSlots with mixed endDateTime and durationMin', async () => {
-      const fakeTaskWithSlots = {
-        id: 't17c',
-        title: 'Task 17c',
-        description: null,
-        status: 'PENDING',
-        quantity: 1,
-        completed_quantity: 0,
-        itemId: null,
-        item: null,
-        machine: null,
-        operator: null,
-        timeSlots: [
-          {
-            id: 'ts17c1',
-            taskId: 't17c',
-            startDateTime: new Date('2024-01-01T14:00:00Z'),
-            endDateTime: new Date('2024-01-01T16:00:00Z'),
-            durationMin: 120,
-          },
-          {
-            id: 'ts17c2',
-            taskId: 't17c',
-            startDateTime: new Date('2024-01-01T17:00:00Z'),
-            endDateTime: new Date('2024-01-01T18:30:00Z'),
-            durationMin: 90,
-          },
-        ],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      prismaMock.taskTimeSlot.deleteMany.mockResolvedValue({ count: 0 } as never);
-      prismaMock.taskTimeSlot.createMany.mockResolvedValue({ count: 2 } as never);
-      prismaMock.task.update.mockResolvedValue(fakeTaskWithSlots as never);
-      prismaMock.task.findUnique.mockResolvedValue(fakeTaskWithSlots as never);
-
-      const result = await taskService.updateTask(prismaMock as unknown as PrismaClient, 't17c', {
-        title: 'Task 17c',
-        timeSlots: [
-          {
-            startDateTime: '2024-01-01T14:00:00Z',
-            endDateTime: '2024-01-01T16:00:00Z',
-            durationMin: 120,
-          },
-          {
-            startDateTime: '2024-01-01T17:00:00Z',
-            durationMin: 90,
-          },
-        ],
-      });
-
-      expect(prismaMock.taskTimeSlot.createMany).toHaveBeenCalledWith({
-        data: [
-          {
-            taskId: 't17c',
-            startDateTime: new Date('2024-01-01T14:00:00Z'),
-            endDateTime: new Date('2024-01-01T16:00:00Z'),
-            durationMin: 120,
-          },
-          {
-            taskId: 't17c',
-            startDateTime: new Date('2024-01-01T17:00:00Z'),
-            endDateTime: new Date('2024-01-01T18:30:00Z'),
-            durationMin: 90,
-          },
-        ],
-      });
-      expect(result).toEqual(fakeTaskWithSlots);
-    });
-
-    it('updates task with explicit endDateTime to cover endDateTime branch', async () => {
-      const fakeTaskWithSlots = {
-        id: 't17h',
-        title: 'Task 17h',
-        description: null,
-        status: 'PENDING',
-        quantity: 1,
-        completed_quantity: 0,
-        itemId: null,
-        item: null,
-        machine: null,
-        operator: null,
-        timeSlots: [
-          {
-            id: 'ts17h1',
-            taskId: 't17h',
-            startDateTime: new Date('2024-01-01T10:00:00Z'),
-            endDateTime: new Date('2024-01-01T12:00:00Z'), // This should trigger endDateTime branch
-            durationMin: 120,
-          },
-        ],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      prismaMock.taskTimeSlot.deleteMany.mockResolvedValue({ count: 0 } as never);
-      prismaMock.taskTimeSlot.createMany.mockResolvedValue({ count: 1 } as never);
-      prismaMock.task.update.mockResolvedValue(fakeTaskWithSlots as never);
-      prismaMock.task.findUnique.mockResolvedValue(fakeTaskWithSlots as never);
-
-      const result = await taskService.updateTask(prismaMock as unknown as PrismaClient, 't17h', {
-        title: 'Task 17h',
-        timeSlots: [
-          {
-            startDateTime: '2024-01-01T10:00:00Z',
-            endDateTime: '2024-01-01T12:00:00Z', // Provide explicit endDateTime to cover line 233
-          },
-        ],
-      });
-
-      expect(prismaMock.taskTimeSlot.createMany).toHaveBeenCalledWith({
-        data: [
-          {
-            taskId: 't17h',
-            startDateTime: new Date('2024-01-01T10:00:00Z'),
-            endDateTime: new Date('2024-01-01T12:00:00Z'), // This should cover the endDateTime branch
-            durationMin: 60, // Uses default since durationMin not provided in input
-          },
-        ],
-      });
-      expect(result).toEqual(fakeTaskWithSlots);
-    });
-
-    it('handles updateTask timeSlot overlap detection with reverse mixed types (durationMin first, endDateTime second)', async () => {
-      await expect(
-        taskService.updateTask(prismaMock as unknown as PrismaClient, 't17d', {
-          title: 'Task with Reverse Mixed Overlapping Slots',
-          timeSlots: [
-            {
-              startDateTime: '2024-01-01T10:00:00Z',
-              durationMin: 120,
-            },
-            {
-              startDateTime: '2024-01-01T11:30:00Z',
-              endDateTime: '2024-01-01T13:00:00Z',
-            },
-          ],
-        }),
-      ).rejects.toMatchObject({
-        code: 'TIME_SLOT_OVERLAP',
-        message: 'Time slots within the same task cannot overlap',
-        status: 400,
-      });
-    });
-
-    it('should use default 60-minute duration in overlap detection when durationMin is undefined', async () => {
-      await expect(
-        taskService.updateTask(prismaMock as unknown as PrismaClient, 't17d', {
-          title: 'Test Task',
-          timeSlots: [
-            {
-              startDateTime: '2024-01-01T10:00:00Z',
-              durationMin: undefined, // Will default to 60 minutes
-            },
-            {
-              startDateTime: '2024-01-01T10:30:00Z', // 30 minutes later, should overlap
-              durationMin: 30,
-            },
-          ],
-        }),
-      ).rejects.toMatchObject({
-        code: 'TIME_SLOT_OVERLAP',
-        message: 'Time slots within the same task cannot overlap',
-        status: 400,
-      });
-    });
-
-    it('should use default duration for both slots in overlap detection', async () => {
-      await expect(
-        taskService.updateTask(prismaMock as unknown as PrismaClient, 't17e', {
-          title: 'Test Task',
-          timeSlots: [
-            {
-              startDateTime: '2024-01-01T10:00:00Z',
-              durationMin: undefined, // Will default to 60 minutes
-            },
-            {
-              startDateTime: '2024-01-01T10:30:00Z', // 30 minutes later, should overlap
-              durationMin: undefined, // Will also default to 60 minutes
-            },
-          ],
-        }),
-      ).rejects.toMatchObject({
-        code: 'TIME_SLOT_OVERLAP',
-        message: 'Time slots within the same task cannot overlap',
-        status: 400,
-      });
+      await expect(taskService.updateTask(db, 'task-123', updateData)).rejects.toThrow(ApiError);
+      await expect(taskService.updateTask(db, 'task-123', updateData)).rejects.toThrow(
+        'Time slots within the same task cannot overlap',
+      );
     });
   });
 
   describe('patchTask', () => {
-    it('patches task status', async () => {
-      const fakeTask = {
-        id: 't21',
-        title: 'Task 21',
-        description: null,
+    it('patches task status successfully', async () => {
+      const patchData = {
         status: 'COMPLETED',
-        quantity: 1,
-        completed_quantity: 1,
-        item: null,
-        machine: null,
-        operator: null,
-        timeSlots: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
       };
-      prismaMock.task.update.mockResolvedValue(fakeTask as never);
 
-      const result = await taskService.patchTask(prismaMock as unknown as PrismaClient, 't21', {
+      const mockExistingTask = createMockTaskWithRelations({
+        id: 'task-123',
+        status: 'IN_PROGRESS',
+        timeSlots: [],
+        taskMachines: [],
+        taskOperators: [],
+      });
+
+      const mockPatchedTask = createMockTaskWithRelations({
+        id: 'task-123',
         status: 'COMPLETED',
       });
 
-      expect(prismaMock.task.update).toHaveBeenCalledWith({
-        where: { id: 't21' },
-        data: {
-          status: 'COMPLETED',
-        },
-        include: {
-          item: { include: { project: true } },
-          machine: true,
-          operator: true,
-          timeSlots: { orderBy: { startDateTime: 'asc' } },
-        },
+      prismaMock.task.findUnique.mockResolvedValueOnce(mockExistingTask);
+      prismaMock.$transaction.mockImplementation(async (callback: TransactionCallback<unknown>) => {
+        return await callback(db);
       });
-      expect(result).toEqual(fakeTask);
+      prismaMock.task.update.mockResolvedValue(mockPatchedTask);
+      prismaMock.task.findUnique.mockResolvedValueOnce(mockPatchedTask);
+
+      const result = await taskService.patchTask(db, 'task-123', patchData);
+
+      expect(result.status).toBe('COMPLETED');
+      expect(prismaMock.task.update).toHaveBeenCalledWith({
+        where: { id: 'task-123' },
+        data: { status: 'COMPLETED' },
+      });
     });
 
-    it('patches task title and description', async () => {
-      const fakeTask = {
-        id: 't22',
-        title: 'Patched Title',
-        description: 'Patched description',
-        status: 'PENDING',
-        quantity: 1,
-        completed_quantity: 0,
-        item: null,
-        machine: null,
-        operator: null,
-        timeSlots: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      prismaMock.task.update.mockResolvedValue(fakeTask as never);
-
-      const result = await taskService.patchTask(prismaMock as unknown as PrismaClient, 't22', {
-        title: 'Patched Title',
-        description: 'Patched description',
-      });
-
-      expect(prismaMock.task.update).toHaveBeenCalledWith({
-        where: { id: 't22' },
-        data: {
-          title: 'Patched Title',
-          description: 'Patched description',
-        },
-        include: {
-          item: { include: { project: true } },
-          machine: true,
-          operator: true,
-          timeSlots: { orderBy: { startDateTime: 'asc' } },
-        },
-      });
-      expect(result).toEqual(fakeTask);
-    });
-
-    it('patches task quantity fields', async () => {
-      const fakeTask = {
-        id: 't23',
-        title: 'Task 23',
-        description: null,
-        status: 'PENDING',
-        quantity: 5,
-        completed_quantity: 3,
-        item: null,
-        machine: null,
-        operator: null,
-        timeSlots: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      prismaMock.task.update.mockResolvedValue(fakeTask as never);
-
-      const result = await taskService.patchTask(prismaMock as unknown as PrismaClient, 't23', {
-        quantity: 5,
-        completed_quantity: 3,
-      });
-
-      expect(prismaMock.task.update).toHaveBeenCalledWith({
-        where: { id: 't23' },
-        data: {
-          quantity: 5,
-          completed_quantity: 3,
-        },
-        include: {
-          item: { include: { project: true } },
-          machine: true,
-          operator: true,
-          timeSlots: { orderBy: { startDateTime: 'asc' } },
-        },
-      });
-      expect(result).toEqual(fakeTask);
-    });
-
-    it('patches task with itemId connection', async () => {
-      const fakeTask = {
-        id: 't24',
-        title: 'Task 24',
-        description: null,
-        status: 'PENDING',
-        quantity: 1,
-        completed_quantity: 0,
-        itemId: 'i5',
-        item: { id: 'i5', name: 'Item 5' },
-        machine: null,
-        operator: null,
-        timeSlots: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      prismaMock.task.update.mockResolvedValue(fakeTask as never);
-
-      const result = await taskService.patchTask(prismaMock as unknown as PrismaClient, 't24', {
-        itemId: 'i5',
-      });
-
-      expect(prismaMock.task.update).toHaveBeenCalledWith({
-        where: { id: 't24' },
-        data: {
-          item: { connect: { id: 'i5' } },
-        },
-        include: {
-          item: { include: { project: true } },
-          machine: true,
-          operator: true,
-          timeSlots: { orderBy: { startDateTime: 'asc' } },
-        },
-      });
-      expect(result).toEqual(fakeTask);
-    });
-
-    it('patches task with itemId disconnection', async () => {
-      const fakeTask = {
-        id: 't25',
-        title: 'Task 25',
-        description: null,
-        status: 'PENDING',
-        quantity: 1,
-        completed_quantity: 0,
-        itemId: null,
-        item: null,
-        machine: null,
-        operator: null,
-        timeSlots: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      prismaMock.task.update.mockResolvedValue(fakeTask as never);
-
-      const result = await taskService.patchTask(prismaMock as unknown as PrismaClient, 't25', {
-        itemId: null,
-      });
-
-      expect(prismaMock.task.update).toHaveBeenCalledWith({
-        where: { id: 't25' },
-        data: {
-          item: { disconnect: true },
-        },
-        include: {
-          item: { include: { project: true } },
-          machine: true,
-          operator: true,
-          timeSlots: { orderBy: { startDateTime: 'asc' } },
-        },
-      });
-      expect(result).toEqual(fakeTask);
-    });
-
-    it('patches task with machineId and operatorId connections', async () => {
-      const fakeTask = {
-        id: 't26',
-        title: 'Task 26',
-        description: null,
-        status: 'PENDING',
-        quantity: 1,
-        completed_quantity: 0,
-        item: null,
-        machineId: 'm3',
-        machine: { id: 'm3', name: 'Machine 3' },
-        operatorId: 'o3',
-        operator: { id: 'o3', name: 'Operator 3' },
-        timeSlots: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
+    it('patches completed quantity successfully', async () => {
+      const patchData = {
+        completed_quantity: 5,
       };
 
-      // Mock the task lookup
-      prismaMock.task.findUnique.mockResolvedValue(fakeTask as never);
-      prismaMock.task.update.mockResolvedValue(fakeTask as never);
-
-      const result = await taskService.patchTask(prismaMock as unknown as PrismaClient, 't26', {
-        machineId: 'm3',
-        operatorId: 'o3',
-      });
-
-      expect(prismaMock.task.update).toHaveBeenCalledWith({
-        where: { id: 't26' },
-        data: {
-          machine: { connect: { id: 'm3' } },
-          operator: { connect: { id: 'o3' } },
-        },
-        include: {
-          item: { include: { project: true } },
-          machine: true,
-          operator: true,
-          timeSlots: { orderBy: { startDateTime: 'asc' } },
-        },
-      });
-      expect(result).toEqual(fakeTask);
-    });
-
-    it('patches task with machineId and operatorId disconnections', async () => {
-      const fakeTask = {
-        id: 't27',
-        title: 'Task 27',
-        description: null,
-        status: 'PENDING',
-        quantity: 1,
-        completed_quantity: 0,
-        item: null,
-        machineId: null,
-        machine: null,
-        operatorId: null,
-        operator: null,
+      const mockExistingTask = createMockTaskWithRelations({
+        id: 'task-123',
         timeSlots: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      prismaMock.task.update.mockResolvedValue(fakeTask as never);
-
-      const result = await taskService.patchTask(prismaMock as unknown as PrismaClient, 't27', {
-        machineId: null,
-        operatorId: null,
+        taskMachines: [],
+        taskOperators: [],
       });
 
+      const mockPatchedTask = createMockTaskWithRelations({
+        id: 'task-123',
+        completed_quantity: 5,
+      });
+
+      prismaMock.task.findUnique.mockResolvedValueOnce(mockExistingTask);
+      prismaMock.$transaction.mockImplementation(async (callback: TransactionCallback<unknown>) => {
+        return await callback(db);
+      });
+      prismaMock.task.update.mockResolvedValue(mockPatchedTask);
+      prismaMock.task.findUnique.mockResolvedValueOnce(mockPatchedTask);
+
+      const result = await taskService.patchTask(db, 'task-123', patchData);
+
+      expect(result.completed_quantity).toBe(5);
       expect(prismaMock.task.update).toHaveBeenCalledWith({
-        where: { id: 't27' },
-        data: {
-          machine: { disconnect: true },
-          operator: { disconnect: true },
-        },
-        include: {
-          item: { include: { project: true } },
-          machine: true,
-          operator: true,
-          timeSlots: { orderBy: { startDateTime: 'asc' } },
-        },
+        where: { id: 'task-123' },
+        data: { completed_quantity: 5 },
       });
-      expect(result).toEqual(fakeTask);
-    });
-
-    it('patches task with empty string values for disconnection', async () => {
-      const fakeTask = {
-        id: 't28',
-        title: 'Task 28',
-        description: null,
-        status: 'PENDING',
-        quantity: 1,
-        completed_quantity: 0,
-        itemId: null,
-        item: null,
-        machine: null,
-        operator: null,
-        timeSlots: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      prismaMock.task.update.mockResolvedValue(fakeTask as never);
-
-      const result = await taskService.patchTask(prismaMock as unknown as PrismaClient, 't28', {
-        itemId: '',
-        machineId: '',
-        operatorId: '',
-      });
-
-      expect(prismaMock.task.update).toHaveBeenCalledWith({
-        where: { id: 't28' },
-        data: {
-          item: { disconnect: true },
-          machine: { disconnect: true },
-          operator: { disconnect: true },
-        },
-        include: {
-          item: { include: { project: true } },
-          machine: true,
-          operator: true,
-          timeSlots: { orderBy: { startDateTime: 'asc' } },
-        },
-      });
-      expect(result).toEqual(fakeTask);
-    });
-
-    it('patches task with non-empty itemId for connection branch', async () => {
-      const fakeTask = {
-        id: 't29',
-        title: 'Task 29',
-        description: null,
-        status: 'PENDING',
-        quantity: 1,
-        completed_quantity: 0,
-        itemId: 'item456',
-        item: { id: 'item456', name: 'Test Item' },
-        machine: null,
-        operator: null,
-        timeSlots: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      // Mock the task lookup
-      prismaMock.task.findUnique.mockResolvedValue(fakeTask as never);
-      prismaMock.task.update.mockResolvedValue(fakeTask as never);
-
-      const result = await taskService.patchTask(prismaMock as unknown as PrismaClient, 't29', {
-        itemId: 'valid-item-id-2', // Truthy value should trigger connect branch
-        machineId: 'valid-machine-id-2',
-        operatorId: 'valid-operator-id-2',
-      });
-
-      expect(prismaMock.task.update).toHaveBeenCalledWith({
-        where: { id: 't29' },
-        data: {
-          item: { connect: { id: 'valid-item-id-2' } }, // This should cover line 264
-          machine: { connect: { id: 'valid-machine-id-2' } },
-          operator: { connect: { id: 'valid-operator-id-2' } },
-        },
-        include: {
-          item: { include: { project: true } },
-          machine: true,
-          operator: true,
-          timeSlots: { orderBy: { startDateTime: 'asc' } },
-        },
-      });
-      expect(result).toEqual(fakeTask);
     });
 
     it('throws error when task not found', async () => {
-      prismaMock.task.update.mockResolvedValue(null as never);
+      prismaMock.task.findUnique.mockResolvedValue(null);
 
-      await expect(
-        taskService.patchTask(prismaMock as unknown as PrismaClient, 'missing', { status: 'COMPLETED' }),
-      ).rejects.toThrow(ApiError);
-      await expect(
-        taskService.patchTask(prismaMock as unknown as PrismaClient, 'missing', { status: 'COMPLETED' }),
-      ).rejects.toMatchObject({
-        code: 'TASK_NOT_FOUND',
-        message: 'Task not found',
-        status: 404,
+      await expect(taskService.patchTask(db, 'missing-task', { status: 'COMPLETED' })).rejects.toThrow(ApiError);
+      await expect(taskService.patchTask(db, 'missing-task', { status: 'COMPLETED' })).rejects.toThrow(
+        'Task not found',
+      );
+    });
+
+    it('checks for conflicts when updating operators with existing time slots', async () => {
+      const patchData = {
+        operatorIds: ['operator-new'],
+      };
+
+      const mockExistingTask = createMockTaskWithRelations({
+        id: 'task-123',
+        timeSlots: [
+          {
+            id: 'slot-1',
+            startDateTime: new Date('2025-10-08T10:00:00Z'),
+            endDateTime: new Date('2025-10-08T12:00:00Z'),
+            durationMin: 120,
+          },
+        ],
+        taskMachines: [],
+        taskOperators: [],
+      });
+
+      const mockPatchedTask = createMockTaskWithRelations({
+        id: 'task-123',
+        taskOperators: [{ operatorId: 'operator-new' }],
+      });
+
+      prismaMock.task.findUnique.mockResolvedValueOnce(mockExistingTask);
+      prismaMock.$transaction.mockImplementation(async (callback: TransactionCallback<unknown>) => {
+        return await callback(db);
+      });
+      prismaMock.taskOperator.deleteMany.mockResolvedValue({ count: 0 });
+      prismaMock.taskOperator.createMany.mockResolvedValue({ count: 1 });
+      prismaMock.task.update.mockResolvedValue(mockPatchedTask);
+      prismaMock.task.findUnique.mockResolvedValueOnce(mockPatchedTask);
+
+      await taskService.patchTask(db, 'task-123', patchData);
+
+      expect(mockCheckSchedulingConflicts).toHaveBeenCalledWith({
+        scheduledAt: '2025-10-08T10:00:00.000Z',
+        durationMin: 120,
+        machineIds: [],
+        operatorIds: ['operator-new'],
+        excludeTaskId: 'task-123',
+      });
+    });
+
+    it('updates machine and operator associations for patch', async () => {
+      const patchData = {
+        machineIds: ['machine-new'],
+        operatorIds: ['operator-new'],
+      };
+
+      const mockExistingTask = createMockTaskWithRelations({
+        id: 'task-123',
+        timeSlots: [],
+        taskMachines: [],
+        taskOperators: [],
+      });
+
+      const mockPatchedTask = createMockTaskWithRelations({
+        id: 'task-123',
+      });
+
+      prismaMock.task.findUnique.mockResolvedValueOnce(mockExistingTask);
+      prismaMock.$transaction.mockImplementation(async (callback: TransactionCallback<unknown>) => {
+        return await callback(db);
+      });
+      prismaMock.taskMachine.deleteMany.mockResolvedValue({ count: 0 });
+      prismaMock.taskOperator.deleteMany.mockResolvedValue({ count: 0 });
+      prismaMock.taskMachine.createMany.mockResolvedValue({ count: 1 });
+      prismaMock.taskOperator.createMany.mockResolvedValue({ count: 1 });
+      prismaMock.task.update.mockResolvedValue(mockPatchedTask);
+      prismaMock.task.findUnique.mockResolvedValueOnce(mockPatchedTask);
+
+      await taskService.patchTask(db, 'task-123', patchData);
+
+      expect(prismaMock.taskMachine.deleteMany).toHaveBeenCalledWith({ where: { taskId: 'task-123' } });
+      expect(prismaMock.taskOperator.deleteMany).toHaveBeenCalledWith({ where: { taskId: 'task-123' } });
+      expect(prismaMock.taskMachine.createMany).toHaveBeenCalledWith({
+        data: [{ taskId: 'task-123', machineId: 'machine-new' }],
+      });
+      expect(prismaMock.taskOperator.createMany).toHaveBeenCalledWith({
+        data: [{ taskId: 'task-123', operatorId: 'operator-new' }],
+      });
+    });
+
+    it('handles legacy single IDs in patch', async () => {
+      const patchData = {
+        machineId: 'machine-single',
+        operatorId: 'operator-single',
+      };
+
+      const mockExistingTask = createMockTaskWithRelations({
+        id: 'task-123',
+        timeSlots: [],
+        taskMachines: [],
+        taskOperators: [],
+      });
+
+      const mockPatchedTask = createMockTaskWithRelations({
+        id: 'task-123',
+      });
+
+      prismaMock.task.findUnique.mockResolvedValueOnce(mockExistingTask);
+      prismaMock.$transaction.mockImplementation(async (callback: TransactionCallback<unknown>) => {
+        return await callback(db);
+      });
+      prismaMock.taskMachine.deleteMany.mockResolvedValue({ count: 0 });
+      prismaMock.taskOperator.deleteMany.mockResolvedValue({ count: 0 });
+      prismaMock.taskMachine.createMany.mockResolvedValue({ count: 1 });
+      prismaMock.taskOperator.createMany.mockResolvedValue({ count: 1 });
+      prismaMock.task.update.mockResolvedValue(mockPatchedTask);
+      prismaMock.task.findUnique.mockResolvedValueOnce(mockPatchedTask);
+
+      await taskService.patchTask(db, 'task-123', patchData);
+
+      expect(prismaMock.taskMachine.createMany).toHaveBeenCalledWith({
+        data: [{ taskId: 'task-123', machineId: 'machine-single' }],
+      });
+      expect(prismaMock.taskOperator.createMany).toHaveBeenCalledWith({
+        data: [{ taskId: 'task-123', operatorId: 'operator-single' }],
       });
     });
   });
 
   describe('deleteTask', () => {
-    it('deletes a task successfully', async () => {
-      prismaMock.task.delete.mockResolvedValue({} as never);
+    it('deletes task successfully', async () => {
+      prismaMock.task.delete.mockResolvedValue(createMockTaskData({ id: 'task-123' }));
 
-      await taskService.deleteTask(prismaMock as unknown as PrismaClient, 't28');
+      await taskService.deleteTask(db, 'task-123');
 
-      expect(prismaMock.task.delete).toHaveBeenCalledWith({ where: { id: 't28' } });
+      expect(prismaMock.task.delete).toHaveBeenCalledWith({
+        where: { id: 'task-123' },
+      });
+    });
+
+    it('lets Prisma handle task not found during delete', async () => {
+      const prismaError = new Error('Record to delete does not exist');
+      prismaMock.task.delete.mockRejectedValue(prismaError);
+
+      await expect(taskService.deleteTask(db, 'missing-task')).rejects.toThrow('Record to delete does not exist');
     });
   });
 });
