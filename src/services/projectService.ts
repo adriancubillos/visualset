@@ -21,8 +21,8 @@ export async function listProjects(prisma: PrismaClient) {
         include: {
           tasks: {
             include: {
-              machine: true,
-              operator: true,
+              taskMachines: { include: { machine: true } },
+              taskOperators: { include: { operator: true } },
             },
             orderBy: { createdAt: 'desc' },
           },
@@ -60,7 +60,14 @@ export async function createProject(prisma: PrismaClient, data: ProjectCreateInp
   return prisma.project.create({
     data: createData,
     include: {
-      items: { include: { tasks: { include: { machine: true, operator: true }, orderBy: { createdAt: 'desc' } } } },
+      items: {
+        include: {
+          tasks: {
+            include: { taskMachines: { include: { machine: true } }, taskOperators: { include: { operator: true } } },
+            orderBy: { createdAt: 'desc' },
+          },
+        },
+      },
     },
   });
 }
@@ -69,7 +76,14 @@ export async function getProject(prisma: PrismaClient, id: string) {
   const project = await prisma.project.findUnique({
     where: { id },
     include: {
-      items: { include: { tasks: { include: { machine: true, operator: true }, orderBy: { createdAt: 'desc' } } } },
+      items: {
+        include: {
+          tasks: {
+            include: { taskMachines: { include: { machine: true } }, taskOperators: { include: { operator: true } } },
+            orderBy: { createdAt: 'desc' },
+          },
+        },
+      },
     },
   });
 
@@ -126,7 +140,14 @@ export async function updateProject(prisma: PrismaClient, id: string, data: Proj
     where: { id },
     data: updateData,
     include: {
-      items: { include: { tasks: { include: { machine: true, operator: true }, orderBy: { createdAt: 'desc' } } } },
+      items: {
+        include: {
+          tasks: {
+            include: { taskMachines: { include: { machine: true } }, taskOperators: { include: { operator: true } } },
+            orderBy: { createdAt: 'desc' },
+          },
+        },
+      },
     },
   });
 }

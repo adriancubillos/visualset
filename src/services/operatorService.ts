@@ -37,10 +37,14 @@ export async function getOperator(prisma: PrismaClient, id: string) {
   const operator = await prisma.operator.findUnique({
     where: { id },
     include: {
-      tasks: {
+      taskOperators: {
         include: {
-          item: { include: { project: true } },
-          machine: true,
+          task: {
+            include: {
+              item: { include: { project: true } },
+              taskMachines: { include: { machine: true } },
+            },
+          },
         },
         orderBy: { createdAt: 'desc' },
       },
@@ -72,7 +76,7 @@ export async function updateOperator(prisma: PrismaClient, id: string, data: Ope
 }
 
 export async function deleteOperator(prisma: PrismaClient, id: string) {
-  const tasksCount = await prisma.task.count({ where: { operatorId: id } });
+  const tasksCount = await prisma.taskOperator.count({ where: { operatorId: id } });
   if (tasksCount > 0) {
     throw new ApiError({
       code: 'OPERATOR_HAS_TASKS',

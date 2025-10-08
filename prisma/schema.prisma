@@ -23,31 +23,31 @@ model Project {
 }
 
 model Machine {
-  id        String        @id @default(cuid())
-  name      String
-  type      String
-  status    MachineStatus @default(AVAILABLE)
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-  location  String
-  color     String?
-  pattern   String?
-  tasks     Task[]
+  id           String        @id @default(cuid())
+  name         String
+  type         String
+  status       MachineStatus @default(AVAILABLE)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  location     String
+  color        String?
+  pattern      String?
+  taskMachines TaskMachine[]
 }
 
 model Operator {
-  id           String         @id @default(cuid())
-  name         String         @unique
-  skills       String[]
-  availability Json
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  email        String?
-  shift        String?
-  status       OperatorStatus @default(ACTIVE)
-  color        String?
-  pattern      String?
-  tasks        Task[]
+  id            String         @id @default(cuid())
+  name          String         @unique
+  skills        String[]
+  availability  Json
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  email         String?
+  shift         String?
+  status        OperatorStatus @default(ACTIVE)
+  color         String?
+  pattern       String?
+  taskOperators TaskOperator[]
 }
 
 model Item {
@@ -70,17 +70,43 @@ model Task {
   title              String
   description        String?
   status             TaskStatus     @default(IN_PROGRESS)
-  machineId          String?
-  operatorId         String?
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
   itemId             String?
   completed_quantity Int            @default(0)
   quantity           Int            @default(1)
   item               Item?          @relation(fields: [itemId], references: [id])
-  machine            Machine?       @relation(fields: [machineId], references: [id])
-  operator           Operator?      @relation(fields: [operatorId], references: [id])
   timeSlots          TaskTimeSlot[]
+  taskMachines       TaskMachine[]
+  taskOperators      TaskOperator[]
+}
+
+model TaskMachine {
+  id        String   @id @default(cuid())
+  taskId    String
+  machineId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  machine   Machine  @relation(fields: [machineId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, machineId])
+  @@index([taskId])
+  @@index([machineId])
+}
+
+model TaskOperator {
+  id         String   @id @default(cuid())
+  taskId     String
+  operatorId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  operator   Operator @relation(fields: [operatorId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, operatorId])
+  @@index([taskId])
+  @@index([operatorId])
 }
 
 model TaskTimeSlot {

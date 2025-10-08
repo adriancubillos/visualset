@@ -19,18 +19,55 @@ type TaskInput = {
   completed_quantity?: number;
   itemId?: string | null;
   projectId?: string | null;
+  // Legacy single ID support for backward compatibility
   machineId?: string | null;
   operatorId?: string | null;
+  // New multiple ID support
+  machineIds?: string[];
+  operatorIds?: string[];
   timeSlots?: TimeSlotInput[];
 };
 
 export type { TimeSlotInput, TaskInput };
 
+// Helper function to transform Prisma result to API DTO
+function transformTaskWithRelations(task: {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  quantity: number;
+  completed_quantity: number;
+  item?: unknown;
+  itemId: string | null;
+  taskMachines?: Array<{ machine: unknown }>;
+  taskOperators?: Array<{ operator: unknown }>;
+  timeSlots?: unknown[];
+  createdAt: Date;
+  updatedAt: Date;
+}): TaskWithRelationsDTO {
+  return {
+    id: task.id,
+    title: task.title,
+    description: task.description,
+    status: task.status,
+    quantity: task.quantity,
+    completed_quantity: task.completed_quantity,
+    item: task.item as TaskWithRelationsDTO['item'],
+    itemId: task.itemId,
+    machines: (task.taskMachines?.map((tm) => tm.machine) || []) as TaskWithRelationsDTO['machines'],
+    operators: (task.taskOperators?.map((to) => to.operator) || []) as TaskWithRelationsDTO['operators'],
+    timeSlots: task.timeSlots as TaskWithRelationsDTO['timeSlots'],
+    createdAt: task.createdAt.toISOString(),
+    updatedAt: task.updatedAt.toISOString(),
+  };
+}
+
 // Helper function to check for operator/machine conflicts using the centralized utility
 async function checkResourceConflicts(
   db: PrismaClient,
-  operatorId: string | null | undefined,
-  machineId: string | null | undefined,
+  operatorIds: string[] = [],
+  machineIds: string[] = [],
   timeSlots: TimeSlotInput[],
   excludeTaskId?: string,
 ) {
@@ -40,23 +77,21 @@ async function checkResourceConflicts(
     if (!slot.startDateTime) continue;
 
     const durationMin = slot.durationMin || 60;
-    
+
     // Use the centralized conflict detection utility
     const conflictResult = await checkSchedulingConflicts({
       scheduledAt: slot.startDateTime,
       durationMin,
-      machineId: machineId || null,
-      operatorId: operatorId || null,
+      machineIds,
+      operatorIds,
       excludeTaskId,
     });
 
     if (conflictResult.hasConflict && conflictResult.conflictData) {
       const { conflictType, conflictData } = conflictResult;
       const resourceType = conflictType === 'machine' ? 'Machine' : 'Operator';
-      const resourceName = conflictType === 'machine' 
-        ? conflictData.machine?.name 
-        : conflictData.operator?.name;
-      
+      const resourceName = conflictType === 'machine' ? conflictData.machine?.name : conflictData.operator?.name;
+
       const conflictSlot = conflictData.timeSlot;
       const startTime = conflictSlot.startDateTime.toLocaleString();
       const endTime = conflictSlot.endDateTime?.toLocaleString() || 'end time';
@@ -91,16 +126,16 @@ export async function listTasks(db: PrismaClient, start?: string | null, end?: s
     where,
     include: {
       item: { include: { project: true } },
-      machine: true,
-      operator: true,
+      taskMachines: { include: { machine: true } },
+      taskOperators: { include: { operator: true } },
       timeSlots: { orderBy: { startDateTime: 'asc' } },
     },
   });
 
-  return tasks as unknown as TaskWithRelationsDTO[];
+  return tasks.map(transformTaskWithRelations);
 }
 
-export async function createTask(db: PrismaClient, body: TaskInput) {
+export async function createTask(db: PrismaClient, body: TaskInput): Promise<TaskWithRelationsDTO | null> {
   // Minimal validation delegating detailed checks to caller/tests
   if (!body.title) throw new ApiError({ code: 'MISSING_TITLE', message: 'title is required', status: 400 });
 
@@ -142,7 +177,9 @@ export async function createTask(db: PrismaClient, body: TaskInput) {
   }
 
   // Check for operator/machine conflicts with other tasks
-  await checkResourceConflicts(db, body.operatorId, body.machineId, timeSlots);
+  const operatorIds = body.operatorIds || (body.operatorId ? [body.operatorId] : []);
+  const machineIds = body.machineIds || (body.machineId ? [body.machineId] : []);
+  await checkResourceConflicts(db, operatorIds, machineIds, timeSlots);
 
   const result = await db.$transaction(async (tx) => {
     const createData: Prisma.TaskCreateInput = {
@@ -154,18 +191,36 @@ export async function createTask(db: PrismaClient, body: TaskInput) {
     };
 
     if (itemId) createData.item = { connect: { id: itemId } };
-    if (body.machineId) createData.machine = { connect: { id: body.machineId } };
-    if (body.operatorId) createData.operator = { connect: { id: body.operatorId } };
 
     const newTask = await tx.task.create({
       data: createData,
       include: {
         item: { include: { project: true } },
-        machine: true,
-        operator: true,
+        taskMachines: { include: { machine: true } },
+        taskOperators: { include: { operator: true } },
         timeSlots: { orderBy: { startDateTime: 'asc' } },
       },
     });
+
+    // Create machine associations
+    if (machineIds.length > 0) {
+      await tx.taskMachine.createMany({
+        data: machineIds.map((machineId) => ({
+          taskId: newTask.id,
+          machineId,
+        })),
+      });
+    }
+
+    // Create operator associations
+    if (operatorIds.length > 0) {
+      await tx.taskOperator.createMany({
+        data: operatorIds.map((operatorId) => ({
+          taskId: newTask.id,
+          operatorId,
+        })),
+      });
+    }
 
     if (timeSlots.length > 0) {
       const slotsToCreate = timeSlots.map((slot: TimeSlotInput) => {
@@ -186,17 +241,26 @@ export async function createTask(db: PrismaClient, body: TaskInput) {
         where: { id: newTask.id },
         include: {
           item: { include: { project: true } },
-          machine: true,
-          operator: true,
+          taskMachines: { include: { machine: true } },
+          taskOperators: { include: { operator: true } },
           timeSlots: { orderBy: { startDateTime: 'asc' } },
         },
       });
     }
 
-    return newTask;
+    // Return task with all relations
+    return await tx.task.findUnique({
+      where: { id: newTask.id },
+      include: {
+        item: { include: { project: true } },
+        taskMachines: { include: { machine: true } },
+        taskOperators: { include: { operator: true } },
+        timeSlots: { orderBy: { startDateTime: 'asc' } },
+      },
+    });
   });
 
-  return result as unknown as TaskWithRelationsDTO;
+  return result ? transformTaskWithRelations(result) : null;
 }
 
 export async function getTask(db: typeof prisma, id: string) {
@@ -204,16 +268,16 @@ export async function getTask(db: typeof prisma, id: string) {
     where: { id },
     include: {
       item: { include: { project: true } },
-      machine: true,
-      operator: true,
+      taskMachines: { include: { machine: true } },
+      taskOperators: { include: { operator: true } },
       timeSlots: { orderBy: { startDateTime: 'asc' } },
     },
   });
   if (!task) throw new ApiError({ code: 'TASK_NOT_FOUND', message: 'Task not found', status: 404 });
-  return task as unknown as TaskWithRelationsDTO;
+  return transformTaskWithRelations(task);
 }
 
-export async function updateTask(db: PrismaClient, id: string, body: TaskInput) {
+export async function updateTask(db: PrismaClient, id: string, body: TaskInput): Promise<TaskWithRelationsDTO | null> {
   const quantity = body.quantity || 1;
   const completedQuantity = body.completed_quantity || 0;
   if (completedQuantity > quantity)
@@ -251,10 +315,16 @@ export async function updateTask(db: PrismaClient, id: string, body: TaskInput) 
   }
 
   // Check for operator/machine conflicts with other tasks (exclude current task)
-  await checkResourceConflicts(db, body.operatorId, body.machineId, timeSlots, id);
+  const operatorIds = body.operatorIds || (body.operatorId ? [body.operatorId] : []);
+  const machineIds = body.machineIds || (body.machineId ? [body.machineId] : []);
+  await checkResourceConflicts(db, operatorIds, machineIds, timeSlots, id);
 
   const result = await db.$transaction(async (tx) => {
+    // Clear existing time slots and associations
     await tx.taskTimeSlot.deleteMany({ where: { taskId: id } });
+    await tx.taskMachine.deleteMany({ where: { taskId: id } });
+    await tx.taskOperator.deleteMany({ where: { taskId: id } });
+
     const updateDataRec: Record<string, unknown> = {};
     if (body.title !== undefined) updateDataRec.title = body.title as string;
     if (body.description !== undefined) updateDataRec.description = body.description ?? null;
@@ -263,22 +333,33 @@ export async function updateTask(db: PrismaClient, id: string, body: TaskInput) 
     updateDataRec.completed_quantity = completedQuantity;
     if (body.itemId !== undefined)
       updateDataRec.item = body.itemId ? { connect: { id: body.itemId } } : { disconnect: true };
-    if (body.machineId !== undefined)
-      updateDataRec.machine = body.machineId ? { connect: { id: body.machineId } } : { disconnect: true };
-    if (body.operatorId !== undefined)
-      updateDataRec.operator = body.operatorId ? { connect: { id: body.operatorId } } : { disconnect: true };
 
-    const updated = await tx.task.update({
+    await tx.task.update({
       where: { id },
       data: updateDataRec as Prisma.TaskUpdateInput,
-      include: {
-        item: { include: { project: true } },
-        machine: true,
-        operator: true,
-        timeSlots: { orderBy: { startDateTime: 'asc' } },
-      },
     });
 
+    // Create new machine associations
+    if (machineIds.length > 0) {
+      await tx.taskMachine.createMany({
+        data: machineIds.map((machineId) => ({
+          taskId: id,
+          machineId,
+        })),
+      });
+    }
+
+    // Create new operator associations
+    if (operatorIds.length > 0) {
+      await tx.taskOperator.createMany({
+        data: operatorIds.map((operatorId) => ({
+          taskId: id,
+          operatorId,
+        })),
+      });
+    }
+
+    // Create new time slots
     if (timeSlots.length > 0) {
       const slotsToCreate = timeSlots.map((slot: TimeSlotInput) => {
         const slotDuration = slot.durationMin || 60;
@@ -292,29 +373,31 @@ export async function updateTask(db: PrismaClient, id: string, body: TaskInput) 
         };
       });
       await tx.taskTimeSlot.createMany({ data: slotsToCreate });
-      return await tx.task.findUnique({
-        where: { id },
-        include: {
-          item: { include: { project: true } },
-          machine: true,
-          operator: true,
-          timeSlots: { orderBy: { startDateTime: 'asc' } },
-        },
-      });
     }
 
-    return updated;
+    // Return updated task with all relations
+    return await tx.task.findUnique({
+      where: { id },
+      include: {
+        item: { include: { project: true } },
+        taskMachines: { include: { machine: true } },
+        taskOperators: { include: { operator: true } },
+        timeSlots: { orderBy: { startDateTime: 'asc' } },
+      },
+    });
   });
 
-  return result as unknown as TaskWithRelationsDTO;
+  return result ? transformTaskWithRelations(result) : null;
 }
 
-export async function patchTask(db: PrismaClient, id: string, body: Partial<TaskInput>) {
+export async function patchTask(db: PrismaClient, id: string, body: Partial<TaskInput>): Promise<TaskWithRelationsDTO> {
   // Get existing task to check for conflicts
   const existingTask = await db.task.findUnique({
     where: { id },
     include: {
       timeSlots: true,
+      taskMachines: { include: { machine: true } },
+      taskOperators: { include: { operator: true } },
     },
   });
 
@@ -323,43 +406,101 @@ export async function patchTask(db: PrismaClient, id: string, body: Partial<Task
   }
 
   // If operator or machine is being changed, check for conflicts
-  if ((body.operatorId !== undefined || body.machineId !== undefined) && existingTask.timeSlots.length > 0) {
-    const operatorId = body.operatorId !== undefined ? body.operatorId : existingTask.operatorId;
-    const machineId = body.machineId !== undefined ? body.machineId : existingTask.machineId;
-    
+  if (
+    (body.operatorId !== undefined ||
+      body.machineId !== undefined ||
+      body.operatorIds !== undefined ||
+      body.machineIds !== undefined) &&
+    existingTask.timeSlots.length > 0
+  ) {
+    // Handle both legacy single IDs and new array IDs
+    let operatorIds: string[] = [];
+    let machineIds: string[] = [];
+
+    if (body.operatorIds !== undefined) {
+      operatorIds = body.operatorIds;
+    } else if (body.operatorId !== undefined) {
+      operatorIds = body.operatorId ? [body.operatorId] : [];
+    } else {
+      // Use existing task's operators from junction table
+      operatorIds = existingTask.taskOperators.map((to) => to.operatorId);
+    }
+
+    if (body.machineIds !== undefined) {
+      machineIds = body.machineIds;
+    } else if (body.machineId !== undefined) {
+      machineIds = body.machineId ? [body.machineId] : [];
+    } else {
+      // Use existing task's machines from junction table
+      machineIds = existingTask.taskMachines.map((tm) => tm.machineId);
+    }
+
     const timeSlots = existingTask.timeSlots.map((slot) => ({
       startDateTime: slot.startDateTime.toISOString(),
       endDateTime: slot.endDateTime?.toISOString(),
       durationMin: slot.durationMin,
     }));
 
-    await checkResourceConflicts(db, operatorId, machineId, timeSlots, id);
+    await checkResourceConflicts(db, operatorIds, machineIds, timeSlots, id);
   }
 
-  const dataRec: Record<string, unknown> = {};
-  if (body.title !== undefined) dataRec.title = body.title as string;
-  if (body.description !== undefined) dataRec.description = body.description ?? null;
-  if (body.status !== undefined) dataRec.status = body.status as TaskStatus;
-  if (body.quantity !== undefined) dataRec.quantity = body.quantity;
-  if (body.completed_quantity !== undefined) dataRec.completed_quantity = body.completed_quantity;
-  if (body.itemId !== undefined) dataRec.item = body.itemId ? { connect: { id: body.itemId } } : { disconnect: true };
-  if (body.machineId !== undefined)
-    dataRec.machine = body.machineId ? { connect: { id: body.machineId } } : { disconnect: true };
-  if (body.operatorId !== undefined)
-    dataRec.operator = body.operatorId ? { connect: { id: body.operatorId } } : { disconnect: true };
+  const result = await db.$transaction(async (tx) => {
+    // Handle machine and operator updates if provided
+    const operatorIds = body.operatorIds || (body.operatorId ? [body.operatorId] : undefined);
+    const machineIds = body.machineIds || (body.machineId ? [body.machineId] : undefined);
 
-  const task = await db.task.update({
-    where: { id },
-    data: dataRec as Prisma.TaskUpdateInput,
-    include: {
-      item: { include: { project: true } },
-      machine: true,
-      operator: true,
-      timeSlots: { orderBy: { startDateTime: 'asc' } },
-    },
+    if (operatorIds !== undefined) {
+      // Clear existing operator associations and create new ones
+      await tx.taskOperator.deleteMany({ where: { taskId: id } });
+      if (operatorIds.length > 0) {
+        await tx.taskOperator.createMany({
+          data: operatorIds.map((operatorId) => ({
+            taskId: id,
+            operatorId,
+          })),
+        });
+      }
+    }
+
+    if (machineIds !== undefined) {
+      // Clear existing machine associations and create new ones
+      await tx.taskMachine.deleteMany({ where: { taskId: id } });
+      if (machineIds.length > 0) {
+        await tx.taskMachine.createMany({
+          data: machineIds.map((machineId) => ({
+            taskId: id,
+            machineId,
+          })),
+        });
+      }
+    }
+
+    const dataRec: Record<string, unknown> = {};
+    if (body.title !== undefined) dataRec.title = body.title as string;
+    if (body.description !== undefined) dataRec.description = body.description ?? null;
+    if (body.status !== undefined) dataRec.status = body.status as TaskStatus;
+    if (body.quantity !== undefined) dataRec.quantity = body.quantity;
+    if (body.completed_quantity !== undefined) dataRec.completed_quantity = body.completed_quantity;
+    if (body.itemId !== undefined) dataRec.item = body.itemId ? { connect: { id: body.itemId } } : { disconnect: true };
+
+    await tx.task.update({
+      where: { id },
+      data: dataRec as Prisma.TaskUpdateInput,
+    });
+
+    return await tx.task.findUnique({
+      where: { id },
+      include: {
+        item: { include: { project: true } },
+        taskMachines: { include: { machine: true } },
+        taskOperators: { include: { operator: true } },
+        timeSlots: { orderBy: { startDateTime: 'asc' } },
+      },
+    });
   });
-  if (!task) throw new ApiError({ code: 'TASK_NOT_FOUND', message: 'Task not found', status: 404 });
-  return task as unknown as TaskWithRelationsDTO;
+
+  if (!result) throw new ApiError({ code: 'TASK_NOT_FOUND', message: 'Task not found', status: 404 });
+  return transformTaskWithRelations(result);
 }
 
 export async function deleteTask(db: typeof prisma, id: string) {

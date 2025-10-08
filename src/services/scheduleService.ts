@@ -22,8 +22,8 @@ export async function listScheduledTasks(prisma: PrismaClient, start?: string | 
     where,
     include: {
       item: { include: { project: true } },
-      machine: true,
-      operator: true,
+      taskMachines: { include: { machine: true } },
+      taskOperators: { include: { operator: true } },
       timeSlots: { orderBy: { startDateTime: 'asc' } },
     },
     orderBy: { createdAt: 'asc' },
@@ -31,7 +31,10 @@ export async function listScheduledTasks(prisma: PrismaClient, start?: string | 
 }
 
 export async function getTask(prisma: PrismaClient, id: string) {
-  const task = await prisma.task.findUnique({ where: { id }, include: { machine: true, operator: true } });
+  const task = await prisma.task.findUnique({
+    where: { id },
+    include: { taskMachines: { include: { machine: true } }, taskOperators: { include: { operator: true } } },
+  });
   if (!task) throw new ApiError({ code: 'TASK_NOT_FOUND', message: 'Task not found', status: 404 });
   return task;
 }
@@ -56,8 +59,8 @@ export async function scheduleTask(prisma: PrismaClient, body: ScheduleTaskReque
     const conflictResult = await checkSchedulingConflicts({
       scheduledAt,
       durationMin,
-      machineId,
-      operatorId,
+      machineIds: machineId ? [machineId] : [],
+      operatorIds: operatorId ? [operatorId] : [],
       excludeTaskId: taskId,
     });
     if (conflictResult.hasConflict) {
@@ -74,16 +77,50 @@ export async function scheduleTask(prisma: PrismaClient, body: ScheduleTaskReque
 
   const endTime = new Date(startTime.getTime() + durationMin * 60 * 1000);
 
-  const task = await prisma.task.update({
-    where: { id: taskId },
-    data: {
-      itemId: itemId ?? null,
-      machineId: machineId ?? null,
-      operatorId: operatorId ?? null,
-      status: 'SCHEDULED',
-      timeSlots: { deleteMany: {}, create: { startDateTime: startTime, endDateTime: endTime, durationMin } },
-    },
-    include: { item: true, machine: true, operator: true, timeSlots: true },
+  const task = await prisma.$transaction(async (tx) => {
+    // Update basic task data
+    await tx.task.update({
+      where: { id: taskId },
+      data: {
+        itemId: itemId ?? null,
+        status: 'SCHEDULED',
+      },
+    });
+
+    // Clear existing machine/operator associations
+    await tx.taskMachine.deleteMany({ where: { taskId } });
+    await tx.taskOperator.deleteMany({ where: { taskId } });
+
+    // Add new machine association if provided
+    if (machineId) {
+      await tx.taskMachine.create({
+        data: { taskId, machineId },
+      });
+    }
+
+    // Add new operator association if provided
+    if (operatorId) {
+      await tx.taskOperator.create({
+        data: { taskId, operatorId },
+      });
+    }
+
+    // Update time slots
+    await tx.taskTimeSlot.deleteMany({ where: { taskId } });
+    await tx.taskTimeSlot.create({
+      data: { taskId, startDateTime: startTime, endDateTime: endTime, durationMin },
+    });
+
+    // Return updated task with relations
+    return await tx.task.findUnique({
+      where: { id: taskId },
+      include: {
+        item: true,
+        taskMachines: { include: { machine: true } },
+        taskOperators: { include: { operator: true } },
+        timeSlots: true,
+      },
+    });
   });
 
   return task;

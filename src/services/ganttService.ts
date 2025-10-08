@@ -17,18 +17,26 @@ export async function fetchProjectsWithScheduledTasks(prisma: PrismaClient) {
               },
             },
             include: {
-              operator: {
-                select: {
-                  id: true,
-                  name: true,
-                  color: true,
+              taskOperators: {
+                include: {
+                  operator: {
+                    select: {
+                      id: true,
+                      name: true,
+                      color: true,
+                    },
+                  },
                 },
               },
-              machine: {
-                select: {
-                  id: true,
-                  name: true,
-                  type: true,
+              taskMachines: {
+                include: {
+                  machine: {
+                    select: {
+                      id: true,
+                      name: true,
+                      type: true,
+                    },
+                  },
                 },
               },
               timeSlots: {

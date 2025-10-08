@@ -141,16 +141,18 @@ describe('Schedule route tests', () => {
         completed_quantity: 0,
         item: undefined,
         itemId: null,
-        machine: {
-          id: 'm1',
-          name: 'Machine 1',
-          type: 'CNC',
-          status: 'AVAILABLE',
-          location: 'Shop Floor',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        operator: null,
+        machines: [
+          {
+            id: 'm1',
+            name: 'Machine 1',
+            type: 'CNC',
+            status: 'AVAILABLE',
+            location: 'Shop Floor',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        ],
+        operators: [],
         timeSlots: [
           {
             id: 'ts1',

@@ -3,8 +3,8 @@ import prisma from '@/lib/prisma';
 export interface ConflictCheckParams {
   scheduledAt: string;
   durationMin: number;
-  machineId?: string | null;
-  operatorId?: string | null;
+  machineIds?: string[]; // Changed from single machineId to array
+  operatorIds?: string[]; // Changed from single operatorId to array
   excludeTaskId?: string; // For task editing - exclude current task
   excludeTimeSlotId?: string; // For time slot editing - exclude specific time slot
 }
@@ -39,8 +39,8 @@ export function timeRangesOverlap(startA: Date, endA: Date, startB: Date, endB: 
 export async function checkSchedulingConflicts({
   scheduledAt,
   durationMin,
-  machineId,
-  operatorId,
+  machineIds = [],
+  operatorIds = [],
   excludeTaskId,
   excludeTimeSlotId,
 }: ConflictCheckParams): Promise<ConflictResult> {
@@ -48,14 +48,20 @@ export async function checkSchedulingConflicts({
   const taskStartTime = new Date(scheduledAt);
   const taskEndTime = new Date(taskStartTime.getTime() + durationMin * 60 * 1000);
 
-  // Check for machine conflicts by querying time slots
-  if (machineId) {
+  // Check for machine conflicts by querying time slots for any of the assigned machines
+  if (machineIds.length > 0) {
     const machineConflicts = await prisma.taskTimeSlot.findMany({
       where: {
         ...(excludeTimeSlotId && { id: { not: excludeTimeSlotId } }),
         task: {
           ...(excludeTaskId && { id: { not: excludeTaskId } }),
-          machineId,
+          taskMachines: {
+            some: {
+              machineId: {
+                in: machineIds,
+              },
+            },
+          },
         },
         OR: [
           {
@@ -75,7 +81,11 @@ export async function checkSchedulingConflicts({
       include: {
         task: {
           include: {
-            machine: true,
+            taskMachines: {
+              include: {
+                machine: true,
+              },
+            },
           },
         },
       },
@@ -89,33 +99,47 @@ export async function checkSchedulingConflicts({
         : new Date(conflictStart.getTime() + timeSlot.durationMin * 60 * 1000);
 
       if (timeRangesOverlap(taskStartTime, taskEndTime, conflictStart, conflictEnd)) {
+        // Find the conflicting machine(s) from the task's machines
+        const taskWithMachines = timeSlot as unknown as {
+          task?: { taskMachines?: Array<{ machineId: string; machine: unknown }>; id?: string; title?: string };
+        };
+        const conflictingMachine = taskWithMachines.task?.taskMachines?.find((tm) =>
+          machineIds.includes(tm.machineId),
+        )?.machine;
+
         return {
           hasConflict: true,
           conflictType: 'machine',
           conflictData: {
-            id: timeSlot.task.id,
-            title: timeSlot.task.title,
+            id: taskWithMachines.task?.id || '',
+            title: taskWithMachines.task?.title || '',
             timeSlot: {
               id: timeSlot.id,
               startDateTime: timeSlot.startDateTime,
               endDateTime: timeSlot.endDateTime,
               durationMin: timeSlot.durationMin,
             },
-            machine: timeSlot.task.machine,
+            machine: conflictingMachine as { id: string; name: string } | null,
           },
         };
       }
     }
   }
 
-  // Check for operator conflicts by querying time slots
-  if (operatorId) {
+  // Check for operator conflicts by querying time slots for any of the assigned operators
+  if (operatorIds.length > 0) {
     const operatorConflicts = await prisma.taskTimeSlot.findMany({
       where: {
         ...(excludeTimeSlotId && { id: { not: excludeTimeSlotId } }),
         task: {
           ...(excludeTaskId && { id: { not: excludeTaskId } }),
-          operatorId,
+          taskOperators: {
+            some: {
+              operatorId: {
+                in: operatorIds,
+              },
+            },
+          },
         },
         OR: [
           {
@@ -135,7 +159,11 @@ export async function checkSchedulingConflicts({
       include: {
         task: {
           include: {
-            operator: true,
+            taskOperators: {
+              include: {
+                operator: true,
+              },
+            },
           },
         },
       },
@@ -149,19 +177,27 @@ export async function checkSchedulingConflicts({
         : new Date(conflictStart.getTime() + timeSlot.durationMin * 60 * 1000);
 
       if (timeRangesOverlap(taskStartTime, taskEndTime, conflictStart, conflictEnd)) {
+        // Find the conflicting operator(s) from the task's operators
+        const taskWithOperators = timeSlot as unknown as {
+          task?: { taskOperators?: Array<{ operatorId: string; operator: unknown }>; id?: string; title?: string };
+        };
+        const conflictingOperator = taskWithOperators.task?.taskOperators?.find((to) =>
+          operatorIds.includes(to.operatorId),
+        )?.operator;
+
         return {
           hasConflict: true,
           conflictType: 'operator',
           conflictData: {
-            id: timeSlot.task.id,
-            title: timeSlot.task.title,
+            id: taskWithOperators.task?.id || '',
+            title: taskWithOperators.task?.title || '',
             timeSlot: {
               id: timeSlot.id,
               startDateTime: timeSlot.startDateTime,
               endDateTime: timeSlot.endDateTime,
               durationMin: timeSlot.durationMin,
             },
-            operator: timeSlot.task.operator,
+            operator: conflictingOperator as { id: string; name: string } | null,
           },
         };
       }

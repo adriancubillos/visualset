@@ -33,10 +33,14 @@ export async function getMachine(prisma: PrismaClient, id: string) {
   const machine = await prisma.machine.findUnique({
     where: { id },
     include: {
-      tasks: {
+      taskMachines: {
         include: {
-          item: { include: { project: true } },
-          operator: true,
+          task: {
+            include: {
+              item: { include: { project: true } },
+              taskOperators: { include: { operator: true } },
+            },
+          },
         },
         orderBy: { createdAt: 'desc' },
       },
@@ -67,7 +71,7 @@ export async function updateMachine(prisma: PrismaClient, id: string, data: Mach
 }
 
 export async function deleteMachine(prisma: PrismaClient, id: string) {
-  const tasksCount = await prisma.task.count({ where: { machineId: id } });
+  const tasksCount = await prisma.taskMachine.count({ where: { machineId: id } });
   if (tasksCount > 0) {
     throw new ApiError({
       code: 'MACHINE_HAS_TASKS',

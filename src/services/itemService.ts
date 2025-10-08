@@ -55,8 +55,8 @@ export async function getItem(prisma: PrismaClient, id: string) {
       project: { select: { id: true, name: true, description: true } },
       tasks: {
         include: {
-          machine: { select: { id: true, name: true } },
-          operator: { select: { id: true, name: true } },
+          taskMachines: { include: { machine: { select: { id: true, name: true } } } },
+          taskOperators: { include: { operator: { select: { id: true, name: true } } } },
           timeSlots: { orderBy: { startDateTime: 'asc' } },
         },
         orderBy: { updatedAt: 'desc' },

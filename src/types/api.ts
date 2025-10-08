@@ -76,8 +76,8 @@ export interface TaskWithRelationsDTO {
   completed_quantity: number;
   item?: ItemDTO | (null & { project?: ProjectDTO | null });
   itemId?: string | null;
-  machine?: MachineDTO | null;
-  operator?: OperatorDTO | null;
+  machines?: MachineDTO[]; // Changed from single machine to array
+  operators?: OperatorDTO[]; // Changed from single operator to array
   timeSlots?: TaskTimeSlotDTO[];
   createdAt: string;
   updatedAt: string;
@@ -86,6 +86,8 @@ export interface TaskWithRelationsDTO {
 export interface TaskResponseDTO extends Omit<TaskWithRelationsDTO, 'item'> {
   item?: ItemDTO | null;
   project?: ProjectDTO | null;
+  machines?: MachineDTO[]; // Ensure consistency
+  operators?: OperatorDTO[]; // Ensure consistency
 }
 
 export function mapTaskToResponse(task: TaskWithRelationsDTO): TaskResponseDTO {
@@ -99,17 +101,16 @@ export function mapTaskToResponse(task: TaskWithRelationsDTO): TaskResponseDTO {
   return {
     id: task.id,
     title: task.title,
-    description: task.description ?? null,
+    description: task.description,
     status: task.status,
     quantity: task.quantity,
     completed_quantity: task.completed_quantity,
-    item: task.item ?? null,
-    itemId: task.itemId ?? null,
-    machine: task.machine ?? null,
-    operator: task.operator ?? null,
-    timeSlots: task.timeSlots ?? [],
+    item: task.item as ItemDTO | null,
+    project,
+    machines: task.machines ?? [],
+    operators: task.operators ?? [],
+    timeSlots: task.timeSlots,
     createdAt: task.createdAt,
     updatedAt: task.updatedAt,
-    project,
   };
 }

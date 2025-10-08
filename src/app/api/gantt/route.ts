@@ -11,56 +11,85 @@ export async function GET() {
 
     // Transform the data for the Gantt chart
     const ganttData = {
-      projects: projects.map((project) => ({
-        id: project.id,
-        name: project.name,
-        status: project.status,
-        color: project.color,
-        items: project.items.map((item) => ({
-          id: item.id,
-          name: item.name,
-          status: item.status,
-          tasks: item.tasks.map((task) => {
-            // Get first time slot for start/end dates
-            const firstSlot = task.timeSlots[0];
-
+      projects: projects.map((project: unknown) => {
+        const p = project as Record<string, unknown>;
+        return {
+          id: p.id,
+          name: p.name,
+          status: p.status,
+          color: p.color,
+          items: (p.items as unknown[]).map((item: unknown) => {
+            const i = item as Record<string, unknown>;
             return {
-              id: task.id,
-              title: task.title,
-              startDate: firstSlot ? firstSlot.startDateTime : null,
-              endDate: firstSlot
-                ? firstSlot.endDateTime ||
-                  new Date(firstSlot.startDateTime.getTime() + firstSlot.durationMin * 60 * 1000)
-                : null,
-              status: task.status,
-              durationMin: firstSlot ? firstSlot.durationMin : 0,
-              operator: task.operator
-                ? {
-                    id: task.operator.id,
-                    name: task.operator.name,
-                    color: task.operator.color,
-                  }
-                : null,
-              machine: task.machine
-                ? {
-                    id: task.machine.id,
-                    name: task.machine.name,
-                    type: task.machine.type,
-                  }
-                : null,
+              id: i.id,
+              name: i.name,
+              status: i.status,
+              tasks: (i.tasks as unknown[]).map((task: unknown) => {
+                const t = task as Record<string, unknown>;
+                // Get first time slot for start/end dates
+                const timeSlots = t.timeSlots as unknown[];
+                const firstSlot = timeSlots[0] as Record<string, unknown>;
+
+                // Get operator and machine from junction tables
+                const taskOperators = (t.taskOperators as unknown[]) || [];
+                const taskMachines = (t.taskMachines as unknown[]) || [];
+                const firstOperator = taskOperators[0]
+                  ? ((taskOperators[0] as Record<string, unknown>).operator as Record<string, unknown>)
+                  : null;
+                const firstMachine = taskMachines[0]
+                  ? ((taskMachines[0] as Record<string, unknown>).machine as Record<string, unknown>)
+                  : null;
+
+                return {
+                  id: t.id,
+                  title: t.title,
+                  startDate: firstSlot ? firstSlot.startDateTime : null,
+                  endDate: firstSlot
+                    ? firstSlot.endDateTime ||
+                      new Date(
+                        (firstSlot.startDateTime as Date).getTime() + (firstSlot.durationMin as number) * 60 * 1000,
+                      )
+                    : null,
+                  status: t.status,
+                  durationMin: firstSlot ? firstSlot.durationMin : 0,
+                  operator: firstOperator
+                    ? {
+                        id: firstOperator.id,
+                        name: firstOperator.name,
+                        color: firstOperator.color,
+                      }
+                    : null,
+                  machine: firstMachine
+                    ? {
+                        id: firstMachine.id,
+                        name: firstMachine.name,
+                        type: firstMachine.type,
+                      }
+                    : null,
+                };
+              }),
             };
           }),
-        })),
-      })),
+        };
+      }),
     };
 
     // Filter out projects and items that have no scheduled tasks
     ganttData.projects = ganttData.projects
-      .map((project) => ({
-        ...project,
-        items: project.items.filter((item) => item.tasks.length > 0),
-      }))
-      .filter((project) => project.items.length > 0);
+      .map((project) => {
+        const p = project as Record<string, unknown>;
+        return {
+          ...project,
+          items: (p.items as unknown[]).filter((item: unknown) => {
+            const i = item as Record<string, unknown>;
+            return (i.tasks as unknown[]).length > 0;
+          }),
+        };
+      })
+      .filter((project) => {
+        const p = project as Record<string, unknown>;
+        return (p.items as unknown[]).length > 0;
+      }) as typeof ganttData.projects;
 
     return NextResponse.json(ganttData);
   } catch (error: unknown) {

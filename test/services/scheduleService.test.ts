@@ -256,8 +256,8 @@ describe('scheduleService', () => {
         completed_quantity: 0,
         item: undefined,
         itemId: null,
-        machine: undefined,
-        operator: undefined,
+        machines: [],
+        operators: [],
         timeSlots: [
           {
             id: 'ts1',
@@ -329,26 +329,30 @@ describe('scheduleService', () => {
           updatedAt: new Date().toISOString(),
         },
         itemId: 'i1',
-        machine: {
-          id: 'm1',
-          name: 'Machine 1',
-          type: 'CNC',
-          status: 'AVAILABLE',
-          location: 'Shop Floor',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        operator: {
-          id: 'o1',
-          name: 'Operator 1',
-          email: 'operator1@example.com',
-          status: 'AVAILABLE',
-          shift: 'DAY',
-          skills: [],
-          availability: {},
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
+        machines: [
+          {
+            id: 'm1',
+            name: 'Machine 1',
+            type: 'CNC',
+            status: 'AVAILABLE',
+            location: 'Shop Floor',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        ],
+        operators: [
+          {
+            id: 'o1',
+            name: 'Operator 1',
+            email: 'operator1@example.com',
+            status: 'AVAILABLE',
+            shift: 'DAY',
+            skills: [],
+            availability: {},
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        ],
         timeSlots: [
           {
             id: 'ts1',

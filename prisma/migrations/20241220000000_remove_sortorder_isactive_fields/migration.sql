@@ -1,9 +1,9 @@
--- DropIndex
-DROP INDEX "Configuration_category_sortOrder_idx";
+-- DropIndex (only if it exists)
+DROP INDEX IF EXISTS "Configuration_category_sortOrder_idx";
 
 -- AlterTable
-ALTER TABLE "Configuration" DROP COLUMN "isActive",
-DROP COLUMN "sortOrder";
+ALTER TABLE "Configuration" DROP COLUMN IF EXISTS "isActive",
+DROP COLUMN IF EXISTS "sortOrder";
 
 -- CreateIndex
-CREATE INDEX "Configuration_category_idx" ON "Configuration"("category");
+CREATE INDEX IF NOT EXISTS "Configuration_category_idx" ON "Configuration"("category");
