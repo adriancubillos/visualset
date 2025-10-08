@@ -14,6 +14,7 @@ import ImageViewer from '@/components/ui/ImageViewer';
 import { PROJECT_STATUS } from '@/config/workshop-properties';
 import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { logger } from '@/utils/logger';
+import { extractErrorMessage, getErrorMessage } from '@/utils/errorHandling';
 import { Column } from '@/types/table';
 import FilterProvider from '@/components/layout/FilterProvider';
 
@@ -269,13 +270,13 @@ function ProjectsPageContent({
         setProjects(updatedProjects);
         toast.success('Project deleted successfully');
       } else {
-        const errorData = await response.json();
-        logger.error('Failed to delete project,', errorData.error);
-        toast.error('Failed to delete project: ' + (errorData.error || 'Unknown error'));
+        const errorMessage = await extractErrorMessage(response, 'Failed to delete project');
+        logger.error('Failed to delete project:', errorMessage);
+        toast.error(errorMessage);
       }
     } catch (error) {
-      logger.error('Error deleting project,', error);
-      toast.error('Error deleting project' + error);
+      logger.error('Error deleting project:', error);
+      toast.error(getErrorMessage(error, 'Error deleting project'));
     }
   };
 

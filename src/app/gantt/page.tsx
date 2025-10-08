@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import GanttChart from '@/components/gantt/GanttChart';
 import { logger } from '@/utils/logger';
+import { extractErrorMessage } from '@/utils/errorHandling';
+import toast from 'react-hot-toast';
 
 interface GanttTask {
   id: string;
@@ -64,10 +66,13 @@ export default function GanttPage() {
           const ganttData = await response.json();
           setData(ganttData);
         } else {
-          logger.error('Failed to fetch Gantt data');
+          const errorMessage = await extractErrorMessage(response, 'Failed to fetch Gantt data');
+          logger.error('Failed to fetch Gantt data:', errorMessage);
+          toast.error(errorMessage);
         }
       } catch (error) {
-        logger.error('Error fetching Gantt data,', error);
+        logger.error('Error fetching Gantt data:', error);
+        toast.error('Error loading Gantt data');
       } finally {
         setLoading(false);
       }

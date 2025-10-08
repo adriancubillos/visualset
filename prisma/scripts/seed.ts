@@ -14,28 +14,28 @@ async function main() {
   // --- Get available skills from configuration ---
   const availableSkills = await prisma.configuration.findMany({
     where: { category: 'AVAILABLE_SKILLS' },
-    select: { value: true }
+    select: { value: true },
   });
-  
-  const skillValues = availableSkills.map(skill => skill.value);
+
+  const skillValues = availableSkills.map((skill) => skill.value);
   console.log(`📋 Found ${skillValues.length} available skills:`, skillValues);
 
   // --- Get available shifts from configuration ---
   const availableShifts = await prisma.configuration.findMany({
     where: { category: 'OPERATOR_SHIFTS' },
-    select: { value: true }
+    select: { value: true },
   });
-  
-  const shiftValues = availableShifts.map(shift => shift.value);
+
+  const shiftValues = availableShifts.map((shift) => shift.value);
   console.log(`📋 Found ${shiftValues.length} available shifts:`, shiftValues);
 
   // --- Get available machine types from configuration ---
   const availableMachineTypes = await prisma.configuration.findMany({
     where: { category: 'MACHINE_TYPES' },
-    select: { value: true }
+    select: { value: true },
   });
-  
-  const machineTypeValues = availableMachineTypes.map(type => type.value);
+
+  const machineTypeValues = availableMachineTypes.map((type) => type.value);
   console.log(`📋 Found ${machineTypeValues.length} available machine types:`, machineTypeValues);
 
   // --- Clear existing data ---
@@ -65,34 +65,84 @@ async function main() {
   // --- Machines (10 machines with diverse types and locations) ---
   const machines = await Promise.all([
     prisma.machine.create({
-      data: { name: 'Cortadora CNC-001', type: getRandomMachineType(), status: 'AVAILABLE', location: 'Workshop A - Bay 1' },
+      data: {
+        name: 'Cortadora CNC-001',
+        type: getRandomMachineType(),
+        status: 'AVAILABLE',
+        location: 'Workshop A - Bay 1',
+      },
     }),
     prisma.machine.create({
-      data: { name: 'Impresora 3D Prusa', type: getRandomMachineType(), status: 'AVAILABLE', location: 'Workshop B - Station 3' },
+      data: {
+        name: 'Impresora 3D Prusa',
+        type: getRandomMachineType(),
+        status: 'AVAILABLE',
+        location: 'Workshop B - Station 3',
+      },
     }),
     prisma.machine.create({
-      data: { name: 'Soldadora MIG-200', type: getRandomMachineType(), status: 'AVAILABLE', location: 'Workshop A - Bay 2' },
+      data: {
+        name: 'Soldadora MIG-200',
+        type: getRandomMachineType(),
+        status: 'AVAILABLE',
+        location: 'Workshop A - Bay 2',
+      },
     }),
     prisma.machine.create({
-      data: { name: 'Taladro Industrial', type: getRandomMachineType(), status: 'AVAILABLE', location: 'Workshop A - Bay 3' },
+      data: {
+        name: 'Taladro Industrial',
+        type: getRandomMachineType(),
+        status: 'AVAILABLE',
+        location: 'Workshop A - Bay 3',
+      },
     }),
     prisma.machine.create({
-      data: { name: 'Fresadora CNC-002', type: getRandomMachineType(), status: 'MAINTENANCE', location: 'Workshop A - Bay 4' },
+      data: {
+        name: 'Fresadora CNC-002',
+        type: getRandomMachineType(),
+        status: 'MAINTENANCE',
+        location: 'Workshop A - Bay 4',
+      },
     }),
     prisma.machine.create({
-      data: { name: 'Cortadora Laser', type: getRandomMachineType(), status: 'AVAILABLE', location: 'Workshop B - Station 1' },
+      data: {
+        name: 'Cortadora Laser',
+        type: getRandomMachineType(),
+        status: 'AVAILABLE',
+        location: 'Workshop B - Station 1',
+      },
     }),
     prisma.machine.create({
-      data: { name: 'Torno CNC-003', type: getRandomMachineType(), status: 'AVAILABLE', location: 'Workshop A - Bay 5' },
+      data: {
+        name: 'Torno CNC-003',
+        type: getRandomMachineType(),
+        status: 'AVAILABLE',
+        location: 'Workshop A - Bay 5',
+      },
     }),
     prisma.machine.create({
-      data: { name: 'Prensa Hidraulica', type: getRandomMachineType(), status: 'AVAILABLE', location: 'Workshop C - Area 1' },
+      data: {
+        name: 'Prensa Hidraulica',
+        type: getRandomMachineType(),
+        status: 'AVAILABLE',
+        location: 'Workshop C - Area 1',
+      },
     }),
     prisma.machine.create({
-      data: { name: 'Centro Mecanizado MC-400', type: getRandomMachineType(), status: 'IN_USE', location: 'Workshop A - Bay 6' },
+      data: {
+        name: 'Centro Mecanizado MC-400',
+        type: getRandomMachineType(),
+        status: 'IN_USE',
+        location: 'Workshop A - Bay 6',
+      },
     }),
     prisma.machine.create({
-      data: { name: 'Estacion de Ensamble', type: getRandomMachineType(), status: 'AVAILABLE', location: 'Workshop C - Area 2' },
+      data: {
+        name: 'Estacion de Ensamble',
+        type: getRandomMachineType(),
+        status: 'AVAILABLE',
+        location: 'Workshop C - Area 2',
+      },
     }),
   ]);
 

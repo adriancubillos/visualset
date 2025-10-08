@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { logger } from '@/utils/logger';
+import { extractErrorMessage, getErrorMessage } from '@/utils/errorHandling';
 import PageContainer from '@/components/layout/PageContainer';
 import ImageViewer from '@/components/ui/ImageViewer';
 import { checkProjectCompletionReadiness } from '@/utils/projectValidation';
@@ -69,13 +70,13 @@ export default function ProjectDetailPage() {
         toast.success('Project deleted successfully');
         router.push('/projects');
       } else {
-        const errorData = await response.json();
-        logger.apiError('Delete project', `/api/projects/${params.id}`, errorData.error);
-        toast.error('Failed to delete ' + errorData.error);
+        const errorMessage = await extractErrorMessage(response, 'Failed to delete project');
+        logger.apiError('Delete project', `/api/projects/${params.id}`, errorMessage);
+        toast.error(errorMessage);
       }
     } catch (error) {
       logger.error('Error deleting project', error);
-      toast.error('Error deleting project');
+      toast.error(getErrorMessage(error, 'Error deleting project'));
     }
   };
 

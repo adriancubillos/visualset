@@ -10,6 +10,7 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import TableActions from '@/components/ui/TableActions';
 import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { logger } from '@/utils/logger';
+import { extractErrorMessage, getErrorMessage } from '@/utils/errorHandling';
 import StatisticsCards from '@/components/ui/StatisticsCards';
 import { TASK_STATUS } from '@/config/workshop-properties';
 import { Column } from '@/types/table';
@@ -413,12 +414,13 @@ function TasksPageContent({
         setTasks(updatedTasks);
         toast.success('Task deleted successfully');
       } else {
-        logger.apiError('Delete task', `/api/tasks/${taskId}`, 'Failed to delete');
-        toast.error('Failed to delete task');
+        const errorMessage = await extractErrorMessage(response, 'Failed to delete task');
+        logger.apiError('Delete task', `/api/tasks/${taskId}`, errorMessage);
+        toast.error(errorMessage);
       }
     } catch (error) {
       logger.error('Error deleting task', error);
-      toast.error('Error deleting task');
+      toast.error(getErrorMessage(error, 'Error deleting task'));
     }
   };
 

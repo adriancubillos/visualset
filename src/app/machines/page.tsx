@@ -12,6 +12,7 @@ import StatisticsCards from '@/components/ui/StatisticsCards';
 import { MachineColorIndicator } from '@/components/ui/ColorIndicator';
 import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { logger } from '@/utils/logger';
+import { extractErrorMessage, getErrorMessage } from '@/utils/errorHandling';
 import { MACHINE_STATUS } from '@/config/workshop-properties';
 import { useMachineTypes } from '@/hooks/useConfiguration';
 import { Column } from '@/types/table';
@@ -277,21 +278,21 @@ function MachinesPageContent({
         setMachines(updatedMachines);
         toast.success('Machine deleted successfully');
       } else {
-        const errorData = await response.json();
-        logger.error('Failed to delete machine,', errorData.error);
+        const errorMessage = await extractErrorMessage(response, 'Failed to delete machine');
+        logger.error('Failed to delete machine:', errorMessage);
 
-        if (errorData.error?.includes('assigned tasks')) {
+        if (errorMessage.includes('assigned tasks')) {
           toast.error(
             `Cannot delete "${machineName}". This machine is currently assigned to one or more tasks. Please unassign or delete those tasks first.`,
             { duration: 6000 },
           );
         } else {
-          toast.error('Failed to delete machine: ' + (errorData.error || 'Unknown error'));
+          toast.error(errorMessage);
         }
       }
     } catch (error) {
       logger.error('Error deleting machine:', error);
-      toast.error('Error deleting machine');
+      toast.error(getErrorMessage(error, 'Error deleting machine'));
     }
   };
 

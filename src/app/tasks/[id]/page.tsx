@@ -7,6 +7,7 @@ import PageContainer from '@/components/layout/PageContainer';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { logger } from '@/utils/logger';
+import { extractErrorMessage, getErrorMessage } from '@/utils/errorHandling';
 import TaskStatusQuickActions from '@/components/task/TaskStatusQuickActions';
 import toast from 'react-hot-toast';
 
@@ -101,12 +102,13 @@ export default function TaskDetailPage() {
         setTask({ ...task, status: newStatus });
         toast.success('Task status updated successfully');
       } else {
-        logger.error('Failed to update task status');
-        toast.error('Failed to update task status');
+        const errorMessage = await extractErrorMessage(response, 'Failed to update task status');
+        logger.error('Failed to update task status:', errorMessage);
+        toast.error(errorMessage);
       }
     } catch (error) {
-      logger.error('Error deleting task', error);
-      toast.error('Error deleting task. Please try again.');
+      logger.error('Error updating task status', error);
+      toast.error(getErrorMessage(error, 'Error updating task status'));
     }
   };
 
@@ -136,12 +138,13 @@ export default function TaskDetailPage() {
           router.push('/tasks');
         }
       } else {
-        logger.error('Failed to delete task');
-        toast.error('Failed to delete task');
+        const errorMessage = await extractErrorMessage(response, 'Failed to delete task');
+        logger.error('Failed to delete task:', errorMessage);
+        toast.error(errorMessage);
       }
     } catch (error) {
       logger.error('Error deleting task', error);
-      toast.error('Error deleting task');
+      toast.error(getErrorMessage(error, 'Error deleting task'));
     }
   };
 

@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import ScheduleCalendar from '@/components/ScheduleCalendar';
 import { logger } from '@/utils/logger';
+import { extractErrorMessage } from '@/utils/errorHandling';
+import toast from 'react-hot-toast';
 import GanttChart from '@/components/gantt/GanttChart';
 import PageContainer from '@/components/layout/PageContainer';
 
@@ -70,10 +72,13 @@ export default function SchedulePage() {
             const data = await response.json();
             setGanttData(data);
           } else {
-            logger.apiError('Fetch Gantt data', '/api/gantt', 'Failed to fetch');
+            const errorMessage = await extractErrorMessage(response, 'Failed to fetch Gantt data');
+            logger.apiError('Fetch Gantt data', '/api/gantt', errorMessage);
+            toast.error(errorMessage);
           }
         } catch (error) {
           logger.error('Error fetching Gantt data', error);
+          toast.error('Error loading schedule data');
         } finally {
           setLoading(false);
         }

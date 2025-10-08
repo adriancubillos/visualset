@@ -9,6 +9,7 @@ import { OperatorColorIndicator } from '@/components/ui/ColorIndicator';
 import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { logger } from '@/utils/logger';
+import { extractErrorMessage, getErrorMessage } from '@/utils/errorHandling';
 
 interface Task {
   id: string;
@@ -102,13 +103,13 @@ export default function OperatorDetailPage() {
       if (response.ok && operator) {
         setOperator({ ...operator, status: newStatus });
       } else {
-        const errorData = await response.json();
-        logger.error('Failed to update operator status,', errorData.error);
-        toast.error('Failed to update operator status: ' + (errorData.error || 'Unknown error'));
+        const errorMessage = await extractErrorMessage(response, 'Failed to update operator status');
+        logger.error('Failed to update operator status:', errorMessage);
+        toast.error(errorMessage);
       }
     } catch (error) {
-      logger.error('Error deleting operator', error);
-      toast.error('Error deleting operator');
+      logger.error('Error updating operator status', error);
+      toast.error(getErrorMessage(error, 'Error updating operator status'));
     }
   };
 
@@ -133,12 +134,13 @@ export default function OperatorDetailPage() {
         toast.success('Operator deleted successfully');
         router.push('/operators');
       } else {
-        logger.error('Failed to delete operator');
-        toast.error('Failed to delete operator');
+        const errorMessage = await extractErrorMessage(response, 'Failed to delete operator');
+        logger.error('Failed to delete operator:', errorMessage);
+        toast.error(errorMessage);
       }
     } catch (error) {
       logger.error('Error deleting operator', error);
-      toast.error('Error deleting operator');
+      toast.error(getErrorMessage(error, 'Error deleting operator'));
     }
   };
 

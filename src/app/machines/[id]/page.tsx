@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { logger } from '@/utils/logger';
+import { extractErrorMessage, getErrorMessage } from '@/utils/errorHandling';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import PageContainer from '@/components/layout/PageContainer';
@@ -100,11 +101,13 @@ export default function MachineDetailPage() {
       if (response.ok && machine) {
         setMachine({ ...machine, status: newStatus });
       } else {
-        logger.apiError('Update machine status', `/api/machines/${machine?.id}`, 'Failed to update');
+        const errorMessage = await extractErrorMessage(response, 'Failed to update machine status');
+        logger.apiError('Update machine status', `/api/machines/${machine?.id}`, errorMessage);
+        toast.error(errorMessage);
       }
     } catch (error) {
-      logger.error('Error deleting machine', error);
-      toast.error('Error deleting machine');
+      logger.error('Error updating machine status', error);
+      toast.error(getErrorMessage(error, 'Error updating machine status'));
     }
   };
 
@@ -129,12 +132,13 @@ export default function MachineDetailPage() {
         toast.success('Machine deleted successfully');
         router.push('/machines');
       } else {
-        logger.error('Failed to delete machine');
-        toast.error('Failed to delete machine');
+        const errorMessage = await extractErrorMessage(response, 'Failed to delete machine');
+        logger.error('Failed to delete machine:', errorMessage);
+        toast.error(errorMessage);
       }
     } catch (error) {
       logger.error('Error deleting machine', error);
-      toast.error('Error deleting machine');
+      toast.error(getErrorMessage(error, 'Error deleting machine'));
     }
   };
 

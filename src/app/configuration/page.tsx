@@ -7,6 +7,7 @@ import SearchFilter from '@/components/ui/SearchFilter';
 import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useAllConfigurations } from '@/hooks/useConfiguration';
 import toast from 'react-hot-toast';
+import { extractErrorMessage, getErrorMessage } from '@/utils/errorHandling';
 
 interface Configuration {
   id: string;
@@ -101,14 +102,15 @@ export default function ConfigurationPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete configuration');
+        const errorMessage = await extractErrorMessage(response, 'Failed to delete configuration');
+        throw new Error(errorMessage);
       }
 
       refetch();
       showSuccess('Configuration deleted successfully');
     } catch (error) {
       console.error('Error deleting configuration:', error);
-      showError('Failed to delete configuration');
+      showError(getErrorMessage(error, 'Failed to delete configuration'));
     }
   };
 
@@ -126,7 +128,11 @@ export default function ConfigurationPage() {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to ${isCreating ? 'create' : 'update'} configuration`);
+        const errorMessage = await extractErrorMessage(
+          response,
+          `Failed to ${isCreating ? 'create' : 'update'} configuration`
+        );
+        throw new Error(errorMessage);
       }
 
       refetch();
@@ -134,7 +140,7 @@ export default function ConfigurationPage() {
       showSuccess(`Configuration ${isCreating ? 'created' : 'updated'} successfully`);
     } catch (error) {
       console.error(`Error ${isCreating ? 'creating' : 'updating'} configuration:`, error);
-      showError(`Failed to ${isCreating ? 'create' : 'update'} configuration`);
+      showError(getErrorMessage(error, `Failed to ${isCreating ? 'create' : 'update'} configuration`));
     }
   };
 

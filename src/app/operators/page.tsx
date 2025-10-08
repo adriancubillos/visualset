@@ -11,6 +11,7 @@ import TableActions from '@/components/ui/TableActions';
 import { OperatorColorIndicator } from '@/components/ui/ColorIndicator';
 import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { logger } from '@/utils/logger';
+import { extractErrorMessage, getErrorMessage } from '@/utils/errorHandling';
 import StatisticsCards from '@/components/ui/StatisticsCards';
 import { OPERATOR_STATUS } from '@/config/workshop-properties';
 import { useAvailableSkills, useOperatorShifts } from '@/hooks/useConfiguration';
@@ -292,21 +293,21 @@ function OperatorsPageContent({
         setOperators(updatedOperators);
         toast.success('Operator deleted successfully');
       } else {
-        const errorData = await response.json();
-        logger.error('Failed to delete operator,', errorData.error);
+        const errorMessage = await extractErrorMessage(response, 'Failed to delete operator');
+        logger.error('Failed to delete operator:', errorMessage);
 
-        if (errorData.error?.includes('assigned tasks')) {
+        if (errorMessage.includes('assigned tasks')) {
           toast.error(
             `Cannot delete "${operatorName}". This operator is currently assigned to one or more tasks. Please unassign or delete those tasks first.`,
             { duration: 6000 },
           );
         } else {
-          toast.error('Failed to delete operator: ' + (errorData.error || 'Unknown error'));
+          toast.error(errorMessage);
         }
       }
     } catch (error) {
       logger.error('Error deleting operator:', error);
-      toast.error('Error deleting operator');
+      toast.error(getErrorMessage(error, 'Error deleting operator'));
     }
   };
 

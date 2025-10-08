@@ -11,6 +11,7 @@ import TableActions from '@/components/ui/TableActions';
 import ImageViewer from '@/components/ui/ImageViewer';
 import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { logger } from '@/utils/logger';
+import { extractErrorMessage, getErrorMessage } from '@/utils/errorHandling';
 import StatisticsCards from '@/components/ui/StatisticsCards';
 import { Column } from '@/types/table';
 import FilterProvider from '@/components/layout/FilterProvider';
@@ -234,13 +235,13 @@ function ItemsPageContent({
         setItems(updatedItems);
         toast.success('Item deleted successfully');
       } else {
-        const errorData = await response.json();
-        logger.apiError('Delete item', `/api/items/${id}`, errorData.error);
-        toast.error('Failed to delete: ' + errorData.error);
+        const errorMessage = await extractErrorMessage(response, 'Failed to delete item');
+        logger.apiError('Delete item', `/api/items/${id}`, errorMessage);
+        toast.error(errorMessage);
       }
     } catch (error) {
       logger.error('Error deleting item', error);
-      toast.error('Error deleting item' + error);
+      toast.error(getErrorMessage(error, 'Error deleting item'));
     }
   };
 

@@ -12,6 +12,7 @@ import PageContainer from '@/components/layout/PageContainer';
 import { checkItemCompletionReadiness } from '@/utils/itemValidation';
 import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { logger } from '@/utils/logger';
+import { extractErrorMessage, getErrorMessage } from '@/utils/errorHandling';
 
 interface Task {
   id: string;
@@ -80,13 +81,13 @@ export default function ItemDetailPage() {
         // Navigate back to the project detail page
         router.push(`/projects/${item?.project.id}`);
       } else {
-        const errorData = await response.json();
-        logger.apiError('Delete item', `/api/items/${params.id}`, errorData.error);
-        toast.error('Failed to delete item. \n ' + errorData.error);
+        const errorMessage = await extractErrorMessage(response, 'Failed to delete item');
+        logger.apiError('Delete item', `/api/items/${params.id}`, errorMessage);
+        toast.error(errorMessage);
       }
     } catch (error) {
       logger.error('Error deleting item', error);
-      toast.error('An error occurred while deleting the item.');
+      toast.error(getErrorMessage(error, 'Error deleting item'));
     }
   };
 
@@ -134,12 +135,13 @@ export default function ItemDetailPage() {
         setItem({ ...item, tasks: updatedTasks });
         toast.success('Task deleted successfully');
       } else {
-        logger.error('Failed to delete task');
-        toast.error('Failed to delete task');
+        const errorMessage = await extractErrorMessage(response, 'Failed to delete task');
+        logger.error('Failed to delete task:', errorMessage);
+        toast.error(errorMessage);
       }
     } catch (error) {
-      logger.error('Error deleting task,', error);
-      toast.error('Error deleting task');
+      logger.error('Error deleting task:', error);
+      toast.error(getErrorMessage(error, 'Error deleting task'));
     }
   };
 
