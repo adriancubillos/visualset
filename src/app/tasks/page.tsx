@@ -165,10 +165,7 @@ function TasksPageContent({
         minWidth: '120px',
         render: (operators: Task['operators']) => (
           <span className="text-sm">
-            {operators && operators.length > 0 
-              ? operators.map(op => op.name).join(', ')
-              : 'Unassigned'
-            }
+            {operators && operators.length > 0 ? operators.map((op) => op.name).join(', ') : 'Unassigned'}
           </span>
         ),
       },
@@ -180,10 +177,7 @@ function TasksPageContent({
         minWidth: '120px',
         render: (machines: Task['machines']) => (
           <span className="text-sm">
-            {machines && machines.length > 0 
-              ? machines.map(machine => machine.name).join(', ')
-              : 'Unassigned'
-            }
+            {machines && machines.length > 0 ? machines.map((machine) => machine.name).join(', ') : 'Unassigned'}
           </span>
         ),
       },
@@ -290,8 +284,8 @@ function TasksPageContent({
           task.description?.toLowerCase().includes(search.toLowerCase()) ||
           task.item?.name.toLowerCase().includes(search.toLowerCase()) ||
           task.item?.project.name.toLowerCase().includes(search.toLowerCase()) ||
-          task.machines?.some(machine => machine.name.toLowerCase().includes(search.toLowerCase())) ||
-          task.operators?.some(operator => operator.name.toLowerCase().includes(search.toLowerCase())),
+          task.machines?.some((machine) => machine.name.toLowerCase().includes(search.toLowerCase())) ||
+          task.operators?.some((operator) => operator.name.toLowerCase().includes(search.toLowerCase())),
       );
     }
 
@@ -309,11 +303,11 @@ function TasksPageContent({
     }
 
     if (filters.machine) {
-      filtered = filtered.filter((task) => task.machines?.some(machine => machine.id === filters.machine));
+      filtered = filtered.filter((task) => task.machines?.some((machine) => machine.id === filters.machine));
     }
 
     if (filters.operator) {
-      filtered = filtered.filter((task) => task.operators?.some(operator => operator.id === filters.operator));
+      filtered = filtered.filter((task) => task.operators?.some((operator) => operator.id === filters.operator));
     }
 
     return filtered;
