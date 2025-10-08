@@ -1,10 +1,42 @@
 import { PrismaClient } from '@prisma/client';
 import { addDays, setHours, setMinutes } from 'date-fns';
+import { seedConfigurationsIfEmpty } from './seed-configurations-auto';
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log('🌱 Starting database seed...');
+
+  // --- First, ensure configurations are seeded ---
+  console.log('📋 Ensuring configurations are available...');
+  await seedConfigurationsIfEmpty();
+
+  // --- Get available skills from configuration ---
+  const availableSkills = await prisma.configuration.findMany({
+    where: { category: 'AVAILABLE_SKILLS' },
+    select: { value: true }
+  });
+  
+  const skillValues = availableSkills.map(skill => skill.value);
+  console.log(`📋 Found ${skillValues.length} available skills:`, skillValues);
+
+  // --- Get available shifts from configuration ---
+  const availableShifts = await prisma.configuration.findMany({
+    where: { category: 'OPERATOR_SHIFTS' },
+    select: { value: true }
+  });
+  
+  const shiftValues = availableShifts.map(shift => shift.value);
+  console.log(`📋 Found ${shiftValues.length} available shifts:`, shiftValues);
+
+  // --- Get available machine types from configuration ---
+  const availableMachineTypes = await prisma.configuration.findMany({
+    where: { category: 'MACHINE_TYPES' },
+    select: { value: true }
+  });
+  
+  const machineTypeValues = availableMachineTypes.map(type => type.value);
+  console.log(`📋 Found ${machineTypeValues.length} available machine types:`, machineTypeValues);
 
   // --- Clear existing data ---
   await prisma.task.deleteMany();
@@ -13,37 +45,54 @@ async function main() {
   await prisma.operator.deleteMany();
   await prisma.machine.deleteMany();
 
+  // Helper function to get random configured values
+  const getRandomSkills = (count: number = 2) => {
+    if (skillValues.length === 0) return [];
+    const shuffled = [...skillValues].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, Math.min(count, skillValues.length));
+  };
+
+  const getRandomMachineType = () => {
+    if (machineTypeValues.length === 0) return 'DEFAULT_TYPE';
+    return machineTypeValues[Math.floor(Math.random() * machineTypeValues.length)];
+  };
+
+  const getRandomShift = () => {
+    if (shiftValues.length === 0) return 'DAY';
+    return shiftValues[Math.floor(Math.random() * shiftValues.length)];
+  };
+
   // --- Machines (10 machines with diverse types and locations) ---
   const machines = await Promise.all([
     prisma.machine.create({
-      data: { name: 'Cortadora CNC-001', type: 'CNC', status: 'AVAILABLE', location: 'Workshop A - Bay 1' },
+      data: { name: 'Cortadora CNC-001', type: getRandomMachineType(), status: 'AVAILABLE', location: 'Workshop A - Bay 1' },
     }),
     prisma.machine.create({
-      data: { name: 'Impresora 3D Prusa', type: '3D_Printer', status: 'AVAILABLE', location: 'Workshop B - Station 3' },
+      data: { name: 'Impresora 3D Prusa', type: getRandomMachineType(), status: 'AVAILABLE', location: 'Workshop B - Station 3' },
     }),
     prisma.machine.create({
-      data: { name: 'Soldadora MIG-200', type: 'Welding', status: 'AVAILABLE', location: 'Workshop A - Bay 2' },
+      data: { name: 'Soldadora MIG-200', type: getRandomMachineType(), status: 'AVAILABLE', location: 'Workshop A - Bay 2' },
     }),
     prisma.machine.create({
-      data: { name: 'Taladro Industrial', type: 'Drilling', status: 'AVAILABLE', location: 'Workshop A - Bay 3' },
+      data: { name: 'Taladro Industrial', type: getRandomMachineType(), status: 'AVAILABLE', location: 'Workshop A - Bay 3' },
     }),
     prisma.machine.create({
-      data: { name: 'Fresadora CNC-002', type: 'CNC', status: 'MAINTENANCE', location: 'Workshop A - Bay 4' },
+      data: { name: 'Fresadora CNC-002', type: getRandomMachineType(), status: 'MAINTENANCE', location: 'Workshop A - Bay 4' },
     }),
     prisma.machine.create({
-      data: { name: 'Cortadora Laser', type: 'Laser', status: 'AVAILABLE', location: 'Workshop B - Station 1' },
+      data: { name: 'Cortadora Laser', type: getRandomMachineType(), status: 'AVAILABLE', location: 'Workshop B - Station 1' },
     }),
     prisma.machine.create({
-      data: { name: 'Torno CNC-003', type: 'CNC', status: 'AVAILABLE', location: 'Workshop A - Bay 5' },
+      data: { name: 'Torno CNC-003', type: getRandomMachineType(), status: 'AVAILABLE', location: 'Workshop A - Bay 5' },
     }),
     prisma.machine.create({
-      data: { name: 'Prensa Hidraulica', type: 'Press', status: 'AVAILABLE', location: 'Workshop C - Area 1' },
+      data: { name: 'Prensa Hidraulica', type: getRandomMachineType(), status: 'AVAILABLE', location: 'Workshop C - Area 1' },
     }),
     prisma.machine.create({
-      data: { name: 'Centro Mecanizado MC-400', type: 'CNC', status: 'IN_USE', location: 'Workshop A - Bay 6' },
+      data: { name: 'Centro Mecanizado MC-400', type: getRandomMachineType(), status: 'IN_USE', location: 'Workshop A - Bay 6' },
     }),
     prisma.machine.create({
-      data: { name: 'Estacion de Ensamble', type: 'Assembly', status: 'AVAILABLE', location: 'Workshop C - Area 2' },
+      data: { name: 'Estacion de Ensamble', type: getRandomMachineType(), status: 'AVAILABLE', location: 'Workshop C - Area 2' },
     }),
   ]);
 
@@ -52,211 +101,211 @@ async function main() {
     {
       name: 'Paula Castillo',
       email: 'paula.castillo@workshop.com',
-      skills: ['CNC_MILL', 'WELDING'],
-      shift: 'DAY',
+      skills: getRandomSkills(2),
+      shift: getRandomShift(),
       availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
     },
     {
       name: 'Jorge Gonzalez',
       email: 'jorge.gonzalez@workshop.com',
-      skills: ['CNC_MILL', 'DRILL_PRESS', 'ASSEMBLY'],
-      shift: 'DAY',
+      skills: getRandomSkills(3),
+      shift: getRandomShift(),
       availability: { mon: '09-17', tue: '09-17', wed: '09-17', thu: '09-17', fri: '09-17' },
     },
     {
       name: 'Mike Davis',
       email: 'mike.davis@workshop.com',
-      skills: ['WELDING', 'ASSEMBLY'],
-      shift: 'EVENING',
+      skills: getRandomSkills(2),
+      shift: getRandomShift(),
       availability: { mon: '07-15', tue: '07-15', wed: '07-15', thu: '07-15', fri: '07-15' },
     },
     {
       name: 'Ana Rodriguez',
       email: 'ana.rodriguez@workshop.com',
-      skills: ['3D_PRINTING', 'QUALITY_CONTROL'],
-      shift: 'DAY',
+      skills: getRandomSkills(2),
+      shift: getRandomShift(),
       availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
     },
     {
       name: 'Carlos Mendez',
       email: 'carlos.mendez@workshop.com',
-      skills: ['LASER_CUTTING', 'SHEET_METAL'],
-      shift: 'DAY',
+      skills: getRandomSkills(2),
+      shift: getRandomShift(),
       availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
     },
     {
       name: 'Alice Johnson',
       email: 'alice.johnson@workshop.com',
-      skills: ['CNC_MILL', 'CNC_LATHE'],
-      shift: 'DAY',
+      skills: getRandomSkills(2),
+      shift: getRandomShift(),
       availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
     },
     {
       name: 'Bob Smith',
       email: 'bob.smith@workshop.com',
-      skills: ['WELDING', 'SHEET_METAL'],
-      shift: 'DAY',
+      skills: getRandomSkills(2),
+      shift: getRandomShift(),
       availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
     },
     {
       name: 'Carol Davis',
       email: 'carol.davis@workshop.com',
-      skills: ['QUALITY_CONTROL', 'ASSEMBLY'],
-      shift: 'EVENING',
+      skills: getRandomSkills(2),
+      shift: getRandomShift(),
       availability: { mon: '16-00', tue: '16-00', wed: '16-00', thu: '16-00', fri: '16-00' },
     },
     {
       name: 'David Wilson',
       email: 'david.wilson@workshop.com',
-      skills: ['ASSEMBLY', 'DRILL_PRESS'],
-      shift: 'DAY',
+      skills: getRandomSkills(2),
+      shift: getRandomShift(),
       availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
     },
     {
       name: 'Eva Martinez',
       email: 'eva.martinez@workshop.com',
-      skills: ['3D_PRINTING', 'ASSEMBLY'],
-      shift: 'DAY',
+      skills: getRandomSkills(2),
+      shift: getRandomShift(),
       availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
     },
     {
       name: 'Frank Brown',
       email: 'frank.brown@workshop.com',
-      skills: ['DRILL_PRESS', 'CNC_MILL'],
-      shift: 'NIGHT',
+      skills: getRandomSkills(2),
+      shift: getRandomShift(),
       availability: { mon: '22-06', tue: '22-06', wed: '22-06', thu: '22-06', fri: '22-06' },
     },
     {
       name: 'Grace Lee',
       email: 'grace.lee@workshop.com',
-      skills: ['LASER_CUTTING', 'QUALITY_CONTROL'],
-      shift: 'DAY',
+      skills: getRandomSkills(2),
+      shift: getRandomShift(),
       availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
     },
     {
       name: 'Henry Chen',
       email: 'henry.chen@workshop.com',
-      skills: ['CNC_LATHE', 'CNC_MILL'],
-      shift: 'EVENING',
+      skills: getRandomSkills(2),
+      shift: getRandomShift(),
       availability: { mon: '16-00', tue: '16-00', wed: '16-00', thu: '16-00', fri: '16-00' },
     },
     {
       name: 'Isabel Garcia',
       email: 'isabel.garcia@workshop.com',
-      skills: ['SHEET_METAL', 'WELDING'],
-      shift: 'DAY',
+      skills: getRandomSkills(2),
+      shift: getRandomShift(),
       availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
     },
     {
       name: 'Jack Thompson',
       email: 'jack.thompson@workshop.com',
-      skills: ['CNC_MILL', 'ASSEMBLY'],
-      shift: 'DAY',
+      skills: getRandomSkills(2),
+      shift: getRandomShift(),
       availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
     },
     {
       name: 'Karen White',
       email: 'karen.white@workshop.com',
-      skills: ['3D_PRINTING', 'LASER_CUTTING'],
-      shift: 'DAY',
+      skills: getRandomSkills(2),
+      shift: getRandomShift(),
       availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
     },
     {
       name: 'Luis Rodriguez',
       email: 'luis.rodriguez@workshop.com',
-      skills: ['WELDING', 'SHEET_METAL'],
-      shift: 'NIGHT',
+      skills: getRandomSkills(2),
+      shift: getRandomShift(),
       availability: { mon: '22-06', tue: '22-06', wed: '22-06', thu: '22-06', fri: '22-06' },
     },
     {
       name: 'Maria Gonzalez',
       email: 'maria.gonzalez@workshop.com',
-      skills: ['ASSEMBLY', 'QUALITY_CONTROL'],
-      shift: 'EVENING',
+      skills: getRandomSkills(2),
+      shift: getRandomShift(),
       availability: { mon: '16-00', tue: '16-00', wed: '16-00', thu: '16-00', fri: '16-00' },
     },
     {
       name: 'Nathan Kim',
       email: 'nathan.kim@workshop.com',
-      skills: ['3D_PRINTING', 'CNC_MILL'],
-      shift: 'DAY',
+      skills: getRandomSkills(2),
+      shift: getRandomShift(),
       availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
     },
     {
       name: 'Olivia Turner',
       email: 'olivia.turner@workshop.com',
-      skills: ['DRILL_PRESS', 'ASSEMBLY'],
-      shift: 'DAY',
+      skills: getRandomSkills(2),
+      shift: getRandomShift(),
       availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
     },
     {
       name: 'Peter Adams',
       email: 'peter.adams@workshop.com',
-      skills: ['CNC_LATHE', 'WELDING'],
-      shift: 'EVENING',
+      skills: getRandomSkills(2),
+      shift: getRandomShift(),
       availability: { mon: '16-00', tue: '16-00', wed: '16-00', thu: '16-00', fri: '16-00' },
     },
     {
       name: 'Quinn Foster',
       email: 'quinn.foster@workshop.com',
-      skills: ['LASER_CUTTING', 'SHEET_METAL'],
-      shift: 'DAY',
+      skills: getRandomSkills(2),
+      shift: getRandomShift(),
       availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
     },
     {
       name: 'Rachel Cooper',
       email: 'rachel.cooper@workshop.com',
-      skills: ['CNC_MILL', 'QUALITY_CONTROL'],
-      shift: 'DAY',
+      skills: getRandomSkills(2),
+      shift: getRandomShift(),
       availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
     },
     {
       name: 'Steve Mitchell',
       email: 'steve.mitchell@workshop.com',
-      skills: ['SHEET_METAL', 'WELDING'],
-      shift: 'NIGHT',
+      skills: getRandomSkills(2),
+      shift: getRandomShift(),
       availability: { mon: '22-06', tue: '22-06', wed: '22-06', thu: '22-06', fri: '22-06' },
     },
     {
       name: 'Tina Parker',
       email: 'tina.parker@workshop.com',
-      skills: ['3D_PRINTING', 'ASSEMBLY'],
-      shift: 'DAY',
+      skills: getRandomSkills(2),
+      shift: getRandomShift(),
       availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
     },
     {
       name: 'Ulrich Weber',
       email: 'ulrich.weber@workshop.com',
-      skills: ['CNC_LATHE', 'CNC_MILL'],
-      shift: 'DAY',
+      skills: getRandomSkills(2),
+      shift: getRandomShift(),
       availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
     },
     {
       name: 'Victoria Young',
       email: 'victoria.young@workshop.com',
-      skills: ['WELDING', 'DRILL_PRESS'],
-      shift: 'EVENING',
+      skills: getRandomSkills(2),
+      shift: getRandomShift(),
       availability: { mon: '16-00', tue: '16-00', wed: '16-00', thu: '16-00', fri: '16-00' },
     },
     {
       name: 'William Bell',
       email: 'william.bell@workshop.com',
-      skills: ['LASER_CUTTING', 'QUALITY_CONTROL'],
-      shift: 'DAY',
+      skills: getRandomSkills(2),
+      shift: getRandomShift(),
       availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
     },
     {
       name: 'Xander Price',
       email: 'xander.price@workshop.com',
-      skills: ['CNC_MILL', 'ASSEMBLY'],
-      shift: 'DAY',
+      skills: getRandomSkills(2),
+      shift: getRandomShift(),
       availability: { mon: '08-16', tue: '08-16', wed: '08-16', thu: '08-16', fri: '08-16' },
     },
     {
       name: 'Yolanda Cruz',
       email: 'yolanda.cruz@workshop.com',
-      skills: ['SHEET_METAL', '3D_PRINTING'],
-      shift: 'EVENING',
+      skills: getRandomSkills(2),
+      shift: getRandomShift(),
       availability: { mon: '16-00', tue: '16-00', wed: '16-00', thu: '16-00', fri: '16-00' },
     },
   ];

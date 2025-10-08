@@ -2,35 +2,88 @@ import { PrismaClient, ConfigurationCategory } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// Data from workshop-properties.ts
-const configurationData: Record<ConfigurationCategory, Array<{ value: string; label: string }>> = {
-  AVAILABLE_SKILLS: [{ value: '3D_PRINTING', label: '3D Printing' }],
-  MACHINE_TYPES: [{ value: '3D_Printer', label: '3D Printer' }],
-  OPERATOR_SHIFTS: [{ value: 'DIURNO', label: 'Horario (8AM - 6PM)' }],
-  TASK_PRIORITY: [
-    { value: 'BAJA', label: 'Baja' },
-    { value: 'MEDIA', label: 'Media' },
-    { value: 'ALTA', label: 'Alta' },
-    { value: 'URGENTE', label: 'Urgente' },
-  ],
-  TASK_TITLES: [
-    { value: 'ARCHIVOS_IMPRESION_CORTE', label: 'Archivos impresion y corte' },
-    { value: 'CABLEADO_ILUMINACION', label: 'Cableado iluminación' },
-    { value: 'CARPINTERIA', label: 'Carpinteria' },
-    { value: 'COMPRA_MATERIALES', label: 'Compra de materiales' },
-    { value: 'CORTE', label: 'Corte' },
-    { value: 'CUENTA_MATERIALES', label: 'Cuenta de materiales' },
-    { value: 'EMPAQUE', label: 'Empaque' },
-    { value: 'ENSAMBLE', label: 'Ensamble' },
-    { value: 'IMPRESION', label: 'Impresion' },
-    { value: 'INSTALACION', label: 'Instalacion' },
-    { value: 'LAMINADO', label: 'Laminado' },
-    { value: 'ORNAMENTACION', label: 'Ornamentacion' },
-    { value: 'PINTURA', label: 'Pintura' },
-    { value: 'PLANOS_ESTRUCTURAS', label: 'Planos estructuras' },
-    { value: 'PLANO_GENERAL_VISUAL', label: 'Plano general y visual' },
-    { value: 'TRANSPORTE', label: 'Transporte' },
-  ],
+// Environment-based configuration data
+const getConfigurationData = (): Record<ConfigurationCategory, Array<{ value: string; label: string }>> => {
+  const nodeEnv = process.env.NODE_ENV || 'development';
+  
+  // Production configuration (can be overridden via environment variables)
+  if (nodeEnv === 'production') {
+    return {
+      AVAILABLE_SKILLS: [
+        { 
+          value: process.env.DEFAULT_SKILL_VALUE || 'PRINTING_IN_3D_SKILL', 
+          label: process.env.DEFAULT_SKILL_LABEL || 'Printing in 3D skill' 
+        }
+      ],
+      MACHINE_TYPES: [
+        { 
+          value: process.env.DEFAULT_MACHINE_TYPE || '3D_Printer', 
+          label: process.env.DEFAULT_MACHINE_LABEL || '3D Printer' 
+        }
+      ],
+      OPERATOR_SHIFTS: [
+        { 
+          value: process.env.DEFAULT_SHIFT_VALUE || 'DIURNO', 
+          label: process.env.DEFAULT_SHIFT_LABEL || 'Horario (8AM - 6PM)' 
+        }
+      ],
+      TASK_PRIORITY: [
+        { value: 'BAJA', label: 'Baja' },
+        { value: 'MEDIA', label: 'Media' },
+        { value: 'ALTA', label: 'Alta' },
+        { value: 'URGENTE', label: 'Urgente' },
+      ],
+      TASK_TITLES: [
+        { value: 'ARCHIVOS_IMPRESION_CORTE', label: 'Archivos impresion y corte' },
+        { value: 'CABLEADO_ILUMINACION', label: 'Cableado iluminación' },
+        { value: 'CARPINTERIA', label: 'Carpinteria' },
+        { value: 'COMPRA_MATERIALES', label: 'Compra de materiales' },
+        { value: 'CORTE', label: 'Corte' },
+        { value: 'CUENTA_MATERIALES', label: 'Cuenta de materiales' },
+        { value: 'EMPAQUE', label: 'Empaque' },
+        { value: 'ENSAMBLE', label: 'Ensamble' },
+        { value: 'IMPRESION', label: 'Impresion' },
+        { value: 'INSTALACION', label: 'Instalacion' },
+        { value: 'LAMINADO', label: 'Laminado' },
+        { value: 'ORNAMENTACION', label: 'Ornamentacion' },
+        { value: 'PINTURA', label: 'Pintura' },
+        { value: 'PLANOS_ESTRUCTURAS', label: 'Planos estructuras' },
+        { value: 'PLANO_GENERAL_VISUAL', label: 'Plano general y visual' },
+        { value: 'TRANSPORTE', label: 'Transporte' },
+      ],
+    };
+  }
+  
+  // Development configuration (matches your current setup)
+  return {
+    AVAILABLE_SKILLS: [{ value: 'PRINTING_IN_3D_SKILL', label: 'Printing in 3D skill' }],
+    MACHINE_TYPES: [{ value: '3D_Printer', label: '3D Printer' }],
+    OPERATOR_SHIFTS: [{ value: 'DIURNO', label: 'Horario (8AM - 6PM)' }],
+    TASK_PRIORITY: [
+      { value: 'BAJA', label: 'Baja' },
+      { value: 'MEDIA', label: 'Media' },
+      { value: 'ALTA', label: 'Alta' },
+      { value: 'URGENTE', label: 'Urgente' },
+    ],
+    TASK_TITLES: [
+      { value: 'ARCHIVOS_IMPRESION_CORTE', label: 'Archivos impresion y corte' },
+      { value: 'CABLEADO_ILUMINACION', label: 'Cableado iluminación' },
+      { value: 'CARPINTERIA', label: 'Carpinteria' },
+      { value: 'COMPRA_MATERIALES', label: 'Compra de materiales' },
+      { value: 'CORTE', label: 'Corte' },
+      { value: 'CUENTA_MATERIALES', label: 'Cuenta de materiales' },
+      { value: 'EMPAQUE', label: 'Empaque' },
+      { value: 'ENSAMBLE', label: 'Ensamble' },
+      { value: 'IMPRESION', label: 'Impresion' },
+      { value: 'INSTALACION', label: 'Instalacion' },
+      { value: 'LAMINADO', label: 'Laminado' },
+      { value: 'ORNAMENTACION', label: 'Ornamentacion' },
+      { value: 'PINTURA', label: 'Pintura' },
+      { value: 'PLANOS_ESTRUCTURAS', label: 'Planos estructuras' },
+      { value: 'PLANO_GENERAL_VISUAL', label: 'Plano general y visual' },
+      { value: 'TRANSPORTE', label: 'Transporte' },
+    ],
+  };
 };
 
 async function seedConfigurationsIfEmpty() {
@@ -51,6 +104,10 @@ async function seedConfigurationsIfEmpty() {
     }
 
     console.log('🌱 Database is empty - starting seeding...');
+
+    // Get configuration data based on environment
+    const configurationData = getConfigurationData();
+    console.log(`🔧 Using configuration for environment: ${nodeEnv}`);
 
     // Seed each category
     let totalSeeded = 0;
