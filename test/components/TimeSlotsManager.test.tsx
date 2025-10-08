@@ -143,8 +143,8 @@ describe('TimeSlotsManager', () => {
     const { container } = render(<TimeSlotsManager timeSlots={mockTimeSlots} onChange={mockOnChange} />);
     
     const timeInputs = container.querySelectorAll('input[type="time"]');
-    await user.clear(timeInputs[0]);
-    await user.type(timeInputs[0], '14:30');
+    await user.click(timeInputs[0]);
+    await user.keyboard('{Control>}a{/Control}14:30');
     
     expect(mockOnChange).toHaveBeenCalled();
   });
