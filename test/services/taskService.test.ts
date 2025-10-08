@@ -3,6 +3,16 @@ import taskService from '@/services/taskService';
 import type { PrismaClient } from '@prisma/client';
 import { ApiError } from '@/lib/errors';
 import { prismaMock } from '../setup';
+import { checkSchedulingConflicts } from '@/utils/conflictDetection';
+
+// Mock the conflict detection module
+vi.mock('@/utils/conflictDetection', () => ({
+  checkSchedulingConflicts: vi.fn(),
+  timeRangesOverlap: vi.fn().mockReturnValue(false),
+}));
+
+// Get the mocked function
+const mockedCheckSchedulingConflicts = vi.mocked(checkSchedulingConflicts);
 
 describe('taskService', () => {
   beforeEach(() => {
@@ -16,7 +26,13 @@ describe('taskService', () => {
     prismaMock.item.create.mockReset();
     prismaMock.taskTimeSlot.createMany.mockReset();
     prismaMock.taskTimeSlot.deleteMany.mockReset();
+    prismaMock.taskTimeSlot.findMany.mockReset();
     prismaMock.$transaction.mockReset();
+
+    // Default mocks for conflict detection
+    prismaMock.taskTimeSlot.findMany.mockResolvedValue([]);
+    mockedCheckSchedulingConflicts.mockResolvedValue({ hasConflict: false });
+
     // Reset $transaction to default behavior
     prismaMock.$transaction.mockImplementation(async (callback: (tx: typeof prismaMock) => Promise<unknown>) => {
       return callback(prismaMock);
@@ -1791,6 +1807,9 @@ describe('taskService', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
+
+      // Mock the task lookup
+      prismaMock.task.findUnique.mockResolvedValue(fakeTask as never);
       prismaMock.task.update.mockResolvedValue(fakeTask as never);
 
       const result = await taskService.patchTask(prismaMock as unknown as PrismaClient, 't26', {
@@ -1911,6 +1930,9 @@ describe('taskService', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
+
+      // Mock the task lookup
+      prismaMock.task.findUnique.mockResolvedValue(fakeTask as never);
       prismaMock.task.update.mockResolvedValue(fakeTask as never);
 
       const result = await taskService.patchTask(prismaMock as unknown as PrismaClient, 't29', {
