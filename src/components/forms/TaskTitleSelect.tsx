@@ -16,9 +16,9 @@ export default function TaskTitleSelect({ value, onChange, disabled }: TaskTitle
   const [searchQuery, setSearchQuery] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Get the display value - either from taskTitles or the current value
+  // Get the display value - show label for configured values, or the raw value for custom titles
   const getDisplayValue = () => {
-    const matchedTitle = taskTitles.find((title) => title.label === value);
+    const matchedTitle = taskTitles.find((title) => title.value === value);
     return matchedTitle ? matchedTitle.label : value;
   };
 
@@ -34,8 +34,8 @@ export default function TaskTitleSelect({ value, onChange, disabled }: TaskTitle
     setIsOpen(true);
   };
 
-  const handleOptionSelect = (title: string) => {
-    onChange(title);
+  const handleOptionSelect = (titleValue: string) => {
+    onChange(titleValue);
     setSearchQuery('');
     setIsOpen(false);
     // Immediately blur the input to prevent focus issues
@@ -128,17 +128,17 @@ export default function TaskTitleSelect({ value, onChange, disabled }: TaskTitle
             <div
               key={title.value}
               className={`px-3 py-2 cursor-pointer ${
-                value === title.label
+                value === title.value
                   ? 'bg-blue-100 text-blue-900 hover:bg-blue-100 hover:text-blue-900'
                   : 'text-gray-900 hover:bg-blue-50 hover:text-gray-900 hover:font-semibold'
               }`}
               onMouseDown={(e) => {
                 e.preventDefault();
-                handleOptionSelect(title.label);
+                handleOptionSelect(title.value);
               }}>
               <div className="flex items-center justify-between">
-                <span className={value === title.label ? 'font-semibold' : ''}>{title.label}</span>
-                {value === title.label && (
+                <span className={value === title.value ? 'font-semibold' : ''}>{title.label}</span>
+                {value === title.value && (
                   <svg
                     className="h-5 w-5 text-blue-600"
                     fill="currentColor"

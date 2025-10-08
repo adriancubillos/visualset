@@ -69,7 +69,7 @@ export default function EditItemPage() {
         let itemData = null;
         if (itemResponse.ok) {
           itemData = await itemResponse.json();
-          console.log('Loaded item data:', itemData);
+
           setOriginalImageUrl(itemData.imageUrl || null); // Store original for cancel restoration
           setFormData({
             id: itemData.id,
@@ -96,7 +96,6 @@ export default function EditItemPage() {
             const currentProjectInList = activeProjects.find((p: Project) => p.id === itemData.project.id);
             if (!currentProjectInList) {
               // Add the current project to the list so it can be selected
-              console.log('Adding current project to list:', itemData.project);
               activeProjects.push(itemData.project);
             }
           }
@@ -134,7 +133,7 @@ export default function EditItemPage() {
         projectId: formData.projectId,
       },
     });
-    
+
     router.back();
   };
 
@@ -220,12 +219,15 @@ export default function EditItemPage() {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
       }
-      breadcrumbs={formData.name ? [
-        { label: 'Items', href: '/items' },
-        { label: formData.name, href: `/items/${formData.id}` },
-        { label: 'Edit' },
-      ] : undefined}>
-
+      breadcrumbs={
+        formData.name
+          ? [
+              { label: 'Items', href: '/items' },
+              { label: formData.name, href: `/items/${formData.id}` },
+              { label: 'Edit' },
+            ]
+          : undefined
+      }>
       {/* Global Error Message */}
       {statusValidationError && (
         <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-400 rounded-md">
@@ -385,7 +387,7 @@ export default function EditItemPage() {
             onNewUploadTracked={setNewUploadedImageUrl}
             entityType="item"
             entityName={formData.name}
-            projectName={projects.find(p => p.id === formData.projectId)?.name}
+            projectName={projects.find((p) => p.id === formData.projectId)?.name}
           />
 
           {/* Status */}

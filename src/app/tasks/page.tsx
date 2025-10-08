@@ -13,6 +13,7 @@ import { logger } from '@/utils/logger';
 import { extractErrorMessage, getErrorMessage } from '@/utils/errorHandling';
 import StatisticsCards from '@/components/ui/StatisticsCards';
 import { TASK_STATUS } from '@/config/workshop-properties';
+import { useTaskTitles } from '@/hooks/useConfiguration';
 import { Column } from '@/types/table';
 import FilterProvider from '@/components/layout/FilterProvider';
 
@@ -41,150 +42,35 @@ interface Task {
 }
 
 // Default column configuration
-const defaultColumns: Column<Task>[] = [
-  {
-    key: 'title',
-    header: 'Task',
-    sortable: true,
-    align: 'left',
-    width: '30%',
-    minWidth: '200px',
-  },
-  {
-    id: 'project',
-    key: 'item',
-    header: 'Project',
-    sortable: false,
-    width: '15%',
-    minWidth: '150px',
-    render: (item: Task['item']) => <span className="text-sm">{item?.project?.name || 'No Project'}</span>,
-  },
-  {
-    id: 'item',
-    key: 'item',
-    header: 'Item',
-    sortable: false,
-    width: '15%',
-    minWidth: '150px',
-    render: (item: Task['item']) => <span className="text-sm">{item?.name || 'No Item'}</span>,
-  },
-  {
-    key: 'quantity',
-    header: 'Progress',
-    sortable: false,
-    width: '120px',
-    minWidth: '120px',
-    render: (quantity: number, task: Task) => (
-      <div className="text-sm">
-        <div>
-          {task.completed_quantity}/{quantity}
-        </div>
-        <div className="w-16 bg-gray-200 rounded-full h-1 mt-1">
-          <div
-            className="bg-blue-600 h-1 rounded-full"
-            style={{ width: `${Math.min((task.completed_quantity / quantity) * 100, 100)}%` }}></div>
-        </div>
-      </div>
-    ),
-  },
-  {
-    key: 'operator',
-    header: 'Operator',
-    sortable: true,
-    align: 'left',
-    width: '15%',
-    minWidth: '120px',
-    render: (operator: Task['operator']) => <span className="text-sm">{operator?.name || 'Unassigned'}</span>,
-  },
-  {
-    key: 'machine',
-    header: 'Machine',
-    sortable: true,
-    width: '15%',
-    minWidth: '120px',
-    render: (machine: Task['machine']) => <span className="text-sm">{machine?.name || 'Unassigned'}</span>,
-  },
-  {
-    key: 'status',
-    header: 'Status',
-    sortable: true,
-    width: '120px',
-    minWidth: '120px',
-    render: (status: string) => {
-      const getStatusVariant = (status: string) => {
-        switch (status) {
-          case 'COMPLETED':
-            return 'success';
-          case 'IN_PROGRESS':
-            return 'info';
-          case 'SCHEDULED':
-            return 'info';
-          case 'PENDING':
-            return 'warning';
-          case 'BLOCKED':
-            return 'error';
-          default:
-            return 'default';
-        }
-      };
-
-      return (
-        <StatusBadge
-          status={status ? status.replace(/_/g, ' ') : 'Unknown'}
-          variant={getStatusVariant(status)}
-        />
-      );
-    },
-  },
-  {
-    key: 'timeSlots',
-    header: 'Scheduled',
-    sortable: true,
-    width: '15%',
-    minWidth: '150px',
-    render: (timeSlots: Task['timeSlots']) => {
-      if (!timeSlots || timeSlots.length === 0) {
-        return <span className="text-sm text-gray-500">Not scheduled</span>;
-      }
-
-      // Use first slot
-      const firstSlot = timeSlots[0];
-      const date = new Date(firstSlot.startDateTime);
-
-      return (
-        <div className="text-sm">
-          <div>{date.toLocaleDateString()}</div>
-          {timeSlots.length > 1 && <div className="text-xs text-gray-500">+{timeSlots.length - 1} more</div>}
-        </div>
-      );
-    },
-  },
-];
-
 // Function to get initial column order from localStorage
-const getInitialColumns = (): Column<Task>[] => {
-  if (typeof window === 'undefined') return defaultColumns;
+
+// Function to create columns with access to task title configuration
+// Function to get initial column order from localStorage
+const getInitialColumns = (baseColumns: Column<Task>[]): Column<Task>[] => {
+  if (typeof window === 'undefined') return baseColumns;
 
   try {
     const saved = localStorage.getItem('tasksColumnOrder');
-    if (!saved) return defaultColumns;
+    if (!saved) return baseColumns;
 
     const savedOrder = JSON.parse(saved);
-    if (!Array.isArray(savedOrder)) return defaultColumns;
+    if (!Array.isArray(savedOrder)) return baseColumns;
 
     // Reorder columns based on saved order
     const orderedColumns: Column<Task>[] = [];
 
     // Add columns in saved order
     for (const savedCol of savedOrder) {
-      const matchingColumn = defaultColumns.find((col) => (col.id || col.key) === (savedCol.id || savedCol.key));
+      const matchingColumn = baseColumns.find(
+        (col: Column<Task>) => (col.id || col.key) === (savedCol.id || savedCol.key),
+      );
       if (matchingColumn) {
         orderedColumns.push(matchingColumn);
       }
     }
 
     // Add any new columns that weren't in saved order
-    for (const defaultCol of defaultColumns) {
+    for (const defaultCol of baseColumns) {
       const exists = orderedColumns.some((col) => (col.id || col.key) === (defaultCol.id || defaultCol.key));
       if (!exists) {
         orderedColumns.push(defaultCol);
@@ -194,7 +80,7 @@ const getInitialColumns = (): Column<Task>[] => {
     return orderedColumns;
   } catch (error) {
     logger.error('Error loading column order', error);
-    return defaultColumns;
+    return baseColumns;
   }
 };
 
@@ -209,13 +95,175 @@ function TasksPageContent({
   updateFilters,
   clearAll,
 }: ReturnType<typeof import('@/hooks/useSimpleFilters').useSimpleFilters>) {
+  const { options: taskTitles } = useTaskTitles();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
   const [items, setItems] = useState<{ id: string; name: string }[]>([]);
   const [machines, setMachines] = useState<{ id: string; name: string }[]>([]);
   const [operators, setOperators] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
-  const [columns, setColumns] = useState<Column<Task>[]>(getInitialColumns);
+
+  // Create columns with real-time access to taskTitles
+  const baseColumns = useMemo<Column<Task>[]>(
+    () => [
+      {
+        key: 'title',
+        header: 'Task',
+        sortable: true,
+        align: 'left',
+        width: '30%',
+        minWidth: '200px',
+        render: (title: string) => {
+          // Access current taskTitles at render time
+          const taskTitle = taskTitles.find((t) => t.value === title);
+          const displayValue = taskTitle?.label || title;
+          return <span className="text-sm font-medium">{displayValue}</span>;
+        },
+      },
+      {
+        id: 'project',
+        key: 'item',
+        header: 'Project',
+        sortable: false,
+        width: '15%',
+        minWidth: '150px',
+        render: (item: Task['item']) => <span className="text-sm">{item?.project?.name || 'No Project'}</span>,
+      },
+      {
+        id: 'item',
+        key: 'item',
+        header: 'Item',
+        sortable: false,
+        width: '15%',
+        minWidth: '150px',
+        render: (item: Task['item']) => <span className="text-sm">{item?.name || 'No Item'}</span>,
+      },
+      {
+        key: 'quantity',
+        header: 'Progress',
+        sortable: false,
+        width: '120px',
+        minWidth: '120px',
+        render: (quantity: number, task: Task) => (
+          <div className="text-sm">
+            <div>
+              {task.completed_quantity}/{quantity}
+            </div>
+            <div className="w-16 bg-gray-200 rounded-full h-1 mt-1">
+              <div
+                className="bg-blue-600 h-1 rounded-full"
+                style={{ width: `${Math.min((task.completed_quantity / quantity) * 100, 100)}%` }}></div>
+            </div>
+          </div>
+        ),
+      },
+      {
+        key: 'operator',
+        header: 'Operator',
+        sortable: true,
+        align: 'left',
+        width: '15%',
+        minWidth: '120px',
+        render: (operator: Task['operator']) => <span className="text-sm">{operator?.name || 'Unassigned'}</span>,
+      },
+      {
+        key: 'machine',
+        header: 'Machine',
+        sortable: true,
+        width: '15%',
+        minWidth: '120px',
+        render: (machine: Task['machine']) => <span className="text-sm">{machine?.name || 'Unassigned'}</span>,
+      },
+      {
+        key: 'status',
+        header: 'Status',
+        sortable: true,
+        width: '120px',
+        minWidth: '120px',
+        render: (status: string) => {
+          const getStatusVariant = (status: string) => {
+            switch (status) {
+              case 'COMPLETED':
+                return 'success';
+              case 'IN_PROGRESS':
+                return 'info';
+              case 'SCHEDULED':
+                return 'info';
+              case 'PENDING':
+                return 'warning';
+              case 'BLOCKED':
+                return 'error';
+              default:
+                return 'default';
+            }
+          };
+
+          const label = TASK_STATUS.find((s) => s.value === status)?.label || status;
+          return (
+            <StatusBadge
+              status={label}
+              variant={getStatusVariant(status)}
+            />
+          );
+        },
+      },
+    ],
+    [taskTitles],
+  ); // Depend on taskTitles so it recreates when they change
+
+  // Track column order state separately from base columns
+  const [columnOrder, setColumnOrder] = useState<string[]>([]);
+
+  // Get columns with proper ordering and current taskTitles
+  const columns = useMemo(() => {
+    if (columnOrder.length === 0) {
+      // Initialize column order on first load
+      return getInitialColumns(baseColumns);
+    } else {
+      // Apply saved column order
+      const orderedColumns: Column<Task>[] = [];
+
+      // First, add columns in saved order
+      for (const savedKey of columnOrder) {
+        const matchingColumn = baseColumns.find((col: Column<Task>) => (col.id || col.key) === savedKey);
+        if (matchingColumn) {
+          orderedColumns.push(matchingColumn);
+        }
+      }
+
+      // Add any new columns that weren't in saved order
+      for (const defaultCol of baseColumns) {
+        const exists = orderedColumns.some((col) => (col.id || col.key) === (defaultCol.id || defaultCol.key));
+        if (!exists) {
+          orderedColumns.push(defaultCol);
+        }
+      }
+
+      return orderedColumns;
+    }
+  }, [baseColumns, columnOrder]);
+
+  // Initialize column order on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined' && baseColumns.length > 0 && columnOrder.length === 0) {
+      try {
+        const saved = localStorage.getItem('tasksColumnOrder');
+        if (saved) {
+          const savedOrder: { id?: string; key: string }[] = JSON.parse(saved);
+          const orderKeys = savedOrder.map((col) => col.id || col.key);
+          setColumnOrder(orderKeys);
+        } else {
+          // Set default order
+          const defaultOrder = baseColumns.map((col) => col.id || col.key);
+          setColumnOrder(defaultOrder);
+        }
+      } catch (error) {
+        console.error('Error loading column order:', error);
+        const defaultOrder = baseColumns.map((col) => col.id || col.key);
+        setColumnOrder(defaultOrder);
+      }
+    }
+  }, [baseColumns, columnOrder.length]);
 
   // Filter tasks based on search and filters
   const filteredTasks = useMemo(() => {
@@ -313,7 +361,8 @@ function TasksPageContent({
 
   // Column management functions
   const handleColumnReorder = (reorderedColumns: Column<Task>[]) => {
-    setColumns(reorderedColumns);
+    const newOrder = reorderedColumns.map((col) => col.id || col.key);
+    setColumnOrder(newOrder);
     localStorage.setItem(
       'tasksColumnOrder',
       JSON.stringify(
@@ -326,7 +375,8 @@ function TasksPageContent({
   };
 
   const handleResetColumns = () => {
-    setColumns(defaultColumns);
+    const defaultOrder = baseColumns.map((col) => col.id || col.key);
+    setColumnOrder(defaultOrder);
     localStorage.removeItem('tasksColumnOrder');
   };
 
