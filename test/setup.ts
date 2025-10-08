@@ -4,6 +4,13 @@ import type { PrismaClient } from '@prisma/client';
 import type { Mock } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
+// Polyfill ResizeObserver for Headless UI components
+global.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
 // Provide a lightweight NextResponse mock that returns a plain object
 vi.mock('next/server', async () => {
   const actual = await vi.importActual('next/server');
