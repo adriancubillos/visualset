@@ -5,12 +5,10 @@ import taskService from '@/services/taskService';
 import { mapErrorToResponse } from '@/lib/errors';
 import type { TaskInput } from '@/services/taskService';
 
-// ...existing code...
-
 // GET /api/tasks
-export async function GET(req?: Request) {
+export async function GET(req: Request) {
   try {
-    const url = req ? new URL(req.url) : new URL('http://localhost/api/tasks');
+    const url = new URL(req.url);
     const { searchParams } = url;
     const start = searchParams.get('start');
     const end = searchParams.get('end');

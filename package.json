@@ -6,7 +6,7 @@
     "dev": "next dev",
     "dev:turbo": "next dev --turbopack",
     "dev:with-tests": "npm run enable-test-types && next dev",
-    "build": "npm run disable-test-types && prisma generate && next build",
+    "build": "npm run && prisma generate && next build",
     "build:production": "npm run disable-test-types && prisma generate && npx prisma migrate deploy && next build",
     "start": "next start",
     "lint": "eslint",

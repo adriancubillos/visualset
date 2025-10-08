@@ -46,7 +46,8 @@ describe('/api/tasks route', () => {
         fakeTasks as unknown as Awaited<ReturnType<typeof taskService.listTasks>>,
       );
 
-      const res = (await tasksRoute.GET()) as ResponseMock;
+      const req = makeNextRequest('http://localhost/api/tasks');
+      const res = (await tasksRoute.GET(req)) as ResponseMock;
       expect(res).toHaveProperty('body');
       const body = res.body as Array<{ id: string; project: { id: string } }>;
       expect(Array.isArray(body)).toBe(true);
@@ -148,7 +149,8 @@ describe('/api/tasks route', () => {
       vi.spyOn(taskService, 'listTasks').mockRejectedValue(new Error('Database error'));
       const spy = vi.spyOn(logger, 'apiError');
 
-      const res = (await tasksRoute.GET()) as ResponseMock;
+      const req = makeNextRequest('http://localhost/api/tasks');
+      const res = (await tasksRoute.GET(req)) as ResponseMock;
       expect(res.opts?.status).toBe(500);
       expect(res.body).toHaveProperty('error');
       const body = res.body as { error: { code: string } };
