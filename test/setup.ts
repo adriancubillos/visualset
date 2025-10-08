@@ -65,7 +65,10 @@ type PrismaMock = {
   };
   taskTimeSlot: {
     findMany: MockFn;
+    createMany: MockFn;
+    deleteMany: MockFn;
   };
+  $transaction: MockFn;
 };
 
 function makeMockPrisma(): PrismaMock {
@@ -75,7 +78,7 @@ function makeMockPrisma(): PrismaMock {
     return m;
   };
 
-  return {
+  const mock = {
     task: {
       findMany: makeMock(),
       create: makeMock(),
@@ -86,6 +89,8 @@ function makeMockPrisma(): PrismaMock {
     },
     taskTimeSlot: {
       findMany: makeMock(),
+      createMany: makeMock(),
+      deleteMany: makeMock(),
     },
     item: {
       findMany: makeMock(),
@@ -124,7 +129,15 @@ function makeMockPrisma(): PrismaMock {
       update: makeMock(),
       delete: makeMock(),
     },
+    $transaction: makeMock(),
   };
+
+  // Setup $transaction to execute callback with the mock itself
+  mock.$transaction.mockImplementation(async (callback: (tx: PrismaMock) => Promise<unknown>) => {
+    return callback(mock);
+  });
+
+  return mock;
 }
 
 declare global {
