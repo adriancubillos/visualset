@@ -29,8 +29,8 @@ interface Task {
     name: string;
     project: { id: string; name: string };
   } | null;
-  machine: { id: string; name: string } | null;
-  operator: { id: string; name: string } | null;
+  machines: { id: string; name: string }[];
+  operators: { id: string; name: string }[];
   timeSlots: {
     id: string;
     startDateTime: string;
@@ -158,21 +158,34 @@ function TasksPageContent({
         ),
       },
       {
-        key: 'operator',
+        key: 'operators',
         header: 'Operator',
-        sortable: true,
-        align: 'left',
+        sortable: false,
         width: '15%',
         minWidth: '120px',
-        render: (operator: Task['operator']) => <span className="text-sm">{operator?.name || 'Unassigned'}</span>,
+        render: (operators: Task['operators']) => (
+          <span className="text-sm">
+            {operators && operators.length > 0 
+              ? operators.map(op => op.name).join(', ')
+              : 'Unassigned'
+            }
+          </span>
+        ),
       },
       {
-        key: 'machine',
+        key: 'machines',
         header: 'Machine',
         sortable: true,
         width: '15%',
         minWidth: '120px',
-        render: (machine: Task['machine']) => <span className="text-sm">{machine?.name || 'Unassigned'}</span>,
+        render: (machines: Task['machines']) => (
+          <span className="text-sm">
+            {machines && machines.length > 0 
+              ? machines.map(machine => machine.name).join(', ')
+              : 'Unassigned'
+            }
+          </span>
+        ),
       },
       {
         key: 'status',
@@ -277,8 +290,8 @@ function TasksPageContent({
           task.description?.toLowerCase().includes(search.toLowerCase()) ||
           task.item?.name.toLowerCase().includes(search.toLowerCase()) ||
           task.item?.project.name.toLowerCase().includes(search.toLowerCase()) ||
-          task.machine?.name.toLowerCase().includes(search.toLowerCase()) ||
-          task.operator?.name.toLowerCase().includes(search.toLowerCase()),
+          task.machines?.some(machine => machine.name.toLowerCase().includes(search.toLowerCase())) ||
+          task.operators?.some(operator => operator.name.toLowerCase().includes(search.toLowerCase())),
       );
     }
 
@@ -296,11 +309,11 @@ function TasksPageContent({
     }
 
     if (filters.machine) {
-      filtered = filtered.filter((task) => task.machine?.id === filters.machine);
+      filtered = filtered.filter((task) => task.machines?.some(machine => machine.id === filters.machine));
     }
 
     if (filters.operator) {
-      filtered = filtered.filter((task) => task.operator?.id === filters.operator);
+      filtered = filtered.filter((task) => task.operators?.some(operator => operator.id === filters.operator));
     }
 
     return filtered;
