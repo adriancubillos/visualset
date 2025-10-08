@@ -37,12 +37,14 @@ export default function ConfigurationPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [searchValue, setSearchValue] = useState('');
   const [formData, setFormData] = useState({
-    value: '',
     label: '',
   });
 
+  // Auto-generate value from label
+  const generatedValue = formData.label.trim().replace(/\s+/g, '_').toUpperCase();
+
   // Form validation
-  const isFormValid = formData.value.trim() !== '' && formData.label.trim() !== '';
+  const isFormValid = formData.label.trim() !== '';
 
   const showError = (message: string) => {
     toast.error(message);
@@ -56,7 +58,6 @@ export default function ConfigurationPage() {
     setEditingConfig(null);
     setIsCreating(true);
     setFormData({
-      value: '',
       label: '',
     });
     // Scroll to top to show the form
@@ -67,7 +68,6 @@ export default function ConfigurationPage() {
     setEditingConfig(config);
     setIsCreating(false);
     setFormData({
-      value: config.value,
       label: config.label,
     });
     // Scroll to top to show the form
@@ -78,7 +78,6 @@ export default function ConfigurationPage() {
     setEditingConfig(null);
     setIsCreating(false);
     setFormData({
-      value: '',
       label: '',
     });
   };
@@ -86,9 +85,8 @@ export default function ConfigurationPage() {
   const handleDelete = (id: string, configLabel?: string) => {
     showConfirmDialog({
       title: 'Delete Configuration',
-      message: `Are you sure you want to delete configuration "${
-        configLabel || 'this entry'
-      }"? This action cannot be undone.`,
+      message: `Are you sure you want to delete configuration "${configLabel || 'this entry'
+        }"? This action cannot be undone.`,
       confirmLabel: 'Delete',
       cancelLabel: 'Cancel',
       variant: 'danger',
@@ -149,7 +147,7 @@ export default function ConfigurationPage() {
 
     const data = {
       category: activeTab,
-      value: formData.value.trim(),
+      value: generatedValue,
       label: formData.label.trim(),
     };
     await handleModalSave(data);
@@ -187,11 +185,10 @@ export default function ConfigurationPage() {
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                    activeTab === tab.key
+                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${activeTab === tab.key
                       ? 'bg-blue-50 text-blue-700 border border-blue-200'
                       : 'text-gray-700 hover:bg-gray-50'
-                  }`}>
+                    }`}>
                   <div className="flex justify-between items-center">
                     <span className="font-medium">{tab.label}</span>
                     <span className="text-sm text-gray-500">
@@ -228,44 +225,27 @@ export default function ConfigurationPage() {
               </div>
 
               <form className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Value <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.value}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, value: e.target.value }))}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                        formData.value.trim() === '' ? 'border-red-300' : 'border-gray-300'
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Label <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.label}
+                    onChange={(e) => setFormData({ label: e.target.value })}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${formData.label.trim() === '' ? 'border-red-300' : 'border-gray-300'
                       }`}
-                      placeholder="Enter value"
-                      required
-                    />
-                    {formData.value.trim() === '' && (
-                      <p className="text-red-500 text-xs mt-1">This field is required</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Label <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.label}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, label: e.target.value }))}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                        formData.label.trim() === '' ? 'border-red-300' : 'border-gray-300'
-                      }`}
-                      placeholder="Enter label"
-                      required
-                    />
-                    {formData.label.trim() === '' && (
-                      <p className="text-red-500 text-xs mt-1">This field is required</p>
-                    )}
-                  </div>
+                    placeholder="Enter label (e.g., 'Machine Type A')"
+                    required
+                  />
+                  {formData.label.trim() === '' && (
+                    <p className="text-red-500 text-xs mt-1">This field is required</p>
+                  )}
+                  {generatedValue && (
+                    <p className="text-gray-500 text-xs mt-1">
+                      Value will be: <span className="font-mono font-semibold">{generatedValue}</span>
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
@@ -279,9 +259,8 @@ export default function ConfigurationPage() {
                     type="button"
                     onClick={handleSave}
                     disabled={!isFormValid}
-                    className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                      isFormValid ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'
-                    }`}>
+                    className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${isFormValid ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'
+                      }`}>
                     {isCreating ? 'Create' : 'Update'}
                   </button>
                 </div>
@@ -311,9 +290,8 @@ export default function ConfigurationPage() {
               {filteredConfigurations.map((config) => (
                 <div
                   key={config.id}
-                  className={`bg-white rounded-lg border p-4 hover:shadow-md transition-shadow ${
-                    editingConfig?.id === config.id ? 'ring-2 ring-blue-500' : ''
-                  }`}>
+                  className={`bg-white rounded-lg border p-4 hover:shadow-md transition-shadow ${editingConfig?.id === config.id ? 'ring-2 ring-blue-500' : ''
+                    }`}>
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3">

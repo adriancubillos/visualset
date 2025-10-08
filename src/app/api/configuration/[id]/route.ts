@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ConfigurationCategory } from '@prisma/client';
 import prisma from '@/lib/prisma';
+import configurationService from '@/services/configurationService';
+import { mapErrorToResponse } from '@/lib/errors';
 
 // GET /api/configuration/[id] - Get specific configuration
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -32,33 +34,17 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Invalid category' }, { status: 400 });
     }
 
-    const configuration = await prisma.configuration.update({
-      where: { id },
-      data: {
-        ...(category && { category }),
-        ...(value && { value }),
-        ...(label && { label }),
-      },
+    // Use the service function that handles cascading updates
+    const configuration = await configurationService.updateConfiguration(prisma, id, {
+      value,
+      label,
     });
 
     return NextResponse.json(configuration);
   } catch (error: unknown) {
     console.error('Error updating configuration:', error);
-
-    // Handle record not found
-    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2025') {
-      return NextResponse.json({ error: 'Configuration not found' }, { status: 404 });
-    }
-
-    // Handle unique constraint violation
-    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
-      return NextResponse.json(
-        { error: 'Configuration with this value already exists in this category' },
-        { status: 409 },
-      );
-    }
-
-    return NextResponse.json({ error: 'Failed to update configuration' }, { status: 500 });
+    const errorResponse = mapErrorToResponse(error);
+    return NextResponse.json(errorResponse.body, { status: errorResponse.status });
   }
 }
 
@@ -66,19 +52,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    await prisma.configuration.delete({
-      where: { id },
-    });
-
-    return NextResponse.json({ message: 'Configuration deleted successfully' });
+    const result = await configurationService.deleteConfiguration(prisma, id);
+    return NextResponse.json(result);
   } catch (error: unknown) {
     console.error('Error deleting configuration:', error);
-
-    // Handle record not found
-    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2025') {
-      return NextResponse.json({ error: 'Configuration not found' }, { status: 404 });
-    }
-
-    return NextResponse.json({ error: 'Failed to delete configuration' }, { status: 500 });
+    const errorResponse = mapErrorToResponse(error);
+    return NextResponse.json(errorResponse.body, { status: errorResponse.status });
   }
 }
