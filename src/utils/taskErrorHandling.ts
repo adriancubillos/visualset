@@ -22,8 +22,9 @@ export interface ConflictError {
 /**
  * Display a user-friendly conflict error message
  */
-export function displayConflictError(errorData: ConflictError): void {
-  if (errorData.conflict) {
+export function displayConflictError(errorData: ConflictError | { error?: string; message?: string; code?: string }): void {
+  // Check if it's the old format with conflict object
+  if ('conflict' in errorData && errorData.conflict) {
     const conflictType = errorData.conflict.machine ? 'Machine' : 'Operator';
     const conflictName = errorData.conflict.machine?.name || errorData.conflict.operator?.name || 'Unknown';
     
@@ -43,7 +44,11 @@ export function displayConflictError(errorData: ConflictError): void {
       { duration: 7000 }
     );
   } else {
-    toast.error('Failed to save task: ' + (errorData.error || 'Unknown error'));
+    // New format: extract message from message or error field
+    const errorMessage = ('message' in errorData ? errorData.message : undefined) || 
+                        ('error' in errorData ? errorData.error : undefined) || 
+                        'Unknown error';
+    toast.error(errorMessage, { duration: 7000 });
   }
 }
 
@@ -60,13 +65,16 @@ export async function handleTaskResponse(
   } else {
     const errorData = await response.json();
 
+    // Extract error from nested structure if present
+    const actualError = errorData.error || errorData;
+
     // Use appropriate log level based on error type
-    if (errorData.conflict) {
-      console.warn(`Scheduling conflict during ${operationName}:`, errorData.error);
+    if (actualError.conflict) {
+      console.warn(`Scheduling conflict during ${operationName}:`, actualError);
     } else {
-      logger.error(`Failed to ${operationName},`, errorData.error);
+      logger.error(`Failed to ${operationName},`, actualError);
     }
 
-    displayConflictError(errorData);
+    displayConflictError(actualError);
   }
 }

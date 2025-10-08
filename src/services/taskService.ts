@@ -2,6 +2,7 @@ import { ApiError } from '@/lib/errors';
 import prisma from '@/lib/prisma';
 import type { PrismaClient, Prisma, TaskStatus } from '@prisma/client';
 import { TaskWithRelationsDTO } from '@/types/api';
+import { checkSchedulingConflicts } from '@/utils/conflictDetection';
 
 type TimeSlotInput = {
   id?: string;
@@ -24,6 +25,50 @@ type TaskInput = {
 };
 
 export type { TimeSlotInput, TaskInput };
+
+// Helper function to check for operator/machine conflicts using the centralized utility
+async function checkResourceConflicts(
+  db: PrismaClient,
+  operatorId: string | null | undefined,
+  machineId: string | null | undefined,
+  timeSlots: TimeSlotInput[],
+  excludeTaskId?: string,
+) {
+  if (timeSlots.length === 0) return; // No time slots, no conflicts
+
+  for (const slot of timeSlots) {
+    if (!slot.startDateTime) continue;
+
+    const durationMin = slot.durationMin || 60;
+    
+    // Use the centralized conflict detection utility
+    const conflictResult = await checkSchedulingConflicts({
+      scheduledAt: slot.startDateTime,
+      durationMin,
+      machineId: machineId || null,
+      operatorId: operatorId || null,
+      excludeTaskId,
+    });
+
+    if (conflictResult.hasConflict && conflictResult.conflictData) {
+      const { conflictType, conflictData } = conflictResult;
+      const resourceType = conflictType === 'machine' ? 'Machine' : 'Operator';
+      const resourceName = conflictType === 'machine' 
+        ? conflictData.machine?.name 
+        : conflictData.operator?.name;
+      
+      const conflictSlot = conflictData.timeSlot;
+      const startTime = conflictSlot.startDateTime.toLocaleString();
+      const endTime = conflictSlot.endDateTime?.toLocaleString() || 'end time';
+
+      throw new ApiError({
+        code: conflictType === 'machine' ? 'MACHINE_CONFLICT' : 'OPERATOR_CONFLICT',
+        message: `${resourceType} "${resourceName}" is already assigned to task "${conflictData.title}" from ${startTime} to ${endTime}`,
+        status: 409,
+      });
+    }
+  }
+}
 
 export async function listTasks(db: PrismaClient, start?: string | null, end?: string | null) {
   const where: Record<string, unknown> = {};
@@ -95,6 +140,9 @@ export async function createTask(db: PrismaClient, body: TaskInput) {
       }
     }
   }
+
+  // Check for operator/machine conflicts with other tasks
+  await checkResourceConflicts(db, body.operatorId, body.machineId, timeSlots);
 
   const result = await db.$transaction(async (tx) => {
     const createData: Prisma.TaskCreateInput = {
@@ -202,6 +250,9 @@ export async function updateTask(db: PrismaClient, id: string, body: TaskInput) 
     }
   }
 
+  // Check for operator/machine conflicts with other tasks (exclude current task)
+  await checkResourceConflicts(db, body.operatorId, body.machineId, timeSlots, id);
+
   const result = await db.$transaction(async (tx) => {
     await tx.taskTimeSlot.deleteMany({ where: { taskId: id } });
     const updateDataRec: Record<string, unknown> = {};
@@ -259,6 +310,32 @@ export async function updateTask(db: PrismaClient, id: string, body: TaskInput) 
 }
 
 export async function patchTask(db: PrismaClient, id: string, body: Partial<TaskInput>) {
+  // Get existing task to check for conflicts
+  const existingTask = await db.task.findUnique({
+    where: { id },
+    include: {
+      timeSlots: true,
+    },
+  });
+
+  if (!existingTask) {
+    throw new ApiError({ code: 'TASK_NOT_FOUND', message: 'Task not found', status: 404 });
+  }
+
+  // If operator or machine is being changed, check for conflicts
+  if ((body.operatorId !== undefined || body.machineId !== undefined) && existingTask.timeSlots.length > 0) {
+    const operatorId = body.operatorId !== undefined ? body.operatorId : existingTask.operatorId;
+    const machineId = body.machineId !== undefined ? body.machineId : existingTask.machineId;
+    
+    const timeSlots = existingTask.timeSlots.map((slot) => ({
+      startDateTime: slot.startDateTime.toISOString(),
+      endDateTime: slot.endDateTime?.toISOString(),
+      durationMin: slot.durationMin,
+    }));
+
+    await checkResourceConflicts(db, operatorId, machineId, timeSlots, id);
+  }
+
   const dataRec: Record<string, unknown> = {};
   if (body.title !== undefined) dataRec.title = body.title as string;
   if (body.description !== undefined) dataRec.description = body.description ?? null;

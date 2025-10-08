@@ -14,6 +14,8 @@ import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { logger } from '@/utils/logger';
 import { extractErrorMessage, getErrorMessage } from '@/utils/errorHandling';
 import { Column } from '@/types/table';
+import Select from '@/components/ui/Select';
+import { TASK_STATUS } from '@/config/workshop-properties';
 
 interface Task {
   id: string;
@@ -59,6 +61,8 @@ export default function ItemDetailPage() {
   const router = useRouter();
   const [item, setItem] = useState<Item | null>(null);
   const [loading, setLoading] = useState(true);
+  const [machines, setMachines] = useState<{ id: string; name: string }[]>([]);
+  const [operators, setOperators] = useState<{ id: string; name: string }[]>([]);
 
   const handleDelete = () => {
     showConfirmDialog({
@@ -98,20 +102,58 @@ export default function ItemDetailPage() {
         const response = await fetch(`/api/items/${params.id}`);
         if (response.ok) {
           const data = await response.json();
+          
+          // Restore saved task order from localStorage
+          const savedOrder = localStorage.getItem(`item-${params.id}-task-order`);
+          if (savedOrder) {
+            try {
+              const taskOrder: string[] = JSON.parse(savedOrder);
+              const orderedTasks = [...data.tasks].sort((a, b) => {
+                const indexA = taskOrder.indexOf(a.id);
+                const indexB = taskOrder.indexOf(b.id);
+                // If task not in saved order, put it at the end
+                if (indexA === -1) return 1;
+                if (indexB === -1) return -1;
+                return indexA - indexB;
+              });
+              data.tasks = orderedTasks;
+            } catch (e) {
+              logger.error('Error parsing saved task order', e);
+            }
+          }
+          
           setItem(data);
-        } else {
-          logger.error('Failed to fetch item');
         }
       } catch (error) {
-        logger.error('Error fetching item,', error);
+        logger.error('Error fetching item', error);
       } finally {
         setLoading(false);
       }
     };
 
-    if (params.id) {
-      fetchItem();
-    }
+    const fetchMachinesAndOperators = async () => {
+      try {
+        const [machinesRes, operatorsRes] = await Promise.all([
+          fetch('/api/machines'),
+          fetch('/api/operators'),
+        ]);
+
+        if (machinesRes.ok) {
+          const machinesData = await machinesRes.json();
+          setMachines(machinesData.map((m: { id: string; name: string }) => ({ id: m.id, name: m.name })));
+        }
+
+        if (operatorsRes.ok) {
+          const operatorsData = await operatorsRes.json();
+          setOperators(operatorsData.map((o: { id: string; name: string }) => ({ id: o.id, name: o.name })));
+        }
+      } catch (error) {
+        logger.error('Error fetching machines/operators', error);
+      }
+    };
+
+    fetchItem();
+    fetchMachinesAndOperators();
   }, [params.id]);
 
   const handleTaskDelete = (taskId: string) => {
@@ -146,6 +188,56 @@ export default function ItemDetailPage() {
     }
   };
 
+  const handleTaskUpdate = async (taskId: string, field: string, value: string | null) => {
+    try {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ [field]: value }),
+      });
+
+      if (response.ok && item) {
+        const updatedTasks = item.tasks.map((task) =>
+          task.id === taskId
+            ? {
+                ...task,
+                [field]: value,
+                ...(field === 'machineId' && {
+                  machine: value ? machines.find((m) => m.id === value) || null : null,
+                }),
+                ...(field === 'operatorId' && {
+                  operator: value ? operators.find((o) => o.id === value) || null : null,
+                }),
+              }
+            : task,
+        );
+        setItem({ ...item, tasks: updatedTasks });
+        toast.success('Task updated successfully');
+      } else {
+        const errorMessage = await extractErrorMessage(response, 'Failed to update task');
+        toast.error(errorMessage);
+      }
+    } catch (error) {
+      logger.error('Error updating task:', error);
+      toast.error(getErrorMessage(error, 'Error updating task'));
+    }
+  };
+
+  const handleTaskReorder = (reorderedTasks: Task[]) => {
+    if (!item) return;
+    
+    // Update local state immediately for smooth UX
+    setItem({ ...item, tasks: reorderedTasks });
+    
+    // Save the task order to localStorage
+    const taskOrder = reorderedTasks.map((task) => task.id);
+    localStorage.setItem(`item-${item.id}-task-order`, JSON.stringify(taskOrder));
+    
+    toast.success('Task order updated');
+  };
+
   const taskColumns: Column<Task>[] = [
     {
       key: 'title' as keyof Task,
@@ -165,7 +257,36 @@ export default function ItemDetailPage() {
     {
       key: 'status' as keyof Task,
       header: 'Status',
-      render: (value: string) => <StatusBadge status={value} />,
+      render: (value: string, task: Task) => {
+        const getStatusColors = (status: string) => {
+          switch (status) {
+            case 'COMPLETED':
+              return 'bg-green-200 text-green-900 border-2 border-green-500';
+            case 'IN_PROGRESS':
+              return 'bg-blue-200 text-blue-900 border-2 border-blue-500';
+            case 'SCHEDULED':
+              return 'bg-purple-200 text-purple-900 border-2 border-purple-500';
+            case 'PENDING':
+              return 'bg-yellow-200 text-yellow-900 border-2 border-yellow-500';
+            case 'BLOCKED':
+              return 'bg-red-200 text-red-900 border-2 border-red-500';
+            default:
+              return 'bg-gray-200 text-gray-900 border-2 border-gray-500';
+          }
+        };
+
+        return (
+          <div className="w-40">
+            <Select
+              value={value}
+              onChange={(newStatus) => handleTaskUpdate(task.id, 'status', newStatus)}
+              options={TASK_STATUS.map((s) => ({ id: s.value, name: s.label }))}
+              placeholder="Select status"
+              buttonClassName={`font-medium cursor-pointer ${getStatusColors(value)}`}
+            />
+          </div>
+        );
+      },
     },
     {
       key: 'priority' as keyof Task,
@@ -185,35 +306,29 @@ export default function ItemDetailPage() {
     {
       key: 'machine' as keyof Task,
       header: 'Machine',
-      render: (value: Task['machine']) => (
-        <span className="text-sm text-gray-600">
-          {value ? (
-            <Link
-              href={`/machines/${value.id}`}
-              className="text-blue-600 hover:text-blue-800">
-              {value.name}
-            </Link>
-          ) : (
-            'Not assigned'
-          )}
-        </span>
+      render: (value: Task['machine'], task: Task) => (
+        <div className="w-48">
+          <Select
+            value={value?.id || null}
+            onChange={(machineId) => handleTaskUpdate(task.id, 'machineId', machineId)}
+            options={machines}
+            placeholder="-- None --"
+          />
+        </div>
       ),
     },
     {
       key: 'operator' as keyof Task,
       header: 'Operator',
-      render: (value: Task['operator']) => (
-        <span className="text-sm text-gray-600">
-          {value ? (
-            <Link
-              href={`/operators/${value.id}`}
-              className="text-blue-600 hover:text-blue-800">
-              {value.name}
-            </Link>
-          ) : (
-            'Not assigned'
-          )}
-        </span>
+      render: (value: Task['operator'], task: Task) => (
+        <div className="w-48">
+          <Select
+            value={value?.id || null}
+            onChange={(operatorId) => handleTaskUpdate(task.id, 'operatorId', operatorId)}
+            options={operators}
+            placeholder="-- None --"
+          />
+        </div>
       ),
     },
     {
@@ -448,6 +563,8 @@ export default function ItemDetailPage() {
           <DataTable
             data={item.tasks}
             columns={taskColumns}
+            enableRowReorder={true}
+            onRowReorder={handleTaskReorder}
             actions={(task: Task) => (
               <TableActions
                 itemId={task.id}

@@ -24,6 +24,8 @@ interface DataTableProps<T> {
   onColumnReorder?: (newColumnOrder: Column<T>[]) => void;
   onResetColumns?: () => void;
   showResetColumns?: boolean;
+  onRowReorder?: (newData: T[]) => void;
+  enableRowReorder?: boolean;
 }
 
 export default function DataTable<T extends { id: string }>({
@@ -37,11 +39,15 @@ export default function DataTable<T extends { id: string }>({
   onColumnReorder,
   onResetColumns,
   showResetColumns = false,
+  onRowReorder,
+  enableRowReorder = false,
 }: DataTableProps<T>) {
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const [showScrollHint, setShowScrollHint] = useState(false);
   const [draggedColumnId, setDraggedColumnId] = useState<string | null>(null);
   const [dragOverColumnId, setDragOverColumnId] = useState<string | null>(null);
+  const [draggedRowId, setDraggedRowId] = useState<string | null>(null);
+  const [dragOverRowId, setDragOverRowId] = useState<string | null>(null);
   const [isResizing, setIsResizing] = useState(false);
   const [, setIsDragging] = useState(false); // isDragging state not used in render
 
@@ -207,6 +213,42 @@ export default function DataTable<T extends { id: string }>({
     setTimeout(() => setIsDragging(false), 100);
   };
 
+  // Row reordering handlers
+  const handleRowDragStart = (e: React.DragEvent, rowId: string) => {
+    setDraggedRowId(rowId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleRowDragOver = (e: React.DragEvent, rowId: string) => {
+    e.preventDefault();
+    if (draggedRowId && draggedRowId !== rowId) {
+      setDragOverRowId(rowId);
+    }
+  };
+
+  const handleRowDrop = (e: React.DragEvent, targetRowId: string) => {
+    e.preventDefault();
+    if (!draggedRowId || draggedRowId === targetRowId || !onRowReorder) return;
+
+    const draggedIndex = data.findIndex((item) => item.id === draggedRowId);
+    const targetIndex = data.findIndex((item) => item.id === targetRowId);
+
+    if (draggedIndex === -1 || targetIndex === -1) return;
+
+    const newData = [...data];
+    const [removed] = newData.splice(draggedIndex, 1);
+    newData.splice(targetIndex, 0, removed);
+
+    onRowReorder(newData);
+    setDraggedRowId(null);
+    setDragOverRowId(null);
+  };
+
+  const handleRowDragEnd = () => {
+    setDraggedRowId(null);
+    setDragOverRowId(null);
+  };
+
   // Track when resizing ends globally
   useEffect(() => {
     const handleMouseUp = () => {
@@ -339,6 +381,13 @@ export default function DataTable<T extends { id: string }>({
             }}>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
+                {enableRowReorder && (
+                  <th className="px-1 py-3 bg-gray-50 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-b-2 border-gray-200" style={{ width: '30px' }}>
+                    <svg className="w-3 h-3 mx-auto" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" />
+                    </svg>
+                  </th>
+                )}
                 {headerGroup.headers.map((header) => {
                   const isDragging = draggedColumnId === header.id;
                   const isDragOver = dragOverColumnId === header.id;
@@ -408,8 +457,24 @@ export default function DataTable<T extends { id: string }>({
             {table.getRowModel().rows.map((row) => (
               <tr
                 key={row.id}
-                className={`${onRowClick ? 'cursor-pointer hover:bg-gray-50' : ''} transition-colors duration-150`}
+                draggable={enableRowReorder}
+                onDragStart={(e) => enableRowReorder && handleRowDragStart(e, row.original.id)}
+                onDragOver={(e) => enableRowReorder && handleRowDragOver(e, row.original.id)}
+                onDrop={(e) => enableRowReorder && handleRowDrop(e, row.original.id)}
+                onDragEnd={handleRowDragEnd}
+                className={`${onRowClick ? 'cursor-pointer hover:bg-gray-50' : ''} ${
+                  enableRowReorder ? 'cursor-move' : ''
+                } ${draggedRowId === row.original.id ? 'opacity-50 bg-blue-50' : ''} ${
+                  dragOverRowId === row.original.id ? 'border-t-4 border-blue-500' : ''
+                } transition-all duration-150`}
                 onClick={() => onRowClick?.(row.original)}>
+                {enableRowReorder && (
+                  <td className="px-1 py-4 text-gray-400 text-center" style={{ width: '30px' }}>
+                    <svg className="w-3 h-3 mx-auto" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" />
+                    </svg>
+                  </td>
+                )}
                 {row.getVisibleCells().map((cell) => (
                   <td
                     key={cell.id}

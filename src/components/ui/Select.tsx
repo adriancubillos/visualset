@@ -16,10 +16,11 @@ interface SelectProps {
   placeholder?: string;
   label?: string;
   className?: string;
+  buttonClassName?: string;
   disabled?: boolean;
 }
 
-export default function Select({ value, onChange, options, placeholder = '-- None --', label, className = '', disabled = false }: SelectProps) {
+export default function Select({ value, onChange, options, placeholder = '-- None --', label, className = '', buttonClassName = '', disabled = false }: SelectProps) {
   const selectedOption = options.find((opt) => opt.id === value);
 
   return (
@@ -27,8 +28,8 @@ export default function Select({ value, onChange, options, placeholder = '-- Non
       {label && <label className="block mb-2 text-sm font-semibold text-gray-700">{label}</label>}
       <Listbox value={value} onChange={onChange} disabled={disabled}>
         <div className="relative">
-          <ListboxButton className={`relative w-full border-2 border-gray-300 rounded-md p-3 text-left text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 ${
-            disabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white cursor-pointer'
+          <ListboxButton className={`relative w-full border-2 rounded-md p-3 text-left focus:outline-none focus:ring-2 focus:ring-blue-200 ${
+            buttonClassName || (disabled ? 'bg-gray-100 cursor-not-allowed border-gray-300 text-gray-900' : 'bg-white cursor-pointer border-gray-300 text-gray-900 focus:border-blue-500')
           }`}>
             <span className="block truncate">{selectedOption ? selectedOption.name : placeholder}</span>
             <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
