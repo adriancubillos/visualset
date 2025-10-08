@@ -13,6 +13,7 @@ import { checkItemCompletionReadiness } from '@/utils/itemValidation';
 import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { logger } from '@/utils/logger';
 import { extractErrorMessage, getErrorMessage } from '@/utils/errorHandling';
+import { Column } from '@/types/table';
 
 interface Task {
   id: string;
@@ -145,10 +146,11 @@ export default function ItemDetailPage() {
     }
   };
 
-  const taskColumns = [
+  const taskColumns: Column<Task>[] = [
     {
       key: 'title' as keyof Task,
       header: 'Task',
+      align: 'left' as const,
       render: (value: string, task: Task) => (
         <div>
           <Link
@@ -170,13 +172,12 @@ export default function ItemDetailPage() {
       header: 'Priority',
       render: (value: string) => (
         <span
-          className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-            value === 'HIGH'
+          className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${value === 'HIGH'
               ? 'bg-red-100 text-red-800'
               : value === 'MEDIUM'
-              ? 'bg-yellow-100 text-yellow-800'
-              : 'bg-green-100 text-green-800'
-          }`}>
+                ? 'bg-yellow-100 text-yellow-800'
+                : 'bg-green-100 text-green-800'
+            }`}>
           {value}
         </span>
       ),
@@ -415,13 +416,12 @@ export default function ItemDetailPage() {
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div
-                          className={`h-2 rounded-full transition-all duration-300 ${
-                            completionStatus.completionPercentage === 100
+                          className={`h-2 rounded-full transition-all duration-300 ${completionStatus.completionPercentage === 100
                               ? 'bg-green-500'
                               : completionStatus.completionPercentage > 50
-                              ? 'bg-blue-500'
-                              : 'bg-yellow-500'
-                          }`}
+                                ? 'bg-blue-500'
+                                : 'bg-yellow-500'
+                            }`}
                           style={{ width: `${completionStatus.completionPercentage}%` }}></div>
                       </div>
                     </div>
