@@ -958,7 +958,7 @@ export default function ItemDetailPage() {
           <div className="p-6 text-center">
             <p className="text-gray-500">No tasks yet.</p>
             <Link
-              href={`/tasks/new?itemId=${item.id}`}
+              href={`/tasks/new?project=${item.project.id}&item=${item.id}&returnUrl=/items/${item.id}`}
               className="mt-2 inline-flex items-center text-blue-600 hover:text-blue-800">
               Create the first task
             </Link>

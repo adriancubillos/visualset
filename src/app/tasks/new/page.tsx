@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useMemo, useState } from 'react';
+import { Suspense, useMemo, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import PageContainer from '@/components/layout/PageContainer';
 import { TASK_STATUS } from '@/config/workshop-properties';
@@ -19,8 +19,9 @@ function NewTaskPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { options: taskPriorities } = useTaskPriority();
-  const projectIdFromUrl = searchParams.get('project');
-  const itemIdFromUrl = searchParams.get('item');
+  // Accept either `project` or `projectId`, and `item` or `itemId` for backward-compatibility
+  const projectIdFromUrl = searchParams.get('project') || searchParams.get('projectId');
+  const itemIdFromUrl = searchParams.get('item') || searchParams.get('itemId');
   const returnUrl = searchParams.get('returnUrl');
 
   const { projects, items, machines, operators, loading: dataLoading } = useTaskFormData();
@@ -57,6 +58,18 @@ function NewTaskPageContent() {
     machineIds: searchParams.get('machine') ? [searchParams.get('machine') as string] : [],
     operatorIds: searchParams.get('operator') ? [searchParams.get('operator') as string] : [],
   });
+
+  // If an itemId query param was given but no projectId, once items are loaded
+  // find the item's project and prepopulate the project select so the Item select
+  // shows the correct option set.
+  useEffect(() => {
+    if (!dataLoading && itemIdFromUrl && !formData.projectId) {
+      const found = items.find((it) => it.id === itemIdFromUrl);
+      if (found) {
+        setFormData((prev) => ({ ...prev, projectId: found.projectId }));
+      }
+    }
+  }, [dataLoading, itemIdFromUrl, items, formData.projectId]);
 
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([defaultTimeSlot]);
   const [loading, setLoading] = useState(false);
