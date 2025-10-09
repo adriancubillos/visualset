@@ -35,14 +35,18 @@ interface Project {
       id: string;
       title: string;
       status: string;
-      machine?: {
-        id: string;
-        name: string;
-      };
-      operator?: {
-        id: string;
-        name: string;
-      };
+      taskMachines?: Array<{
+        machine: {
+          id: string;
+          name: string;
+        };
+      }>;
+      taskOperators?: Array<{
+        operator: {
+          id: string;
+          name: string;
+        };
+      }>;
     }>;
   }>;
 }
@@ -131,45 +135,60 @@ export default function ProjectDetailPage() {
     );
   }
 
+  // Calculate statistics
+  const totalTasks = project.items?.reduce((total, item) => total + (item.tasks?.length || 0), 0) || 0;
+  const completedTasks =
+    project.items?.reduce(
+      (total, item) => total + (item.tasks?.filter((t) => t.status === 'COMPLETED').length || 0),
+      0,
+    ) || 0;
+
+  const totalItems = project.items?.length || 0;
+  const completedItems = project.items?.filter((item) => item.status === 'COMPLETED').length || 0;
+
+  // Get unique machines and operators
+  const uniqueMachines = project.items
+    ? Array.from(
+        new Map(
+          project.items
+            .flatMap((item) => item.tasks || [])
+            .flatMap((task) => task.taskMachines || [])
+            .map((tm) => [tm.machine.id, tm.machine.name]),
+        ).entries(),
+      ).map(([id, name]) => ({ id, name }))
+    : [];
+
+  const uniqueOperators = project.items
+    ? Array.from(
+        new Map(
+          project.items
+            .flatMap((item) => item.tasks || [])
+            .flatMap((task) => task.taskOperators || [])
+            .map((to) => [to.operator.id, to.operator.name]),
+        ).entries(),
+      ).map(([id, name]) => ({ id, name }))
+    : [];
+
   const statisticsCards = [
     {
-      label: 'Total Items',
-      value: project.items?.length || 0,
+      label: 'Items',
+      value: `${completedItems}/${totalItems}`,
       color: 'blue' as const,
     },
     {
-      label: 'Total Tasks',
-      value: project.items?.reduce((total, item) => total + (item.tasks?.length || 0), 0) || 0,
+      label: 'Tasks',
+      value: `${completedTasks}/${totalTasks}`,
       color: 'green' as const,
     },
     {
       label: 'Machines Used',
-      value: project.items
-        ? new Set(
-            project.items
-              .flatMap((item) => item.tasks || [])
-              .filter((task) => task.machine)
-              .map((task) => task.machine!.id),
-          ).size
-        : 0,
+      value: uniqueMachines.length > 0 ? uniqueMachines.map((m) => m.name).join(', ') : '0',
       color: 'purple' as const,
     },
     {
       label: 'Operators Assigned',
-      value: project.items
-        ? new Set(
-            project.items
-              .flatMap((item) => item.tasks || [])
-              .filter((task) => task.operator)
-              .map((task) => task.operator!.id),
-          ).size
-        : 0,
+      value: uniqueOperators.length > 0 ? uniqueOperators.map((o) => o.name).join(', ') : '0',
       color: 'orange' as const,
-    },
-    {
-      label: 'Items Completed',
-      value: project.items?.filter((item) => item.status === 'COMPLETED').length || 0,
-      color: 'indigo' as const,
     },
   ];
 
@@ -338,10 +357,11 @@ export default function ProjectDetailPage() {
                       {/* Warnings */}
                       <div className="space-y-1">
                         {/* Tasks without operators */}
-                        {item.tasks.filter((t) => !t.operator).length > 0 && (
+                        {item.tasks.filter((t) => !t.taskOperators || t.taskOperators.length === 0).length > 0 && (
                           <div className="flex items-center text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded">
                             <span className="mr-1">⚠️</span>
-                            {item.tasks.filter((t) => !t.operator).length} task(s) without operator assigned
+                            {item.tasks.filter((t) => !t.taskOperators || t.taskOperators.length === 0).length} task(s)
+                            without operator assigned
                           </div>
                         )}
 

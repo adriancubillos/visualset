@@ -1,8 +1,8 @@
 'use client';
 
-interface StatCard {
+export interface StatCard {
   label: string;
-  value: number;
+  value: number | string;
   color?: 'gray' | 'green' | 'blue' | 'yellow' | 'red' | 'orange' | 'purple' | 'indigo';
   change?: string;
   changeType?: 'increase' | 'decrease' | 'neutral';
@@ -85,7 +85,7 @@ export default function StatisticsCards({
   }
 
   // Don't render if no data and showWhenEmpty is false
-  if (!showWhenEmpty && stats.every((stat) => stat.value === 0)) {
+  if (!showWhenEmpty && stats.every((stat) => stat.value === 0 || stat.value === '0' || stat.value === '0/0')) {
     return null;
   }
 
@@ -98,7 +98,12 @@ export default function StatisticsCards({
           <div className="flex items-center justify-between">
             <div>
               <div className="text-sm text-gray-500">{stat.label}</div>
-              <div className={`text-2xl font-bold ${getColorClass(stat.color)}`}>{stat.value.toLocaleString()}</div>
+              <div
+                className={`font-bold ${getColorClass(stat.color)} ${
+                  typeof stat.value === 'string' && stat.value.length > 20 ? 'text-base' : 'text-2xl'
+                }`}>
+                {typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}
+              </div>
             </div>
             {stat.change && <div className={`text-sm ${getChangeTextColor(stat.changeType)}`}>{stat.change}</div>}
           </div>
