@@ -7,7 +7,7 @@ import { TASK_STATUS } from '@/config/workshop-properties';
 import { useTaskPriority } from '@/hooks/useConfiguration';
 import { useTaskFormData } from '@/hooks/useTaskFormData';
 import ProjectItemSelect from '@/components/forms/ProjectItemSelect';
-import AssignmentSelect from '@/components/forms/AssignmentSelect';
+import MultiSelect from '@/components/ui/MultiSelect';
 import TimeSlotsManager, { TimeSlot } from '@/components/forms/TimeSlotsManager';
 import QuantityProgress from '@/components/forms/QuantityProgress';
 import TaskTitleSelect from '@/components/forms/TaskTitleSelect';
@@ -54,8 +54,8 @@ function NewTaskPageContent() {
     completed_quantity: 0,
     projectId: projectIdFromUrl || '',
     itemId: itemIdFromUrl || '',
-    machineId: searchParams.get('machine') || '',
-    operatorId: searchParams.get('operator') || '',
+    machineIds: searchParams.get('machine') ? [searchParams.get('machine') as string] : [],
+    operatorIds: searchParams.get('operator') ? [searchParams.get('operator') as string] : [],
   });
 
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([defaultTimeSlot]);
@@ -118,8 +118,8 @@ function NewTaskPageContent() {
         body: JSON.stringify({
           ...formData,
           projectId: formData.projectId || null,
-          machineId: formData.machineId || null,
-          operatorId: formData.operatorId || null,
+          machineIds: formData.machineIds || [],
+          operatorIds: formData.operatorIds || [],
           timeSlots: timeSlotDTOs,
         }),
       });
@@ -213,24 +213,22 @@ function NewTaskPageContent() {
             itemLocked={isItemLocked}
           />
 
-          {/* Machine Assignment */}
-          <AssignmentSelect
-            id="machineId"
-            name="machineId"
-            label="Machine"
-            value={formData.machineId}
+          {/* Machine Assignment (multi) */}
+          <MultiSelect
+            label="Machines"
+            value={formData.machineIds}
+            onChange={(vals) => setFormData((prev) => ({ ...prev, machineIds: vals }))}
             options={machines}
-            onChange={(value) => setFormData((prev) => ({ ...prev, machineId: value || '' }))}
+            placeholder="Select machines..."
           />
 
-          {/* Operator Assignment */}
-          <AssignmentSelect
-            id="operatorId"
-            name="operatorId"
-            label="Operator"
-            value={formData.operatorId}
+          {/* Operator Assignment (multi) */}
+          <MultiSelect
+            label="Operators"
+            value={formData.operatorIds}
+            onChange={(vals) => setFormData((prev) => ({ ...prev, operatorIds: vals }))}
             options={sortedOperators}
-            onChange={(value) => setFormData((prev) => ({ ...prev, operatorId: value || '' }))}
+            placeholder="Select operators..."
           />
 
           {/* Priority and Status */}

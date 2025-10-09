@@ -9,7 +9,7 @@ import { useTaskPriority } from '@/hooks/useConfiguration';
 import { useTaskFormData } from '@/hooks/useTaskFormData';
 import { TaskResponseDTO } from '@/types/api';
 import ProjectItemSelect from '@/components/forms/ProjectItemSelect';
-import AssignmentSelect from '@/components/forms/AssignmentSelect';
+import MultiSelect from '@/components/ui/MultiSelect';
 import TimeSlotsManager, { TimeSlot } from '@/components/forms/TimeSlotsManager';
 import QuantityProgress from '@/components/forms/QuantityProgress';
 import TaskStatusQuickActions from '@/components/task/TaskStatusQuickActions';
@@ -34,8 +34,8 @@ export default function EditTaskPage() {
     completed_quantity: 0,
     projectId: '',
     itemId: '',
-    machineId: '',
-    operatorId: '',
+    machineIds: [] as string[],
+    operatorIds: [] as string[],
   });
 
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
@@ -98,8 +98,8 @@ export default function EditTaskPage() {
           completed_quantity: taskData.completed_quantity || 0,
           projectId: taskData.project?.id || '',
           itemId: taskData.item?.id || '',
-          machineId: taskData.machine?.id || '',
-          operatorId: taskData.operator?.id || '',
+          machineIds: (taskData.machines || []).map((m: { id: string }) => m.id),
+          operatorIds: (taskData.operators || []).map((o: { id: string }) => o.id),
         });
 
         setLoading(false);
@@ -174,8 +174,8 @@ export default function EditTaskPage() {
         body: JSON.stringify({
           ...formData,
           projectId: formData.projectId || null,
-          machineId: formData.machineId || null,
-          operatorId: formData.operatorId || null,
+          machineIds: formData.machineIds || [],
+          operatorIds: formData.operatorIds || [],
           timeSlots: timeSlotDTOs,
         }),
       });
@@ -276,24 +276,22 @@ export default function EditTaskPage() {
             required={true}
           />
 
-          {/* Machine Assignment */}
-          <AssignmentSelect
-            id="machineId"
-            name="machineId"
-            label="Machine"
-            value={formData.machineId}
+          {/* Machine Assignment (multi) */}
+          <MultiSelect
+            label="Machines"
+            value={formData.machineIds}
+            onChange={(vals) => setFormData((prev) => ({ ...prev, machineIds: vals }))}
             options={machines}
-            onChange={(value) => setFormData((prev) => ({ ...prev, machineId: value || '' }))}
+            placeholder="Select machines..."
           />
 
-          {/* Operator Assignment */}
-          <AssignmentSelect
-            id="operatorId"
-            name="operatorId"
-            label="Operator"
-            value={formData.operatorId}
+          {/* Operator Assignment (multi) */}
+          <MultiSelect
+            label="Operators"
+            value={formData.operatorIds}
+            onChange={(vals) => setFormData((prev) => ({ ...prev, operatorIds: vals }))}
             options={operators}
-            onChange={(value) => setFormData((prev) => ({ ...prev, operatorId: value || '' }))}
+            placeholder="Select operators..."
           />
 
           {/* Priority and Status */}
