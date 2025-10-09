@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import PageContainer from '@/components/layout/PageContainer';
 import DataTable from '@/components/ui/DataTable';
 import SearchFilter from '@/components/ui/SearchFilter';
-import StatusBadge from '@/components/ui/StatusBadge';
 import TableActions from '@/components/ui/TableActions';
+import MultiSelect from '@/components/ui/MultiSelect';
+import Select from '@/components/ui/Select';
 import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { logger } from '@/utils/logger';
 import { extractErrorMessage, getErrorMessage } from '@/utils/errorHandling';
@@ -103,6 +104,93 @@ function TasksPageContent({
   const [operators, setOperators] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Task update functions
+  const handleTaskUpdate = useCallback(async (taskId: string, field: string, value: string | null) => {
+    try {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ [field]: value }),
+      });
+
+      if (response.ok) {
+        setTasks((prevTasks) => prevTasks.map((task) => (task.id === taskId ? { ...task, [field]: value } : task)));
+        toast.success(`Task ${field} updated successfully`);
+      } else {
+        const errorMessage = await extractErrorMessage(response, `Failed to update task ${field}`);
+        logger.error(`Failed to update task ${field}:`, errorMessage);
+        toast.error(errorMessage);
+      }
+    } catch (error) {
+      logger.error(`Error updating task ${field}`, error);
+      toast.error(getErrorMessage(error, `Error updating task ${field}`));
+    }
+  }, []);
+
+  const handleTaskMachineUpdate = useCallback(
+    async (taskId: string, machineIds: string[]) => {
+      try {
+        const response = await fetch(`/api/tasks/${taskId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ machineIds }),
+        });
+
+        if (response.ok) {
+          setTasks((prevTasks) =>
+            prevTasks.map((task) =>
+              task.id === taskId ? { ...task, machines: machines.filter((m) => machineIds.includes(m.id)) } : task,
+            ),
+          );
+          toast.success('Task machines updated successfully');
+        } else {
+          const errorMessage = await extractErrorMessage(response, 'Failed to update task machines');
+          logger.error('Failed to update task machines:', errorMessage);
+          toast.error(errorMessage);
+        }
+      } catch (error) {
+        logger.error('Error updating task machines', error);
+        toast.error(getErrorMessage(error, 'Error updating task machines'));
+      }
+    },
+    [machines],
+  );
+
+  const handleTaskOperatorUpdate = useCallback(
+    async (taskId: string, operatorIds: string[]) => {
+      try {
+        const response = await fetch(`/api/tasks/${taskId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ operatorIds }),
+        });
+
+        if (response.ok) {
+          setTasks((prevTasks) =>
+            prevTasks.map((task) =>
+              task.id === taskId ? { ...task, operators: operators.filter((op) => operatorIds.includes(op.id)) } : task,
+            ),
+          );
+          toast.success('Task operators updated successfully');
+        } else {
+          const errorMessage = await extractErrorMessage(response, 'Failed to update task operators');
+          logger.error('Failed to update task operators:', errorMessage);
+          toast.error(errorMessage);
+        }
+      } catch (error) {
+        logger.error('Error updating task operators', error);
+        toast.error(getErrorMessage(error, 'Error updating task operators'));
+      }
+    },
+    [operators],
+  );
+
   // Create columns with real-time access to taskTitles
   const baseColumns = useMemo<Column<Task>[]>(
     () => [
@@ -113,11 +201,17 @@ function TasksPageContent({
         align: 'left',
         width: '30%',
         minWidth: '200px',
-        render: (title: string) => {
+        render: (title: string, task: Task) => {
           // Access current taskTitles at render time
           const taskTitle = taskTitles.find((t) => t.value === title);
           const displayValue = taskTitle?.label || title;
-          return <span className="text-sm font-medium">{displayValue}</span>;
+          return (
+            <Link
+              href={`/tasks/${task.id}`}
+              className="text-sm font-medium text-blue-600 hover:text-blue-800">
+              {displayValue}
+            </Link>
+          );
         },
       },
       {
@@ -159,53 +253,41 @@ function TasksPageContent({
       },
       {
         key: 'operators',
-        header: 'Operator',
+        header: 'Operators',
         sortable: false,
-        width: '15%',
-        minWidth: '120px',
-        render: (operators: Task['operators']) => (
-          <div className="text-sm">
-            {operators && operators.length > 0 ? (
-              operators.length <= 2 ? (
-                operators.map((op) => op.name).join(', ')
-              ) : (
-                <span title={operators.map((op) => op.name).join(', ')}>
-                  {operators
-                    .slice(0, 2)
-                    .map((op) => op.name)
-                    .join(', ')}{' '}
-                  <span className="text-gray-500">+{operators.length - 2}</span>
-                </span>
-              )
-            ) : (
-              'Unassigned'
-            )}
+        width: '20%',
+        minWidth: '200px',
+        render: (taskOperators: Task['operators'], task: Task) => (
+          <div
+            className="w-64"
+            onClick={(e) => e.stopPropagation()}>
+            <MultiSelect
+              value={taskOperators?.map((op) => op.id) || []}
+              onChange={(operatorIds) => handleTaskOperatorUpdate(task.id, operatorIds)}
+              options={operators}
+              placeholder="-- None --"
+              maxDisplayItems={2}
+            />
           </div>
         ),
       },
       {
         key: 'machines',
-        header: 'Machine',
-        sortable: true,
-        width: '15%',
-        minWidth: '120px',
-        render: (machines: Task['machines']) => (
-          <div className="text-sm">
-            {machines && machines.length > 0 ? (
-              machines.length <= 2 ? (
-                machines.map((machine) => machine.name).join(', ')
-              ) : (
-                <span title={machines.map((machine) => machine.name).join(', ')}>
-                  {machines
-                    .slice(0, 2)
-                    .map((machine) => machine.name)
-                    .join(', ')}{' '}
-                  <span className="text-gray-500">+{machines.length - 2}</span>
-                </span>
-              )
-            ) : (
-              'Unassigned'
-            )}
+        header: 'Machines',
+        sortable: false,
+        width: '20%',
+        minWidth: '200px',
+        render: (taskMachines: Task['machines'], task: Task) => (
+          <div
+            className="w-64"
+            onClick={(e) => e.stopPropagation()}>
+            <MultiSelect
+              value={taskMachines?.map((m) => m.id) || []}
+              onChange={(machineIds) => handleTaskMachineUpdate(task.id, machineIds)}
+              options={machines}
+              placeholder="-- None --"
+              maxDisplayItems={2}
+            />
           </div>
         ),
       },
@@ -213,38 +295,44 @@ function TasksPageContent({
         key: 'status',
         header: 'Status',
         sortable: true,
-        width: '120px',
-        minWidth: '120px',
-        render: (status: string) => {
-          const getStatusVariant = (status: string) => {
+        width: '140px',
+        minWidth: '140px',
+        render: (status: string, task: Task) => {
+          const getStatusColors = (status: string) => {
             switch (status) {
               case 'COMPLETED':
-                return 'success';
+                return 'bg-green-200 text-green-900 border-2 border-green-500';
               case 'IN_PROGRESS':
-                return 'info';
+                return 'bg-blue-200 text-blue-900 border-2 border-blue-500';
               case 'SCHEDULED':
-                return 'info';
+                return 'bg-purple-200 text-purple-900 border-2 border-purple-500';
               case 'PENDING':
-                return 'warning';
+                return 'bg-yellow-200 text-yellow-900 border-2 border-yellow-500';
               case 'BLOCKED':
-                return 'error';
+                return 'bg-red-200 text-red-900 border-2 border-red-500';
               default:
-                return 'default';
+                return 'bg-gray-200 text-gray-900 border-2 border-gray-500';
             }
           };
 
-          const label = TASK_STATUS.find((s) => s.value === status)?.label || status;
           return (
-            <StatusBadge
-              status={label}
-              variant={getStatusVariant(status)}
-            />
+            <div
+              className="w-32"
+              onClick={(e) => e.stopPropagation()}>
+              <Select
+                value={status}
+                onChange={(newStatus) => handleTaskUpdate(task.id, 'status', newStatus)}
+                options={TASK_STATUS.map((s) => ({ id: s.value, name: s.label }))}
+                placeholder="Select status"
+                buttonClassName={`font-medium cursor-pointer ${getStatusColors(status)}`}
+              />
+            </div>
           );
         },
       },
     ],
-    [taskTitles],
-  ); // Depend on taskTitles so it recreates when they change
+    [taskTitles, machines, operators, handleTaskUpdate, handleTaskMachineUpdate, handleTaskOperatorUpdate],
+  ); // Depend on taskTitles and update functions
 
   // Track column order state separately from base columns
   const [columnOrder, setColumnOrder] = useState<string[]>([]);
