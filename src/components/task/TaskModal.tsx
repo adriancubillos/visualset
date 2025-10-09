@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import TimeSlotsManager, { TimeSlot } from '@/components/forms/TimeSlotsManager';
 import { sortByName } from '@/utils/sorting';
-import Select from '@/components/ui/Select';
+import MultiSelect from '@/components/ui/MultiSelect';
 import QuantityProgress from '@/components/forms/QuantityProgress';
 import TaskStatusQuickActions from './TaskStatusQuickActions';
 
@@ -177,20 +177,26 @@ export default function TaskModal({
 
         {/* Machine and Operator in same row */}
         <div className="grid grid-cols-2 gap-4 mb-4">
-          <Select
-            label="Operator"
-            value={operatorIds[0] || null}
-            onChange={(value) => setOperatorIds(value ? [value] : [])}
-            options={sortByName(operators)}
-            placeholder="-- None --"
-          />
-          <Select
-            label="Machine"
-            value={machineIds[0] || null}
-            onChange={(value) => setMachineIds(value ? [value] : [])}
-            options={sortByName(machines)}
-            placeholder="-- None --"
-          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Operators</label>
+            <MultiSelect
+              value={operatorIds}
+              onChange={setOperatorIds}
+              options={sortByName(operators)}
+              placeholder="-- None --"
+              maxDisplayItems={2}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Machines</label>
+            <MultiSelect
+              value={machineIds}
+              onChange={setMachineIds}
+              options={sortByName(machines)}
+              placeholder="-- None --"
+              maxDisplayItems={2}
+            />
+          </div>
         </div>
 
         {/* Quick Status Actions */}
