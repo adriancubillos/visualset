@@ -80,7 +80,7 @@ describe('items routes', () => {
   });
 
   it('GET /api/items/[id] returns item on success', async () => {
-    const fake = { id: 'i1', name: 'Item 1' };
+    const fake = { id: 'i1', name: 'Item 1', tasks: [] };
     const svcSpy = vi
       .spyOn(itemService, 'getItem')
       .mockResolvedValue(fake as unknown as Awaited<ReturnType<typeof itemService.getItem>>);

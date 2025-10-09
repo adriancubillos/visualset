@@ -162,15 +162,15 @@ export async function updateItem(prisma: PrismaClient, id: string, data: ItemUpd
   const updatedItem = await prisma.item.update({
     where: { id },
     data: ((): Prisma.ItemUpdateInput => {
-      const d: Record<string, unknown> = {
-        description: data.description ?? null,
-        quantity: data.quantity ?? 1,
-        measure: data.measure ?? null,
-        imageUrl: data.imageUrl ?? null,
-      };
+      const d: Record<string, unknown> = {};
 
+      // Only include fields that are explicitly provided in the update
       if (data.name !== undefined) d.name = data.name;
+      if (data.description !== undefined) d.description = data.description ?? null;
       if (data.status !== undefined) d.status = data.status as ItemStatus;
+      if (data.quantity !== undefined) d.quantity = data.quantity ?? 1;
+      if (data.measure !== undefined) d.measure = data.measure ?? null;
+      if (data.imageUrl !== undefined) d.imageUrl = data.imageUrl ?? null;
       if (data.projectId !== undefined && data.projectId !== null) d.project = { connect: { id: data.projectId } };
 
       return d as Prisma.ItemUpdateInput;
