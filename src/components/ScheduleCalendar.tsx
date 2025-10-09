@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
@@ -111,8 +111,9 @@ export default function ScheduleCalendar() {
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [hoveredEventId, setHoveredEventId] = useState<string | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [touchTimer, setTouchTimer] = useState<NodeJS.Timeout | null>(null);
-  const [isLongPress, setIsLongPress] = useState<boolean>(false);
+
+  // Use ref to track hovered event without triggering re-renders
+  const hoveredEventRef = useRef<string | null>(null);
 
   // New filter state
   const [selectedMachine, setSelectedMachine] = useState<string>('all');
@@ -127,13 +128,6 @@ export default function ScheduleCalendar() {
   const [operators, setOperators] = useState<{ id: string; name: string }[]>([]);
   const [projects, setProjects] = useState<{ id: string; name: string; color?: string | null }[]>([]);
   const [items, setItems] = useState<{ id: string; name: string; project?: { id: string; name: string } }[]>([]);
-
-  // Cleanup timers on unmount
-  useEffect(() => {
-    return () => {
-      if (touchTimer) clearTimeout(touchTimer);
-    };
-  }, [touchTimer]);
 
   useEffect(() => {
     fetch('/api/machines')
@@ -168,15 +162,6 @@ export default function ScheduleCalendar() {
       .catch((error) => logger.apiError('Fetch schedule', '/api/schedule', error));
   }, []);
 
-  // Cleanup touch timer on unmount
-  useEffect(() => {
-    return () => {
-      if (touchTimer) {
-        clearTimeout(touchTimer);
-      }
-    };
-  }, [touchTimer]);
-
   // // ✅ Unique machines/operators for dropdown
   // const machines = Array.from(new Map(tasks.filter((t) => t.machine).map((t) => [t.machine!.id, t.machine!])).values());
   // const operators = Array.from(
@@ -188,9 +173,9 @@ export default function ScheduleCalendar() {
     const filtered = tasks.filter((task) => {
       const taskMachines = task.machines || [];
       const taskOperators = task.operators || [];
-      
-      const machineMatch = selectedMachine === 'all' || taskMachines.some(m => m.id === selectedMachine);
-      const operatorMatch = selectedOperator === 'all' || taskOperators.some(o => o.id === selectedOperator);
+
+      const machineMatch = selectedMachine === 'all' || taskMachines.some((m) => m.id === selectedMachine);
+      const operatorMatch = selectedOperator === 'all' || taskOperators.some((o) => o.id === selectedOperator);
       const projectMatch = selectedProject === 'all' || task.project?.id === selectedProject;
       const itemMatch = selectedItem === 'all' || task.item?.id === selectedItem;
       return machineMatch && operatorMatch && projectMatch && itemMatch;
@@ -243,21 +228,21 @@ export default function ScheduleCalendar() {
           const taskOperators = task.operators || [];
 
           // Get colors/patterns for all operators and machines
-          const operatorData = taskOperators.map(op => {
+          const operatorData = taskOperators.map((op) => {
             const colorData = getOperatorColor(op);
             return {
               name: op.name,
               color: colorData.hex,
-              pattern: colorData.pattern
+              pattern: colorData.pattern,
             };
           });
-          
-          const machineData = taskMachines.map(m => {
+
+          const machineData = taskMachines.map((m) => {
             const colorData = getMachineColor(m);
             return {
               name: m.name,
               color: colorData.hex,
-              pattern: colorData.pattern
+              pattern: colorData.pattern,
             };
           });
 
@@ -269,7 +254,7 @@ export default function ScheduleCalendar() {
             allDay: false,
             resource: {
               color: getEventColor(task),
-              machines: taskMachines.map(m => m.name),
+              machines: taskMachines.map((m) => m.name),
               project: task.project?.name,
               duration: slot.durationMin,
               operators: operatorData,
@@ -278,10 +263,10 @@ export default function ScheduleCalendar() {
               status: task.status,
               description: task.description,
               item: task.item?.name,
-              machineTypes: taskMachines.map(m => m.type).filter(Boolean) as string[],
-              machineLocations: taskMachines.map(m => m.location).filter(Boolean) as string[],
-              operatorEmails: taskOperators.map(o => o.email ?? null),
-              operatorShifts: taskOperators.map(o => o.shift ?? null),
+              machineTypes: taskMachines.map((m) => m.type).filter(Boolean) as string[],
+              machineLocations: taskMachines.map((m) => m.location).filter(Boolean) as string[],
+              operatorEmails: taskOperators.map((o) => o.email ?? null),
+              operatorShifts: taskOperators.map((o) => o.shift ?? null),
               startDate: formatDisplayDate(slot.startDateTime),
               endDate: formatDisplayDate(end.toISOString()),
               // Store original task ID and slot info for event handling
@@ -358,8 +343,8 @@ export default function ScheduleCalendar() {
             quantity: updatedTask.quantity || 1,
             completed_quantity: updatedTask.completed_quantity || 0,
             itemId: updatedTask.item?.id || null,
-            machineIds: updatedTask.machines?.map(m => m.id) || [],
-            operatorIds: updatedTask.operators?.map(o => o.id) || [],
+            machineIds: updatedTask.machines?.map((m) => m.id) || [],
+            operatorIds: updatedTask.operators?.map((o) => o.id) || [],
             timeSlots: updatedTimeSlots.map((slot) => ({
               startDateTime: slot.startDateTime,
               endDateTime: slot.endDateTime,
@@ -433,7 +418,7 @@ export default function ScheduleCalendar() {
     [selectedTask],
   );
 
-  // Memoize event selection handler
+  // Memoize event selection handler with debouncing to prevent multiple rapid clicks
   const handleSelectEvent = useCallback(
     (event: CalendarEvent) => {
       // Extract original task ID and slot index from event resource
@@ -447,7 +432,162 @@ export default function ScheduleCalendar() {
         setIsModalOpen(true);
       }
     },
-    [tasks],
+    [tasks], // Include isModalOpen in dependencies since we use it in the timeout
+  );
+
+  // Memoize the event component to prevent constant re-rendering on mouse events
+  const EventComponent = useCallback(
+    ({ event }: { event: CalendarEvent }) => {
+      // Get the first operator and machine for the split background
+      const firstOperator = event.resource?.operators?.[0];
+      const firstMachine = event.resource?.machineColors?.[0];
+
+      const operatorStyle = firstOperator
+        ? getPatternStyles(firstOperator.color, firstOperator.pattern as PatternType)
+        : getPatternStyles('#6b7280', 'solid');
+
+      const machineStyle = firstMachine
+        ? getPatternStyles(firstMachine.color, firstMachine.pattern as PatternType)
+        : getPatternStyles('#6b7280', 'solid');
+
+      return (
+        <div
+          className="relative w-full h-full rounded-lg cursor-pointer border-2 border-transparent hover:border-blue-300"
+          title="" // Disable browser's default tooltip
+          onClick={(e) => {
+            // Single, reliable click handler
+            e.stopPropagation();
+            e.preventDefault(); // Prevent any default behavior
+
+            // Hide any tooltips first
+            hoveredEventRef.current = null;
+            setHoveredEventId(null);
+            // Use direct handler for reliable modal opening
+            handleSelectEvent(event);
+          }}
+          onMouseEnter={(e) => {
+            // Immediately show this event's tooltip
+            hoveredEventRef.current = event.id;
+            setHoveredEventId(event.id);
+            setMousePosition({ x: e.clientX, y: e.clientY });
+          }}
+          onMouseMove={(e) => {
+            if (hoveredEventRef.current === event.id) {
+              // Update mouse position without causing re-renders
+              const newPosition = { x: e.clientX, y: e.clientY };
+              setMousePosition(newPosition);
+            }
+          }}
+          onMouseLeave={() => {
+            // Only hide if we're leaving this specific event
+            if (hoveredEventRef.current === event.id) {
+              hoveredEventRef.current = null;
+              setHoveredEventId(null);
+            }
+          }}
+          style={{ position: 'relative', zIndex: 10 }} // Ensure it's clickable
+          data-testid={`calendar-event-${event.id}`}>
+          {/* Split background: top half operator, bottom half machine */}
+          <div className="absolute inset-0 flex flex-col">
+            <div
+              className="flex-1 relative"
+              style={operatorStyle}>
+              {/* Operator initials in top left - show all operators */}
+              {event.resource?.operators && event.resource.operators.length > 0 && (
+                <div className="absolute top-0.5 left-0.5 text-[10px] font-bold text-white bg-black bg-opacity-40 px-1 rounded flex gap-0.5">
+                  {event.resource.operators.map((op, idx) => (
+                    <span key={idx}>
+                      {op.name
+                        .split(' ')
+                        .map((n: string) => n[0])
+                        .join('')
+                        .toUpperCase()
+                        .slice(0, 3)}
+                      {idx < event.resource!.operators!.length - 1 && ','}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div
+              className="flex-1 relative"
+              style={machineStyle}>
+              {/* Machine names in bottom left - show all machines */}
+              {event.resource?.machines && event.resource.machines.length > 0 && (
+                <div className="absolute bottom-0.5 left-0.5 text-[10px] font-bold text-white bg-black bg-opacity-40 px-1 rounded truncate max-w-[90%]">
+                  {event.resource.machines.join(', ')}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Content overlay */}
+          <div className="relative z-10 p-1 h-full flex flex-col justify-center text-white">
+            <div className="font-medium truncate text-xs leading-tight">{event.title}</div>
+          </div>
+
+          {/* Text shadow overlay for better readability */}
+          <div className="absolute inset-0 bg-black opacity-20 rounded-lg"></div>
+        </div>
+      );
+    },
+    [handleSelectEvent], // Only include stable dependencies
+  );
+
+  // Render tooltip separately to avoid EventComponent re-renders
+  const renderTooltip = () => {
+    if (!hoveredEventId) return null;
+
+    const event = events.find((e) => e.id === hoveredEventId);
+    if (!event) return null;
+
+    return (
+      <div
+        className="fixed pointer-events-none max-w-xs"
+        style={{
+          zIndex: 99999,
+          left:
+            Math.min(
+              Math.max(mousePosition.x + 10, 10),
+              (typeof window !== 'undefined' ? window.innerWidth : 800) - 300,
+            ) + 'px',
+          top:
+            Math.min(
+              Math.max(mousePosition.y - 80, 10),
+              (typeof window !== 'undefined' ? window.innerHeight : 600) - 150,
+            ) + 'px',
+        }}>
+        <div className="bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg">
+          <div className="font-semibold mb-1">{event.title}</div>
+          <div>Status: {event.resource?.status || 'UNKNOWN'}</div>
+          <div>Duration: {getDurationText(event.resource?.duration || 0)}</div>
+          {event.resource?.startDate && <div>Start: {event.resource.startDate}</div>}
+          {event.resource?.endDate && <div>End: {event.resource.endDate}</div>}
+          {event.resource?.operators && event.resource.operators.length > 0 && (
+            <div>
+              Operator{event.resource.operators.length > 1 ? 's' : ''}:{' '}
+              {event.resource.operators.map((o) => o.name).join(', ')}
+            </div>
+          )}
+          {event.resource?.machines && event.resource.machines.length > 0 && (
+            <div>
+              Machine{event.resource.machines.length > 1 ? 's' : ''}: {event.resource.machines.join(', ')}
+              {event.resource?.machineTypes &&
+                event.resource.machineTypes.length > 0 &&
+                ` (${event.resource.machineTypes.join(', ')})`}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Memoize the components object to prevent unnecessary re-renders
+  const calendarComponents = useMemo(
+    () => ({
+      event: EventComponent,
+    }),
+    [EventComponent],
   );
 
   return (
@@ -553,7 +693,10 @@ export default function ScheduleCalendar() {
           onEventDrop={handleEventDrop}
           resizable={false}
           draggableAccessor={() => true}
-          onSelectEvent={handleSelectEvent}
+          onSelectEvent={(event) => {
+            // Add a small delay to prevent interference with click events
+            setTimeout(() => handleSelectEvent(event), 10);
+          }}
           eventPropGetter={() => ({
             style: {
               backgroundColor: 'transparent', // We'll handle colors in the custom component
@@ -568,165 +711,7 @@ export default function ScheduleCalendar() {
               overflow: 'visible',
             },
           })}
-          components={{
-            event: ({ event }) => {
-              // Get the first operator and machine for the split background
-              const firstOperator = event.resource?.operators?.[0];
-              const firstMachine = event.resource?.machineColors?.[0];
-              
-              const operatorStyle = firstOperator
-                ? getPatternStyles(firstOperator.color, firstOperator.pattern as PatternType)
-                : getPatternStyles('#6b7280', 'solid');
-              
-              const machineStyle = firstMachine
-                ? getPatternStyles(firstMachine.color, firstMachine.pattern as PatternType)
-                : getPatternStyles('#6b7280', 'solid');
-
-              return (
-                <div
-                  className="relative w-full h-full rounded-lg cursor-pointer"
-                  title="" // Disable browser's default tooltip
-                  onClick={(e) => {
-                    // Explicitly handle click to open modal
-                    e.stopPropagation();
-                    handleSelectEvent(event);
-                  }}
-                  onMouseEnter={(e) => {
-                    // Immediately show this event's tooltip
-                    setHoveredEventId(event.id);
-                    setMousePosition({ x: e.clientX, y: e.clientY });
-                  }}
-                  onMouseMove={(e) => {
-                    if (hoveredEventId === event.id) {
-                      setMousePosition({ x: e.clientX, y: e.clientY });
-                    }
-                  }}
-                  onMouseLeave={() => {
-                    // Only hide if we're leaving this specific event
-                    setHoveredEventId((current) => (current === event.id ? null : current));
-                  }}
-                  onTouchStart={(e) => {
-                    // For mobile: only show tooltip on actual long press
-                    const touch = e.touches[0];
-                    setMousePosition({ x: touch.clientX, y: touch.clientY });
-                    setIsLongPress(false); // Reset long press flag
-
-                    const timer = setTimeout(() => {
-                      // This confirms it's a long press
-                      setIsLongPress(true);
-                      setHoveredEventId(event.id);
-                      // Hide tooltip after 4 seconds
-                      setTimeout(() => {
-                        setHoveredEventId(null);
-                        setIsLongPress(false);
-                      }, 4000);
-                    }, 500); // Long press threshold
-
-                    setTouchTimer(timer);
-                  }}
-                  onTouchMove={() => {
-                    // Cancel tooltip if user moves finger (scrolling/swiping)
-                    if (touchTimer) {
-                      clearTimeout(touchTimer);
-                      setTouchTimer(null);
-                      setIsLongPress(false);
-                    }
-                  }}
-                  onTouchEnd={(e) => {
-                    // If it wasn't a long press, treat it as a click to open modal
-                    if (touchTimer && !isLongPress) {
-                      clearTimeout(touchTimer);
-                      setTouchTimer(null);
-                      setIsLongPress(false);
-                      // Open modal on tap
-                      e.preventDefault();
-                      handleSelectEvent(event);
-                    }
-                  }}>
-                  {/* Split background: top half operator, bottom half machine */}
-                  <div className="absolute inset-0 flex flex-col">
-                    <div
-                      className="flex-1 relative"
-                      style={operatorStyle}>
-                      {/* Operator initials in top left - show all operators */}
-                      {event.resource?.operators && event.resource.operators.length > 0 && (
-                        <div className="absolute top-0.5 left-0.5 text-[10px] font-bold text-white bg-black bg-opacity-40 px-1 rounded flex gap-0.5">
-                          {event.resource.operators.map((op, idx) => (
-                            <span key={idx}>
-                              {op.name
-                                .split(' ')
-                                .map((n: string) => n[0])
-                                .join('')
-                                .toUpperCase()
-                                .slice(0, 3)}
-                              {idx < event.resource!.operators!.length - 1 && ','}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <div
-                      className="flex-1 relative"
-                      style={machineStyle}>
-                      {/* Machine names in bottom left - show all machines */}
-                      {event.resource?.machines && event.resource.machines.length > 0 && (
-                        <div className="absolute bottom-0.5 left-0.5 text-[10px] font-bold text-white bg-black bg-opacity-40 px-1 rounded truncate max-w-[90%]">
-                          {event.resource.machines.join(', ')}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Content overlay */}
-                  <div className="relative z-10 p-1 h-full flex flex-col justify-center text-white">
-                    <div className="font-medium truncate text-xs leading-tight">{event.title}</div>
-                  </div>
-
-                  {/* Text shadow overlay for better readability */}
-                  <div className="absolute inset-0 bg-black opacity-20 rounded-lg"></div>
-
-                  {/* Tooltip on hover - using state-based visibility */}
-                  {hoveredEventId === event.id && (
-                    <div
-                      className="
-                      fixed z-[9999]
-                      bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg
-                      pointer-events-none max-w-xs
-                    "
-                      style={{
-                        left:
-                          Math.min(
-                            Math.max(mousePosition.x + 10, 10),
-                            (typeof window !== 'undefined' ? window.innerWidth : 800) - 300,
-                          ) + 'px',
-                        top:
-                          Math.min(
-                            Math.max(mousePosition.y - 80, 10),
-                            (typeof window !== 'undefined' ? window.innerHeight : 600) - 150,
-                          ) + 'px',
-                      }}>
-                      <div className="font-semibold mb-1">{event.title}</div>
-                      <div>Status: {event.resource?.status || 'UNKNOWN'}</div>
-                      <div>Duration: {getDurationText(event.resource?.duration || 0)}</div>
-                      {event.resource?.startDate && <div>Start: {event.resource.startDate}</div>}
-                      {event.resource?.endDate && <div>End: {event.resource.endDate}</div>}
-                      {event.resource?.operators && event.resource.operators.length > 0 && (
-                        <div>
-                          Operator{event.resource.operators.length > 1 ? 's' : ''}: {event.resource.operators.map(o => o.name).join(', ')}
-                        </div>
-                      )}
-                      {event.resource?.machines && event.resource.machines.length > 0 && (
-                        <div>
-                          Machine{event.resource.machines.length > 1 ? 's' : ''}: {event.resource.machines.join(', ')}
-                          {event.resource?.machineTypes && event.resource.machineTypes.length > 0 && ` (${event.resource.machineTypes.join(', ')})`}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            },
-          }}
+          components={calendarComponents}
         />
       </div>
 
@@ -743,6 +728,9 @@ export default function ScheduleCalendar() {
         machines={machines}
         operators={operators}
       />
+
+      {/* Render tooltip outside the calendar to avoid z-index issues */}
+      {renderTooltip()}
     </div>
   );
 }
