@@ -16,6 +16,7 @@ import { sortByName } from '@/utils/sorting';
 import { logger } from '@/utils/logger';
 import toast from 'react-hot-toast';
 import { displayConflictError } from '@/utils/taskErrorHandling';
+import { updateTaskWithConfirm } from '@/utils/taskApi';
 
 interface Task {
   id: string;
@@ -46,12 +47,11 @@ interface CalendarEvent {
   allDay?: boolean;
   resource?: {
     color: string;
-    machines?: string[]; // Array of machine names
+    machines?: string[];
     project?: string;
     duration: number;
-    operators?: { name: string; color: string; pattern: string }[]; // Array of operators with their colors
-    machineColors?: { name: string; color: string; pattern: string }[]; // Array of machines with their colors
-    // Additional tooltip data
+    operators?: { name: string; color: string; pattern: string }[];
+    machineColors?: { name: string; color: string; pattern: string }[];
     status: string;
     description?: string | null;
     item?: string;
@@ -61,7 +61,6 @@ interface CalendarEvent {
     operatorShifts?: (string | null)[];
     startDate?: string;
     endDate?: string;
-    // Multi-slot support
     originalTaskId?: string;
     slotIndex?: number;
   };
@@ -332,43 +331,59 @@ export default function ScheduleCalendar() {
       });
 
       try {
-        // Use the task update endpoint to preserve all time slots
-        const res = await fetch(`/api/tasks/${updatedTask.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: updatedTask.title,
-            description: updatedTask.description,
-            status: updatedTask.status,
-            quantity: updatedTask.quantity || 1,
-            completed_quantity: updatedTask.completed_quantity || 0,
-            itemId: updatedTask.item?.id || null,
-            machineIds: updatedTask.machines?.map((m) => m.id) || [],
-            operatorIds: updatedTask.operators?.map((o) => o.id) || [],
-            timeSlots: updatedTimeSlots.map((slot) => ({
-              startDateTime: slot.startDateTime,
-              endDateTime: slot.endDateTime,
-              durationMin: slot.durationMin,
-            })),
-          }),
+        const payload = {
+          title: updatedTask.title,
+          description: updatedTask.description,
+          status: updatedTask.status,
+          quantity: updatedTask.quantity || 1,
+          completed_quantity: updatedTask.completed_quantity || 0,
+          itemId: updatedTask.item?.id || null,
+          machineIds: updatedTask.machines?.map((m) => m.id) || [],
+          operatorIds: updatedTask.operators?.map((o) => o.id) || [],
+          timeSlots: updatedTimeSlots.map((slot) => ({
+            startDateTime: slot.startDateTime,
+            endDateTime: slot.endDateTime,
+            durationMin: slot.durationMin,
+          })),
+        };
+
+        const result = await updateTaskWithConfirm(updatedTask.id, payload, {
+          existingStatus: tasks.find((t) => t.id === updatedTask.id)?.status,
+          newStatus: updatedTask.status,
+          // Drag/drop modifies timeSlots only; use PATCH to avoid overwriting other relations
+          method: 'PATCH',
         });
 
-        const data = await res.json();
+        if (result.ok && result.data) {
+          const data = result.data as Record<string, unknown>;
+          const updated = { ...(data as unknown as Record<string, unknown>) } as Partial<Task>;
 
-        if (res.ok) {
-          setTasks((prev) => prev.map((task) => (task.id === data.id ? { ...task, ...data } : task)));
+          // If status is COMPLETED and server didn't return completed_quantity, infer from quantity
+          if (updated.status === 'COMPLETED' && updated.completed_quantity === undefined) {
+            const current = tasks.find((t) => t.id === updated.id);
+            const qty = (updated.quantity as number | undefined) ?? current?.quantity ?? 0;
+            updated.completed_quantity = qty;
+          }
+
+          setTasks((prev) => prev.map((task) => (task.id === (data.id as string) ? { ...task, ...updated } : task)));
           toast.success('Task rescheduled successfully');
         } else {
-          // Use the conflict error handler for detailed error messages
-          if (data.conflict) {
-            displayConflictError(data);
+          const serverData = result.data as Record<string, unknown> | undefined;
+          if (serverData && (serverData as unknown as { conflict?: boolean }).conflict) {
+            displayConflictError(serverData);
           } else {
-            logger.error('Error updating task during drag operation', data.error);
-            const errorMessage =
-              typeof data.error === 'object' && data.error?.message
-                ? data.error.message
-                : data.error || 'Failed to reschedule task';
-            toast.error(errorMessage);
+            const errObj =
+              result.error ??
+              (serverData && (serverData as unknown as { error?: unknown }).error) ??
+              'Failed to reschedule task';
+            logger.error('Error updating task during drag operation', errObj);
+            let errorMessage = 'Failed to reschedule task';
+            if (typeof errObj === 'string') errorMessage = errObj;
+            else if (typeof errObj === 'object' && errObj && 'message' in (errObj as Record<string, unknown>)) {
+              const maybe = errObj as Record<string, unknown>;
+              if (typeof maybe.message === 'string') errorMessage = maybe.message;
+            }
+            toast.error(errorMessage || 'Failed to reschedule task');
           }
         }
       } catch (err) {

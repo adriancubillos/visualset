@@ -11,6 +11,7 @@ import MultiSelect from '@/components/ui/MultiSelect';
 import Select from '@/components/ui/Select';
 import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { logger } from '@/utils/logger';
+import { updateTaskWithConfirm, sendTaskUpdate } from '@/utils/taskApi';
 import { getStatusVariant, getVariantClasses } from '@/utils/statusStyles';
 import { extractErrorMessage, getErrorMessage } from '@/utils/errorHandling';
 import StatisticsCards from '@/components/ui/StatisticsCards';
@@ -106,42 +107,50 @@ function TasksPageContent({
   const [loading, setLoading] = useState(true);
 
   // Task update functions
-  const handleTaskUpdate = useCallback(async (taskId: string, field: string, value: string | null) => {
-    try {
-      const response = await fetch(`/api/tasks/${taskId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ [field]: value }),
-      });
+  const handleTaskUpdate = useCallback(
+    async (taskId: string, field: string, value: string | null) => {
+      const task = tasks.find((t) => t.id === taskId);
 
-      if (response.ok) {
-        setTasks((prevTasks) => prevTasks.map((task) => (task.id === taskId ? { ...task, [field]: value } : task)));
-        toast.success(`Task ${field} updated successfully`);
-      } else {
-        const errorMessage = await extractErrorMessage(response, `Failed to update task ${field}`);
-        logger.error(`Failed to update task ${field}:`, errorMessage);
-        toast.error(errorMessage);
+      const payload = { [field]: value };
+
+      try {
+        const result = await updateTaskWithConfirm(taskId, payload, {
+          existingStatus: task?.status,
+          newStatus: field === 'status' ? (value as string | null) : task?.status,
+          // Use PATCH for single-field updates so the server doesn't overwrite other fields
+          method: 'PATCH',
+        });
+
+        if (result.ok && result.data) {
+          const updatedData = result.data as Partial<Task>;
+
+          // If server did not return completed_quantity but the status was set to COMPLETED,
+          // infer it from the returned quantity or the existing task quantity so the UI shows progress.
+          if (field === 'status' && value === 'COMPLETED' && updatedData.completed_quantity === undefined) {
+            const existingQty = task?.quantity ?? (updatedData.quantity as number | undefined) ?? 0;
+            updatedData.completed_quantity = existingQty;
+          }
+
+          setTasks((prevTasks) => prevTasks.map((t) => (t.id === taskId ? ({ ...t, ...updatedData } as Task) : t)));
+          toast.success(`Task ${field} updated successfully`);
+        } else {
+          const errorMessage = (result.error as string) || 'Failed to update task';
+          logger.error(`Failed to update task ${field}:`, errorMessage);
+          toast.error(errorMessage);
+        }
+      } catch (error) {
+        logger.error(`Error updating task ${field}`, error);
+        toast.error(getErrorMessage(error, `Error updating task ${field}`));
       }
-    } catch (error) {
-      logger.error(`Error updating task ${field}`, error);
-      toast.error(getErrorMessage(error, `Error updating task ${field}`));
-    }
-  }, []);
+    },
+    [tasks],
+  );
 
   const handleTaskMachineUpdate = useCallback(
     async (taskId: string, machineIds: string[]) => {
       try {
-        const response = await fetch(`/api/tasks/${taskId}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ machineIds }),
-        });
-
-        if (response.ok) {
+        const result = await sendTaskUpdate(taskId, { machineIds }, 'PATCH');
+        if (result.ok) {
           setTasks((prevTasks) =>
             prevTasks.map((task) =>
               task.id === taskId ? { ...task, machines: machines.filter((m) => machineIds.includes(m.id)) } : task,
@@ -149,7 +158,7 @@ function TasksPageContent({
           );
           toast.success('Task machines updated successfully');
         } else {
-          const errorMessage = await extractErrorMessage(response, 'Failed to update task machines');
+          const errorMessage = (result.error as string) || 'Failed to update task machines';
           logger.error('Failed to update task machines:', errorMessage);
           toast.error(errorMessage);
         }
@@ -164,23 +173,16 @@ function TasksPageContent({
   const handleTaskOperatorUpdate = useCallback(
     async (taskId: string, operatorIds: string[]) => {
       try {
-        const response = await fetch(`/api/tasks/${taskId}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ operatorIds }),
-        });
-
-        if (response.ok) {
+        const result = await sendTaskUpdate(taskId, { operatorIds }, 'PATCH');
+        if (result.ok) {
           setTasks((prevTasks) =>
             prevTasks.map((task) =>
-              task.id === taskId ? { ...task, operators: operators.filter((op) => operatorIds.includes(op.id)) } : task,
+              task.id === taskId ? { ...task, operators: operators.filter((o) => operatorIds.includes(o.id)) } : task,
             ),
           );
           toast.success('Task operators updated successfully');
         } else {
-          const errorMessage = await extractErrorMessage(response, 'Failed to update task operators');
+          const errorMessage = (result.error as string) || 'Failed to update task operators';
           logger.error('Failed to update task operators:', errorMessage);
           toast.error(errorMessage);
         }

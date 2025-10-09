@@ -8,6 +8,7 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import { getStatusVariant } from '@/utils/statusStyles';
 import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { logger } from '@/utils/logger';
+import { updateTaskWithConfirm } from '@/utils/taskApi';
 import { extractErrorMessage, getErrorMessage } from '@/utils/errorHandling';
 import TaskStatusQuickActions from '@/components/task/TaskStatusQuickActions';
 import toast from 'react-hot-toast';
@@ -73,15 +74,32 @@ export default function TaskDetailPage() {
   // Using centralized getStatusVariant from utils/statusStyles
 
   const handleStatusChange = async (newStatus: string) => {
+    // If un-completing a previously completed task, confirm first
+    if (task && task.status === 'COMPLETED' && newStatus !== 'COMPLETED') {
+      const result = await updateTaskWithConfirm(
+        String(params.id),
+        { status: newStatus },
+        { existingStatus: task?.status, newStatus, method: 'PATCH' },
+      );
+
+      if (result.ok && result.data) {
+        setTask(result.data as Task);
+        toast.success('Task status updated successfully');
+      } else {
+        const errorMessage = (result.error as string) || 'Failed to update task status';
+        logger.error('Failed to update task status:', errorMessage);
+        toast.error(errorMessage);
+      }
+    }
+
+    // Otherwise just proceed
     try {
       const response = await fetch(`/api/tasks/${params.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          status: newStatus,
-        }),
+        body: JSON.stringify({ status: newStatus }),
       });
 
       if (response.ok) {
@@ -112,22 +130,20 @@ export default function TaskDetailPage() {
 
   const performDelete = async () => {
     try {
-      const response = await fetch(`/api/tasks/${params.id}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        toast.success('Task deleted successfully');
-        // Navigate back to the item if it exists, otherwise go to tasks list
-        if (task?.item?.id) {
-          router.push(`/items/${task.item.id}`);
+      try {
+        const response = await fetch(`/api/tasks/${params.id}`, { method: 'DELETE' });
+        if (response.ok) {
+          toast.success('Task deleted successfully');
+          if (task?.item?.id) router.push(`/items/${task.item.id}`);
+          else router.push('/tasks');
         } else {
-          router.push('/tasks');
+          const errorMessage = await extractErrorMessage(response, 'Failed to delete task');
+          logger.error('Failed to delete task:', errorMessage);
+          toast.error(errorMessage);
         }
-      } else {
-        const errorMessage = await extractErrorMessage(response, 'Failed to delete task');
-        logger.error('Failed to delete task:', errorMessage);
-        toast.error(errorMessage);
+      } catch (error) {
+        logger.error('Error deleting task', error);
+        toast.error(getErrorMessage(error, 'Error deleting task'));
       }
     } catch (error) {
       logger.error('Error deleting task', error);

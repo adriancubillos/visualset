@@ -12,6 +12,7 @@ import PageContainer from '@/components/layout/PageContainer';
 import { checkItemCompletionReadiness } from '@/utils/itemValidation';
 import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { logger } from '@/utils/logger';
+import { updateTaskWithConfirm, sendTaskUpdate } from '@/utils/taskApi';
 import { getStatusVariant, getVariantClasses } from '@/utils/statusStyles';
 import { extractErrorMessage, getErrorMessage } from '@/utils/errorHandling';
 import { Column } from '@/types/table';
@@ -427,6 +428,44 @@ export default function ItemDetailPage() {
         if (field === 'status') {
           const task = item.tasks.find((t) => t.id === taskId);
           if (task && typeof task.quantity === 'number' && typeof task.completed_quantity === 'number') {
+            // If un-completing a completed task, confirm first
+            if (task.status === 'COMPLETED' && value !== 'COMPLETED') {
+              // Use shared helper to handle confirmation and update
+              const result = await updateTaskWithConfirm(
+                taskId,
+                { ...updatePayload, completed_quantity: 0 },
+                {
+                  existingStatus: task.status,
+                  newStatus: value as string | null,
+                  method: 'PATCH',
+                },
+              );
+
+              if (result.ok && result.data) {
+                const updatedTaskData = result.data as Partial<Task>;
+                const updatedTasks = item.tasks.map((t) =>
+                  t.id === taskId
+                    ? {
+                        ...t,
+                        ...updatedTaskData,
+                        machines: (updatedTaskData.machines as Task['machines']) || [],
+                        operators: (updatedTaskData.operators as Task['operators']) || [],
+                        timeSlots: (updatedTaskData.timeSlots as Task['timeSlots']) || [],
+                      }
+                    : t,
+                );
+                const updatedItem = { ...item, tasks: updatedTasks };
+                setItem(updatedItem);
+                if (field === 'status') {
+                  await checkAndUpdateItemStatus(updatedItem);
+                }
+                toast.success('Task updated successfully');
+              } else {
+                const errorMessage = (result.error as string) || 'Failed to update task';
+                toast.error(errorMessage);
+              }
+            }
+
             if (value === 'COMPLETED') {
               // When marking as completed, set completed_quantity to full quantity
               updatePayload.completed_quantity = task.quantity;
@@ -437,17 +476,17 @@ export default function ItemDetailPage() {
           }
         }
 
-        const response = await fetch(`/api/tasks/${taskId}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(updatePayload),
-        });
+        const result = await sendTaskUpdate(taskId, updatePayload, 'PATCH');
 
-        if (response.ok) {
-          // Get the updated task data from the API response
-          const updatedTaskData = await response.json();
+        if (result.ok && result.data) {
+          const updatedTaskData = result.data as Partial<Task>;
+
+          // If server omitted completed_quantity when status was set to COMPLETED, infer from quantity
+          if (field === 'status' && value === 'COMPLETED' && updatedTaskData.completed_quantity === undefined) {
+            const originalTask = item.tasks.find((t) => t.id === taskId);
+            const qty = (updatedTaskData.quantity as number | undefined) ?? originalTask?.quantity ?? 0;
+            updatedTaskData.completed_quantity = qty;
+          }
 
           const updatedTasks = item.tasks.map((task) =>
             task.id === taskId
@@ -455,9 +494,9 @@ export default function ItemDetailPage() {
                   ...task,
                   ...updatedTaskData,
                   // Ensure we preserve the complete structure from API
-                  machines: updatedTaskData.machines || [],
-                  operators: updatedTaskData.operators || [],
-                  timeSlots: updatedTaskData.timeSlots || [],
+                  machines: (updatedTaskData.machines as Task['machines']) || [],
+                  operators: (updatedTaskData.operators as Task['operators']) || [],
+                  timeSlots: (updatedTaskData.timeSlots as Task['timeSlots']) || [],
                 }
               : task,
           );
@@ -473,7 +512,7 @@ export default function ItemDetailPage() {
 
           toast.success('Task updated successfully');
         } else {
-          const errorMessage = await extractErrorMessage(response, 'Failed to update task');
+          const errorMessage = (result.error as string) || 'Failed to update task';
           toast.error(errorMessage);
         }
       } catch (error) {

@@ -480,15 +480,18 @@ export async function patchTask(db: PrismaClient, id: string, body: Partial<Task
     if (body.description !== undefined) dataRec.description = body.description ?? null;
     if (body.status !== undefined) {
       dataRec.status = body.status as TaskStatus;
-      // Auto-manage completed_quantity based on status change
-      // unless completed_quantity is explicitly provided in the update
+      // Auto-manage completed_quantity based on status change only when appropriate
+      // - If explicitly provided in the payload, honor it
+      // - If marking as COMPLETED, fill completed_quantity to match quantity
+      // - If un-completing a previously COMPLETED task (existingTask.status === 'COMPLETED' && new !== 'COMPLETED'), reset to 0
+      // - Otherwise, preserve existing completed_quantity
       if (body.completed_quantity === undefined) {
         if (body.status === 'COMPLETED') {
           // When marking as COMPLETED, set completed_quantity to match quantity
           const currentQuantity = body.quantity ?? existingTask.quantity;
           dataRec.completed_quantity = currentQuantity;
-        } else {
-          // When changing away from COMPLETED, reset to 0
+        } else if (existingTask.status === 'COMPLETED' && body.status !== 'COMPLETED') {
+          // Only reset when we're un-completing a task that was completed before
           dataRec.completed_quantity = 0;
         }
       }

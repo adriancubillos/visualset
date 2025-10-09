@@ -16,7 +16,9 @@ import TaskStatusQuickActions from '@/components/task/TaskStatusQuickActions';
 import { handleTaskResponse } from '@/utils/taskErrorHandling';
 import { logger } from '@/utils/logger';
 import toast from 'react-hot-toast';
+// ...existing imports...
 import TaskTitleSelect from '@/components/forms/TaskTitleSelect';
+import { updateTaskWithConfirm } from '@/utils/taskApi';
 
 export default function EditTaskPage() {
   const params = useParams();
@@ -158,6 +160,41 @@ export default function EditTaskPage() {
     setSaving(true);
 
     try {
+      // If un-completing a previously completed task, confirm first
+      if (task && task.status === 'COMPLETED' && formData.status !== 'COMPLETED') {
+        const timeSlotDTOs = timeSlots.map((slot) => ({
+          id: slot.id,
+          startDateTime: new Date(slot.startDateTime).toISOString(),
+          endDateTime: slot.endDateTime ? new Date(slot.endDateTime).toISOString() : null,
+          durationMin: slot.durationMin,
+        }));
+
+        const result = await updateTaskWithConfirm(
+          String(params.id),
+          {
+            ...formData,
+            projectId: formData.projectId || null,
+            machineIds: formData.machineIds || [],
+            operatorIds: formData.operatorIds || [],
+            timeSlots: timeSlotDTOs,
+          },
+          { existingStatus: task.status, newStatus: formData.status, method: 'PUT' },
+        );
+
+        if (result.ok) {
+          await handleTaskResponse(
+            result.response as Response,
+            () => router.push(`/tasks/${String(params.id)}`),
+            'update task',
+          );
+        } else {
+          toast.error((result.error as string) || 'Failed to update task');
+        }
+
+        setSaving(false);
+        return;
+      }
+
       // Convert timeSlots to the format expected by the API
       const timeSlotDTOs = timeSlots.map((slot) => ({
         id: slot.id,
@@ -166,7 +203,7 @@ export default function EditTaskPage() {
         durationMin: slot.durationMin,
       }));
 
-      const response = await fetch(`/api/tasks/${params.id}`, {
+      const response = await fetch(`/api/tasks/${String(params.id)}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -180,7 +217,7 @@ export default function EditTaskPage() {
         }),
       });
 
-      await handleTaskResponse(response, () => router.push(`/tasks/${params.id}`), 'update task');
+      await handleTaskResponse(response, () => router.push(`/tasks/${String(params.id)}`), 'update task');
     } catch (error) {
       logger.error('Error updating task', error);
       toast.error('Error updating task. Please try again.');
