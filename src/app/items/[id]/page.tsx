@@ -243,7 +243,6 @@ export default function ItemDetailPage() {
   const [machines, setMachines] = useState<{ id: string; name: string }[]>([]);
   const [operators, setOperators] = useState<{ id: string; name: string }[]>([]);
   const [columns, setColumns] = useState<Column<Task>[]>([]);
-  const [columnsInitialized, setColumnsInitialized] = useState(false);
 
   const handleDelete = () => {
     showConfirmDialog({
@@ -590,36 +589,10 @@ export default function ItemDetailPage() {
     [item],
   );
 
-  // Initialize columns
+  // Initialize columns when all dependencies are ready
   useEffect(() => {
-    if (!columnsInitialized && machines.length > 0 && operators.length > 0 && item) {
-      console.log('Initializing columns with fresh handlers');
-      const baseColumns = getBaseColumns(
-        machines,
-        operators,
-        handleTaskUpdate,
-        handleTaskMachineUpdate,
-        handleTaskOperatorUpdate,
-      );
-      const initialColumns = getInitialColumns(baseColumns, params.id as string);
-      setColumns(initialColumns);
-      setColumnsInitialized(true);
-    }
-  }, [
-    columnsInitialized,
-    machines,
-    operators,
-    params.id,
-    item,
-    handleTaskUpdate,
-    handleTaskMachineUpdate,
-    handleTaskOperatorUpdate,
-  ]);
-
-  // Re-initialize columns when handlers change
-  useEffect(() => {
-    if (columnsInitialized && machines.length > 0 && operators.length > 0 && item) {
-      console.log('Re-initializing columns due to handler changes');
+    if (machines.length > 0 && operators.length > 0 && item) {
+      console.log('Initializing columns with all data ready');
       const baseColumns = getBaseColumns(
         machines,
         operators,
@@ -630,16 +603,7 @@ export default function ItemDetailPage() {
       const initialColumns = getInitialColumns(baseColumns, params.id as string);
       setColumns(initialColumns);
     }
-  }, [
-    columnsInitialized,
-    handleTaskUpdate,
-    handleTaskMachineUpdate,
-    handleTaskOperatorUpdate,
-    machines,
-    operators,
-    item,
-    params.id,
-  ]);
+  }, [machines, operators, item, params.id, handleTaskUpdate, handleTaskMachineUpdate, handleTaskOperatorUpdate]);
 
   const handleTaskReorder = (reorderedTasks: Task[]) => {
     if (!item) return;
@@ -677,12 +641,10 @@ export default function ItemDetailPage() {
       handleTaskOperatorUpdate,
     );
     setColumns(baseColumns);
-    setColumnsInitialized(false);
     localStorage.removeItem(`item-${params.id}-columnOrder`);
     // Re-initialize with base columns
     setTimeout(() => {
       setColumns(getInitialColumns(baseColumns, params.id as string));
-      setColumnsInitialized(true);
     }, 0);
   };
 
