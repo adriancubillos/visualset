@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 import MultiSelect from '@/components/ui/MultiSelect';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
-import StatusBadge from '@/components/ui/StatusBadge';
 import DataTable from '@/components/ui/DataTable';
 import TableActions from '@/components/ui/TableActions';
 import ImageViewer from '@/components/ui/ImageViewer';
@@ -16,7 +15,7 @@ import { logger } from '@/utils/logger';
 import { extractErrorMessage, getErrorMessage } from '@/utils/errorHandling';
 import { Column } from '@/types/table';
 import Select from '@/components/ui/Select';
-import { TASK_STATUS } from '@/config/workshop-properties';
+import { TASK_STATUS, ITEM_STATUS } from '@/config/workshop-properties';
 
 interface Task {
   id: string;
@@ -28,6 +27,8 @@ interface Task {
   actualHours: number;
   startDate: string;
   endDate: string;
+  quantity?: number;
+  completed_quantity?: number;
   machines: {
     id: string;
     name: string;
@@ -365,33 +366,108 @@ export default function ItemDetailPage() {
     }
   };
 
+  // Function to check and update item status based on task completion
+  const checkAndUpdateItemStatus = useCallback(
+    async (updatedItem: Item) => {
+      try {
+        const completionStatus = checkItemCompletionReadiness(updatedItem.tasks);
+        let newItemStatus = updatedItem.status;
+
+        // Auto-update item status based on task completion
+        if (
+          completionStatus.canComplete &&
+          completionStatus.completedTasks === completionStatus.totalTasks &&
+          updatedItem.status !== 'COMPLETED'
+        ) {
+          newItemStatus = 'COMPLETED';
+        } else if (
+          completionStatus.completedTasks > 0 &&
+          completionStatus.completedTasks < completionStatus.totalTasks &&
+          updatedItem.status === 'COMPLETED'
+        ) {
+          newItemStatus = 'ACTIVE'; // Revert from completed if some tasks become incomplete
+        }
+
+        // Update item status if it changed
+        if (newItemStatus !== updatedItem.status) {
+          const response = await fetch(`/api/items/${params.id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ status: newItemStatus }),
+          });
+
+          if (response.ok) {
+            setItem({ ...updatedItem, status: newItemStatus });
+            toast.success(`Item status updated to ${newItemStatus.toLowerCase().replace('_', ' ')}`);
+          }
+        }
+      } catch (error) {
+        logger.error('Error updating item status:', error);
+      }
+    },
+    [params.id],
+  );
+
   const handleTaskUpdate = useCallback(
     async (taskId: string, field: string, value: string | null) => {
+      if (!item) return;
+
       try {
+        // Prepare the update payload
+        const updatePayload: { [key: string]: string | number | null } = { [field]: value };
+
+        // Handle quantity tracking updates when status changes
+        if (field === 'status') {
+          const task = item.tasks.find((t) => t.id === taskId);
+          if (task && typeof task.quantity === 'number' && typeof task.completed_quantity === 'number') {
+            if (value === 'COMPLETED') {
+              // When marking as completed, set completed_quantity to full quantity
+              updatePayload.completed_quantity = task.quantity;
+              console.log(`Auto-setting completed_quantity to ${task.quantity} for task "${task.title}"`);
+            } else {
+              // When changing from completed to any other status, reset completed_quantity to 0
+              updatePayload.completed_quantity = 0;
+              console.log(`Auto-resetting completed_quantity to 0 for task "${task.title}"`);
+            }
+          }
+        }
+
         const response = await fetch(`/api/tasks/${taskId}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ [field]: value }),
+          body: JSON.stringify(updatePayload),
         });
 
-        if (response.ok && item) {
+        if (response.ok) {
+          // Get the updated task data from the API response
+          const updatedTaskData = await response.json();
+
           const updatedTasks = item.tasks.map((task) =>
             task.id === taskId
               ? {
                   ...task,
-                  [field]: value,
-                  ...(field === 'machineId' && {
-                    machine: value ? machines.find((m) => m.id === value) || null : null,
-                  }),
-                  ...(field === 'operatorId' && {
-                    operator: value ? operators.find((o) => o.id === value) || null : null,
-                  }),
+                  ...updatedTaskData,
+                  // Ensure we preserve the complete structure from API
+                  machines: updatedTaskData.machines || [],
+                  operators: updatedTaskData.operators || [],
+                  timeSlots: updatedTaskData.timeSlots || [],
                 }
               : task,
           );
-          setItem({ ...item, tasks: updatedTasks });
+
+          // Update item state with new tasks
+          const updatedItem = { ...item, tasks: updatedTasks };
+          setItem(updatedItem);
+
+          // If status was updated, check if item status should auto-update
+          if (field === 'status') {
+            await checkAndUpdateItemStatus(updatedItem);
+          }
+
           toast.success('Task updated successfully');
         } else {
           const errorMessage = await extractErrorMessage(response, 'Failed to update task');
@@ -402,42 +478,58 @@ export default function ItemDetailPage() {
         toast.error(getErrorMessage(error, 'Error updating task'));
       }
     },
-    [item, machines, operators],
+    [item, checkAndUpdateItemStatus],
   );
 
-  const handleTaskMachineUpdate = useCallback(
-    async (taskId: string, machineIds: string[]) => {
-      try {
-        // Fetch current task data from API to ensure we have the latest state
-        const currentTaskResponse = await fetch(`/api/tasks/${taskId}`);
-        if (!currentTaskResponse.ok) {
-          throw new Error('Failed to fetch current task data');
-        }
-        const currentTask = await currentTaskResponse.json();
+  // Manual item status update function
+  const handleItemStatusUpdate = useCallback(
+    async (newStatus: string | null) => {
+      if (!newStatus || !item) return;
 
-        const response = await fetch(`/api/tasks/${taskId}`, {
+      try {
+        const response = await fetch(`/api/items/${params.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            title: currentTask.title,
-            description: currentTask.description,
-            status: currentTask.status,
-            quantity: currentTask.quantity || 1,
-            completed_quantity: currentTask.completed_quantity || 0,
-            machineIds: machineIds,
-            operatorIds: currentTask.operators?.map((op: { id: string }) => op.id) || [], // Preserve existing operators
-            timeSlots: currentTask.timeSlots || [], // Preserve existing timeSlots
-          }),
+          body: JSON.stringify({ status: newStatus }),
         });
 
-        if (response.ok && item) {
+        if (response.ok) {
+          setItem({ ...item, status: newStatus });
+          toast.success('Item status updated successfully');
+        } else {
+          const errorMessage = await extractErrorMessage(response, 'Failed to update item status');
+          toast.error(errorMessage);
+        }
+      } catch (error) {
+        logger.error('Error updating item status:', error);
+        toast.error(getErrorMessage(error, 'Error updating item status'));
+      }
+    },
+    [item, params.id],
+  );
+
+  const handleTaskMachineUpdate = useCallback(
+    async (taskId: string, machineIds: string[]) => {
+      if (!item) return;
+
+      try {
+        const response = await fetch(`/api/tasks/${taskId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ machineIds }),
+        });
+
+        if (response.ok) {
           const updatedTaskData = await response.json();
           const updatedTasks = item.tasks.map((task) =>
             task.id === taskId
               ? {
                   ...task,
+                  ...updatedTaskData,
                   machines: updatedTaskData.machines || [],
                   operators: updatedTaskData.operators || [],
                   timeSlots: updatedTaskData.timeSlots || [],
@@ -460,37 +552,24 @@ export default function ItemDetailPage() {
 
   const handleTaskOperatorUpdate = useCallback(
     async (taskId: string, operatorIds: string[]) => {
-      try {
-        // Fetch current task data from API to ensure we have the latest state
-        const currentTaskResponse = await fetch(`/api/tasks/${taskId}`);
-        if (!currentTaskResponse.ok) {
-          throw new Error('Failed to fetch current task data');
-        }
-        const currentTask = await currentTaskResponse.json();
+      if (!item) return;
 
+      try {
         const response = await fetch(`/api/tasks/${taskId}`, {
-          method: 'PUT',
+          method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            title: currentTask.title,
-            description: currentTask.description,
-            status: currentTask.status,
-            quantity: currentTask.quantity || 1,
-            completed_quantity: currentTask.completed_quantity || 0,
-            machineIds: currentTask.machines?.map((m: { id: string }) => m.id) || [], // Preserve existing machines
-            operatorIds: operatorIds,
-            timeSlots: currentTask.timeSlots || [], // Preserve existing timeSlots
-          }),
+          body: JSON.stringify({ operatorIds }),
         });
 
-        if (response.ok && item) {
+        if (response.ok) {
           const updatedTaskData = await response.json();
           const updatedTasks = item.tasks.map((task) =>
             task.id === taskId
               ? {
                   ...task,
+                  ...updatedTaskData,
                   machines: updatedTaskData.machines || [],
                   operators: updatedTaskData.operators || [],
                   timeSlots: updatedTaskData.timeSlots || [],
@@ -513,7 +592,8 @@ export default function ItemDetailPage() {
 
   // Initialize columns
   useEffect(() => {
-    if (!columnsInitialized && machines.length > 0 && operators.length > 0) {
+    if (!columnsInitialized && machines.length > 0 && operators.length > 0 && item) {
+      console.log('Initializing columns with fresh handlers');
       const baseColumns = getBaseColumns(
         machines,
         operators,
@@ -530,9 +610,35 @@ export default function ItemDetailPage() {
     machines,
     operators,
     params.id,
+    item,
     handleTaskUpdate,
     handleTaskMachineUpdate,
     handleTaskOperatorUpdate,
+  ]);
+
+  // Re-initialize columns when handlers change
+  useEffect(() => {
+    if (columnsInitialized && machines.length > 0 && operators.length > 0 && item) {
+      console.log('Re-initializing columns due to handler changes');
+      const baseColumns = getBaseColumns(
+        machines,
+        operators,
+        handleTaskUpdate,
+        handleTaskMachineUpdate,
+        handleTaskOperatorUpdate,
+      );
+      const initialColumns = getInitialColumns(baseColumns, params.id as string);
+      setColumns(initialColumns);
+    }
+  }, [
+    columnsInitialized,
+    handleTaskUpdate,
+    handleTaskMachineUpdate,
+    handleTaskOperatorUpdate,
+    machines,
+    operators,
+    item,
+    params.id,
   ]);
 
   const handleTaskReorder = (reorderedTasks: Task[]) => {
@@ -579,30 +685,6 @@ export default function ItemDetailPage() {
       setColumnsInitialized(true);
     }, 0);
   };
-
-  // Initialize columns
-  useEffect(() => {
-    if (!columnsInitialized && machines.length > 0 && operators.length > 0) {
-      const baseColumns = getBaseColumns(
-        machines,
-        operators,
-        handleTaskUpdate,
-        handleTaskMachineUpdate,
-        handleTaskOperatorUpdate,
-      );
-      const initialColumns = getInitialColumns(baseColumns, params.id as string);
-      setColumns(initialColumns);
-      setColumnsInitialized(true);
-    }
-  }, [
-    columnsInitialized,
-    machines,
-    operators,
-    params.id,
-    handleTaskUpdate,
-    handleTaskMachineUpdate,
-    handleTaskOperatorUpdate,
-  ]);
 
   if (loading) {
     return (
@@ -682,10 +764,28 @@ export default function ItemDetailPage() {
 
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Status</h3>
-            <StatusBadge
-              status={item.status}
-              size="lg"
-            />
+            <div
+              className="w-40 mb-3"
+              onClick={(e) => e.stopPropagation()}>
+              <Select
+                value={item.status}
+                onChange={handleItemStatusUpdate}
+                options={ITEM_STATUS.map((s) => ({ id: s.value, name: s.label }))}
+                placeholder="Select status"
+                buttonClassName={`font-medium cursor-pointer ${(() => {
+                  switch (item.status) {
+                    case 'COMPLETED':
+                      return 'bg-green-200 text-green-900 border-2 border-green-500';
+                    case 'ACTIVE':
+                      return 'bg-blue-200 text-blue-900 border-2 border-blue-500';
+                    case 'ON_HOLD':
+                      return 'bg-yellow-200 text-yellow-900 border-2 border-yellow-500';
+                    default:
+                      return 'bg-gray-200 text-gray-900 border-2 border-gray-500';
+                  }
+                })()}`}
+              />
+            </div>
 
             {/* Completion Readiness Indicator */}
             {(() => {

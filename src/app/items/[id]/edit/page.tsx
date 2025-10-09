@@ -55,6 +55,7 @@ export default function EditItemPage() {
   const [imageLoading, setImageLoading] = useState(false);
   const [newUploadedImageUrl, setNewUploadedImageUrl] = useState<string | null>(null);
   const [originalImageUrl, setOriginalImageUrl] = useState<string | null>(null);
+  const [originalStatus, setOriginalStatus] = useState<string>('');
   const [statusValidationError, setStatusValidationError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -71,6 +72,7 @@ export default function EditItemPage() {
           itemData = await itemResponse.json();
 
           setOriginalImageUrl(itemData.imageUrl || null); // Store original for cancel restoration
+          setOriginalStatus(itemData.status); // Store original status
           setFormData({
             id: itemData.id,
             name: itemData.name,
@@ -203,6 +205,8 @@ export default function EditItemPage() {
   // Get completion status for the current item
   const completionStatus = formData.tasks ? checkItemCompletionReadiness(formData.tasks) : null;
   const isAttemptingCompletion = formData.status === 'COMPLETED';
+  const wasAlreadyCompleted = originalStatus === 'COMPLETED';
+  const isNewlyAttemptingCompletion = isAttemptingCompletion && !wasAlreadyCompleted;
   const showCompletionWarning = isAttemptingCompletion && completionStatus && !completionStatus.canComplete;
 
   return (
@@ -457,7 +461,7 @@ export default function EditItemPage() {
                   </div>
                 )}
 
-                {isAttemptingCompletion && completionStatus.canComplete && (
+                {isNewlyAttemptingCompletion && completionStatus?.canComplete && (
                   <div className="mt-1 p-3 bg-green-50 border border-green-200 rounded-md">
                     <div className="flex">
                       <div className="flex-shrink-0">
@@ -475,6 +479,31 @@ export default function EditItemPage() {
                       <div className="ml-3">
                         <p className="text-sm font-medium text-green-800">Ready for completion</p>
                         <p className="text-sm text-green-700">{getItemCompletionMessage(completionStatus)}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {wasAlreadyCompleted && isAttemptingCompletion && completionStatus?.canComplete && (
+                  <div className="mt-1 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                    <div className="flex">
+                      <div className="flex-shrink-0">
+                        <svg
+                          className="h-5 w-5 text-blue-400"
+                          viewBox="0 0 20 20"
+                          fill="currentColor">
+                          <path
+                            fillRule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-sm font-medium text-blue-800">Item completed</p>
+                        <p className="text-sm text-blue-700">
+                          This item is already marked as completed. All tasks are done.
+                        </p>
                       </div>
                     </div>
                   </div>
