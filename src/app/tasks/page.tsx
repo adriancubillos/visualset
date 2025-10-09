@@ -134,7 +134,7 @@ function TasksPageContent({
     async (taskId: string, machineIds: string[]) => {
       try {
         const response = await fetch(`/api/tasks/${taskId}`, {
-          method: 'PUT',
+          method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
           },
@@ -165,7 +165,7 @@ function TasksPageContent({
     async (taskId: string, operatorIds: string[]) => {
       try {
         const response = await fetch(`/api/tasks/${taskId}`, {
-          method: 'PUT',
+          method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
           },
