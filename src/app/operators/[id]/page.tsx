@@ -439,10 +439,10 @@ export default function OperatorDetailPage() {
                     {/* right column intentionally left minimal (status + priority) */}
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 md:justify-end">
                       <div className="flex items-center gap-2">
-                      <StatusBadge
-                        status={task.status}
-                        variant={getStatusVariant(task.status)}
-                      />
+                        <StatusBadge
+                          status={task.status}
+                          variant={getStatusVariant(task.status)}
+                        />
                       </div>
                       <span
                         className={`inline-flex px-2 py-1 text-xs sm:text-sm font-medium rounded-full ${
