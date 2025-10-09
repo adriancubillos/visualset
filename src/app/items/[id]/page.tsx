@@ -208,22 +208,13 @@ const getBaseColumns = (
 // Helper function to get initial column order
 const getInitialColumns = (baseColumns: Column<Task>[], itemId: string): Column<Task>[] => {
   const saved = localStorage.getItem(`item-${itemId}-columnOrder`);
-
-  // Debug: log the saved data
-  console.log('Saved column order:', saved);
-  console.log(
-    'Base columns:',
-    baseColumns.map((col) => ({ key: col.key, id: col.id })),
-  );
-
+  // Debug: saved data (previously logged)
   if (!saved) {
-    console.log('No saved column order, returning base columns');
     return baseColumns;
   }
 
   try {
     const savedOrder: { key: string; id?: string }[] = JSON.parse(saved);
-    console.log('Parsed saved order:', savedOrder);
 
     const orderedColumns: Column<Task>[] = [];
 
@@ -241,14 +232,10 @@ const getInitialColumns = (baseColumns: Column<Task>[], itemId: string): Column<
     for (const col of baseColumns) {
       if (!orderedColumns.find((orderedCol) => (orderedCol.id || orderedCol.key) === (col.id || col.key))) {
         orderedColumns.push(col);
-        console.log('Added missing column:', col.key);
       }
     }
 
-    console.log(
-      'Final ordered columns:',
-      orderedColumns.map((col) => ({ key: col.key, id: col.id })),
-    );
+    // Final ordered columns computed
     return orderedColumns;
   } catch (error) {
     console.error('Error parsing saved column order, using base columns:', error);
@@ -334,15 +321,15 @@ export default function ItemDetailPage() {
 
     const fetchMachinesAndOperators = async () => {
       try {
-        console.log('Fetching machines and operators...');
+        logger.debug('Fetching machines and operators...');
         const [machinesRes, operatorsRes] = await Promise.all([fetch('/api/machines'), fetch('/api/operators')]);
 
-        console.log('Machines response:', machinesRes.status, machinesRes.ok);
-        console.log('Operators response:', operatorsRes.status, operatorsRes.ok);
+        logger.debug('Machines response', { status: machinesRes.status, ok: machinesRes.ok });
+        logger.debug('Operators response', { status: operatorsRes.status, ok: operatorsRes.ok });
 
         if (machinesRes.ok) {
           const machinesData = await machinesRes.json();
-          console.log('Machines data:', machinesData.length, 'machines');
+          logger.debug('Machines data', { count: machinesData.length });
           setMachines(machinesData.map((m: { id: string; name: string }) => ({ id: m.id, name: m.name })));
         } else {
           console.error('Failed to fetch machines:', machinesRes.status, machinesRes.statusText);
@@ -350,7 +337,7 @@ export default function ItemDetailPage() {
 
         if (operatorsRes.ok) {
           const operatorsData = await operatorsRes.json();
-          console.log('Operators data:', operatorsData.length, 'operators');
+          logger.debug('Operators data', { count: operatorsData.length });
           setOperators(operatorsData.map((o: { id: string; name: string }) => ({ id: o.id, name: o.name })));
         } else {
           console.error('Failed to fetch operators:', operatorsRes.status, operatorsRes.statusText);
@@ -456,11 +443,9 @@ export default function ItemDetailPage() {
             if (value === 'COMPLETED') {
               // When marking as completed, set completed_quantity to full quantity
               updatePayload.completed_quantity = task.quantity;
-              console.log(`Auto-setting completed_quantity to ${task.quantity} for task "${task.title}"`);
             } else {
               // When changing from completed to any other status, reset completed_quantity to 0
               updatePayload.completed_quantity = 0;
-              console.log(`Auto-resetting completed_quantity to 0 for task "${task.title}"`);
             }
           }
         }
@@ -625,11 +610,12 @@ export default function ItemDetailPage() {
   useEffect(() => {
     // Only require item data - machines and operators can be empty
     if (item) {
-      console.log('=== Column Initialization Debug ===');
-      console.log('Machines:', machines.length);
-      console.log('Operators:', operators.length);
-      console.log('Item:', item?.name);
-      console.log('Tasks:', item?.tasks?.length);
+      logger.debug('Column initialization', {
+        machines: machines.length,
+        operators: operators.length,
+        item: item?.name,
+        tasks: item?.tasks?.length,
+      });
 
       const baseColumns = getBaseColumns(
         machines,
@@ -639,16 +625,16 @@ export default function ItemDetailPage() {
         handleTaskOperatorUpdate,
       );
 
-      console.log('Generated base columns:', baseColumns.length);
+      logger.debug('Generated base columns', { count: baseColumns.length });
 
       const initialColumns = getInitialColumns(baseColumns, params.id as string);
 
-      console.log('Final columns to set:', initialColumns.length);
+      logger.debug('Final columns to set', { count: initialColumns.length });
       setColumns(initialColumns);
 
-      console.log('=== End Column Initialization ===');
+      logger.debug('=== End Column Initialization ===');
     } else {
-      console.log('Column initialization skipped - missing item data');
+      logger.debug('Column initialization skipped - missing item data');
     }
   }, [machines, operators, item, params.id, handleTaskUpdate, handleTaskMachineUpdate, handleTaskOperatorUpdate]);
 

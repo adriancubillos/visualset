@@ -1,5 +1,6 @@
 import type { PrismaClient, ItemStatus, ProjectStatus, Prisma } from '@prisma/client';
 import { ApiError } from '@/lib/errors';
+import { logger } from '@/utils/logger';
 import { checkProjectCompletionReadiness } from '@/utils/projectValidation';
 
 export type ItemCreateInput = {
@@ -123,7 +124,7 @@ async function checkAndUpdateProjectStatus(prisma: PrismaClient, projectId: stri
         data: { status: newProjectStatus as ProjectStatus }, // Cast to handle enum type
       });
 
-      console.log(`Auto-updated project "${projectWithItems.name}" status to ${newProjectStatus}`);
+      logger.info(`Auto-updated project "${projectWithItems.name}" status to ${newProjectStatus}`);
     }
   } catch (error) {
     console.error('Error auto-updating project status:', error);
