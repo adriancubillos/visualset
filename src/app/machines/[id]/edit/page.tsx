@@ -50,7 +50,7 @@ export default function EditMachinePage() {
         setMachine(machineData);
         setFormData({
           name: machineData.name || '',
-          type: machineData.type || (machineTypes.length > 0 ? machineTypes[0].value : ''),
+          type: machineData.type || '',
           status: machineData.status || 'AVAILABLE',
           location: machineData.location || '',
           color: machineData.color || '#3B82F6',
@@ -64,7 +64,17 @@ export default function EditMachinePage() {
     };
 
     fetchMachine();
-  }, [params.id, machineTypes]);
+  }, [params.id]); // Removed machineTypes from dependency array
+
+  // Separate effect to set default machine type if none is set
+  useEffect(() => {
+    if (machineTypes.length > 0 && formData.type === '' && machine) {
+      setFormData((prev) => ({
+        ...prev,
+        type: machine.type || machineTypes[0].value,
+      }));
+    }
+  }, [machineTypes, formData.type, machine]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
