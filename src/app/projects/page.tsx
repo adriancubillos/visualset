@@ -380,6 +380,7 @@ function ProjectsPageContent({
       <DataTable
         data={filteredProjects}
         columns={columns}
+        tableId="projects-list"
         loading={loading}
         onRowClick={handleRowClick}
         actions={renderActions}

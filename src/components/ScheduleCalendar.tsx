@@ -26,8 +26,8 @@ interface Task {
   completed_quantity?: number;
   project: { id: string; name: string; color?: string | null } | null;
   item: { id: string; name: string } | null;
-  machine: { id: string; name: string; type?: string; location?: string } | null;
-  operator: { id: string; name: string; email?: string | null; shift?: string | null } | null;
+  machines?: { id: string; name: string; type?: string; location?: string }[];
+  operators?: { id: string; name: string; email?: string | null; shift?: string | null }[];
   timeSlots?: {
     id: string;
     startDateTime: string;
@@ -46,22 +46,19 @@ interface CalendarEvent {
   allDay?: boolean;
   resource?: {
     color: string;
-    machine?: string;
+    machines?: string[]; // Array of machine names
     project?: string;
     duration: number;
-    operatorName?: string;
-    operatorColor?: string;
-    operatorPattern?: string;
-    machineColor?: string;
-    machinePattern?: string;
+    operators?: { name: string; color: string; pattern: string }[]; // Array of operators with their colors
+    machineColors?: { name: string; color: string; pattern: string }[]; // Array of machines with their colors
     // Additional tooltip data
     status: string;
     description?: string | null;
     item?: string;
-    machineType?: string;
-    machineLocation?: string;
-    operatorEmail?: string | null;
-    operatorShift?: string | null;
+    machineTypes?: string[];
+    machineLocations?: string[];
+    operatorEmails?: (string | null)[];
+    operatorShifts?: (string | null)[];
     startDate?: string;
     endDate?: string;
     // Multi-slot support
@@ -189,8 +186,11 @@ export default function ScheduleCalendar() {
   // ✅ Apply filters - memoized to prevent unnecessary recalculations
   const filteredTasks = useMemo(() => {
     const filtered = tasks.filter((task) => {
-      const machineMatch = selectedMachine === 'all' || task.machine?.id === selectedMachine;
-      const operatorMatch = selectedOperator === 'all' || task.operator?.id === selectedOperator;
+      const taskMachines = task.machines || [];
+      const taskOperators = task.operators || [];
+      
+      const machineMatch = selectedMachine === 'all' || taskMachines.some(m => m.id === selectedMachine);
+      const operatorMatch = selectedOperator === 'all' || taskOperators.some(o => o.id === selectedOperator);
       const projectMatch = selectedProject === 'all' || task.project?.id === selectedProject;
       const itemMatch = selectedItem === 'all' || task.item?.id === selectedItem;
       return machineMatch && operatorMatch && projectMatch && itemMatch;
@@ -239,9 +239,27 @@ export default function ScheduleCalendar() {
             ? new Date(slot.endDateTime)
             : new Date(start.getTime() + slot.durationMin * 60000);
 
-          // Get operator colors/patterns
-          const operatorColor = task.operator ? getOperatorColor(task.operator) : null;
-          const machineColor = task.machine ? getMachineColor(task.machine) : null;
+          const taskMachines = task.machines || [];
+          const taskOperators = task.operators || [];
+
+          // Get colors/patterns for all operators and machines
+          const operatorData = taskOperators.map(op => {
+            const colorData = getOperatorColor(op);
+            return {
+              name: op.name,
+              color: colorData.hex,
+              pattern: colorData.pattern
+            };
+          });
+          
+          const machineData = taskMachines.map(m => {
+            const colorData = getMachineColor(m);
+            return {
+              name: m.name,
+              color: colorData.hex,
+              pattern: colorData.pattern
+            };
+          });
 
           return {
             id: `${task.id}-${slotIndex}`, // Unique ID for each time slot
@@ -251,22 +269,19 @@ export default function ScheduleCalendar() {
             allDay: false,
             resource: {
               color: getEventColor(task),
-              machine: task.machine?.name,
+              machines: taskMachines.map(m => m.name),
               project: task.project?.name,
               duration: slot.durationMin,
-              operatorName: task.operator?.name,
-              operatorColor: operatorColor?.hex || '#6b7280',
-              operatorPattern: operatorColor?.pattern || 'solid',
-              machineColor: machineColor?.hex || '#6b7280',
-              machinePattern: machineColor?.pattern || 'solid',
+              operators: operatorData,
+              machineColors: machineData,
               // Additional tooltip data
               status: task.status,
               description: task.description,
               item: task.item?.name,
-              machineType: task.machine?.type,
-              machineLocation: task.machine?.location,
-              operatorEmail: task.operator?.email,
-              operatorShift: task.operator?.shift,
+              machineTypes: taskMachines.map(m => m.type).filter(Boolean) as string[],
+              machineLocations: taskMachines.map(m => m.location).filter(Boolean) as string[],
+              operatorEmails: taskOperators.map(o => o.email ?? null),
+              operatorShifts: taskOperators.map(o => o.shift ?? null),
               startDate: formatDisplayDate(slot.startDateTime),
               endDate: formatDisplayDate(end.toISOString()),
               // Store original task ID and slot info for event handling
@@ -343,8 +358,8 @@ export default function ScheduleCalendar() {
             quantity: updatedTask.quantity || 1,
             completed_quantity: updatedTask.completed_quantity || 0,
             itemId: updatedTask.item?.id || null,
-            machineId: updatedTask.machine?.id || null,
-            operatorId: updatedTask.operator?.id || null,
+            machineIds: updatedTask.machines?.map(m => m.id) || [],
+            operatorIds: updatedTask.operators?.map(o => o.id) || [],
             timeSlots: updatedTimeSlots.map((slot) => ({
               startDateTime: slot.startDateTime,
               endDateTime: slot.endDateTime,
@@ -555,14 +570,17 @@ export default function ScheduleCalendar() {
           })}
           components={{
             event: ({ event }) => {
-              const operatorStyle = getPatternStyles(
-                event.resource?.operatorColor || '#6b7280',
-                (event.resource?.operatorPattern as PatternType) || 'solid',
-              );
-              const machineStyle = getPatternStyles(
-                event.resource?.machineColor || '#6b7280',
-                (event.resource?.machinePattern as PatternType) || 'solid',
-              );
+              // Get the first operator and machine for the split background
+              const firstOperator = event.resource?.operators?.[0];
+              const firstMachine = event.resource?.machineColors?.[0];
+              
+              const operatorStyle = firstOperator
+                ? getPatternStyles(firstOperator.color, firstOperator.pattern as PatternType)
+                : getPatternStyles('#6b7280', 'solid');
+              
+              const machineStyle = firstMachine
+                ? getPatternStyles(firstMachine.color, firstMachine.pattern as PatternType)
+                : getPatternStyles('#6b7280', 'solid');
 
               return (
                 <div
@@ -622,25 +640,30 @@ export default function ScheduleCalendar() {
                     <div
                       className="flex-1 relative"
                       style={operatorStyle}>
-                      {/* Operator initials in top left */}
-                      {event.resource?.operatorName && (
-                        <div className="absolute top-0.5 left-0.5 text-[10px] font-bold text-white bg-black bg-opacity-40 px-1 rounded">
-                          {event.resource.operatorName
-                            .split(' ')
-                            .map((n: string) => n[0])
-                            .join('')
-                            .toUpperCase()
-                            .slice(0, 3)}
+                      {/* Operator initials in top left - show all operators */}
+                      {event.resource?.operators && event.resource.operators.length > 0 && (
+                        <div className="absolute top-0.5 left-0.5 text-[10px] font-bold text-white bg-black bg-opacity-40 px-1 rounded flex gap-0.5">
+                          {event.resource.operators.map((op, idx) => (
+                            <span key={idx}>
+                              {op.name
+                                .split(' ')
+                                .map((n: string) => n[0])
+                                .join('')
+                                .toUpperCase()
+                                .slice(0, 3)}
+                              {idx < event.resource!.operators!.length - 1 && ','}
+                            </span>
+                          ))}
                         </div>
                       )}
                     </div>
                     <div
                       className="flex-1 relative"
                       style={machineStyle}>
-                      {/* Machine name in bottom left */}
-                      {event.resource?.machine && (
+                      {/* Machine names in bottom left - show all machines */}
+                      {event.resource?.machines && event.resource.machines.length > 0 && (
                         <div className="absolute bottom-0.5 left-0.5 text-[10px] font-bold text-white bg-black bg-opacity-40 px-1 rounded truncate max-w-[90%]">
-                          {event.resource.machine}
+                          {event.resource.machines.join(', ')}
                         </div>
                       )}
                     </div>
@@ -679,15 +702,15 @@ export default function ScheduleCalendar() {
                       <div>Duration: {getDurationText(event.resource?.duration || 0)}</div>
                       {event.resource?.startDate && <div>Start: {event.resource.startDate}</div>}
                       {event.resource?.endDate && <div>End: {event.resource.endDate}</div>}
-                      {(() => {
-                        const originalTaskId = event.resource?.originalTaskId || event.id.split('-')[0];
-                        const taskForTooltip = tasks.find((t) => t.id === originalTaskId);
-                        return taskForTooltip?.operator && <div>Operator: {taskForTooltip.operator.name}</div>;
-                      })()}
-                      {event.resource?.machine && (
+                      {event.resource?.operators && event.resource.operators.length > 0 && (
                         <div>
-                          Machine: {event.resource.machine}
-                          {event.resource?.machineType && ` (${event.resource.machineType})`}
+                          Operator{event.resource.operators.length > 1 ? 's' : ''}: {event.resource.operators.map(o => o.name).join(', ')}
+                        </div>
+                      )}
+                      {event.resource?.machines && event.resource.machines.length > 0 && (
+                        <div>
+                          Machine{event.resource.machines.length > 1 ? 's' : ''}: {event.resource.machines.join(', ')}
+                          {event.resource?.machineTypes && event.resource.machineTypes.length > 0 && ` (${event.resource.machineTypes.join(', ')})`}
                         </div>
                       )}
                     </div>

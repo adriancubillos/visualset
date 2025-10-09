@@ -926,6 +926,7 @@ export default function ItemDetailPage() {
           <DataTable
             data={item.tasks}
             columns={columns}
+            tableId={`item-${item.id}-tasks`}
             enableRowReorder={true}
             onRowReorder={handleTaskReorder}
             onColumnReorder={handleColumnReorder}

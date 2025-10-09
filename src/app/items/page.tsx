@@ -395,6 +395,7 @@ function ItemsPageContent({
         <DataTable
           data={filteredItems}
           columns={columns}
+          tableId="items-list"
           loading={loading}
           maxHeight="70vh"
           onColumnReorder={handleColumnReorder}

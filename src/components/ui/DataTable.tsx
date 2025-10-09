@@ -26,6 +26,7 @@ interface DataTableProps<T> {
   showResetColumns?: boolean;
   onRowReorder?: (newData: T[]) => void;
   enableRowReorder?: boolean;
+  tableId?: string; // Unique identifier for localStorage persistence
 }
 
 export default function DataTable<T extends { id: string }>({
@@ -41,6 +42,7 @@ export default function DataTable<T extends { id: string }>({
   showResetColumns = false,
   onRowReorder,
   enableRowReorder = false,
+  tableId = 'default',
 }: DataTableProps<T>) {
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const [showScrollHint, setShowScrollHint] = useState(false);
@@ -62,10 +64,10 @@ export default function DataTable<T extends { id: string }>({
     return order;
   });
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(() => {
-    // Load saved column widths from localStorage
+    // Load saved column widths from localStorage with unique key per table
     if (typeof window === 'undefined') return {};
     try {
-      const saved = localStorage.getItem('tableColumnWidths');
+      const saved = localStorage.getItem(`tableColumnWidths-${tableId}`);
       return saved ? JSON.parse(saved) : {};
     } catch {
       return {};
@@ -131,8 +133,8 @@ export default function DataTable<T extends { id: string }>({
     onColumnSizingChange: (updater) => {
       setColumnSizing((old) => {
         const newSizing = typeof updater === 'function' ? updater(old) : updater;
-        // Save to localStorage
-        localStorage.setItem('tableColumnWidths', JSON.stringify(newSizing));
+        // Save to localStorage with unique key per table
+        localStorage.setItem(`tableColumnWidths-${tableId}`, JSON.stringify(newSizing));
         return newSizing;
       });
     },
@@ -279,7 +281,7 @@ export default function DataTable<T extends { id: string }>({
   }, [data, columnOrder]);
 
   const handleResetColumns = () => {
-    localStorage.removeItem('tableColumnWidths');
+    localStorage.removeItem(`tableColumnWidths-${tableId}`);
     setColumnSizing({});
     const order = initialColumns.map((col) => (col.id || String(col.key)) as string);
     // Add actions at the beginning if it exists

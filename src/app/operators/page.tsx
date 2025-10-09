@@ -399,6 +399,7 @@ function OperatorsPageContent({
       <DataTable
         data={filteredOperators}
         columns={columns}
+        tableId="operators-list"
         loading={loading}
         onRowClick={handleRowClick}
         actions={renderActions}

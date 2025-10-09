@@ -1,7 +1,40 @@
 import type { PrismaClient } from '@prisma/client';
 import { ApiError } from '@/lib/errors';
 import { checkSchedulingConflicts, createConflictErrorResponse } from '@/utils/conflictDetection';
-import type { ScheduleTaskRequestDTO } from '@/types/api';
+import type { ScheduleTaskRequestDTO, TaskWithRelationsDTO } from '@/types/api';
+
+// Helper function to transform Prisma result to API DTO
+function transformTaskWithRelations(task: {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  quantity: number;
+  completed_quantity: number;
+  item?: unknown;
+  itemId: string | null;
+  taskMachines?: Array<{ machine: unknown }>;
+  taskOperators?: Array<{ operator: unknown }>;
+  timeSlots?: unknown[];
+  createdAt: Date;
+  updatedAt: Date;
+}): TaskWithRelationsDTO {
+  return {
+    id: task.id,
+    title: task.title,
+    description: task.description,
+    status: task.status,
+    quantity: task.quantity,
+    completed_quantity: task.completed_quantity,
+    item: task.item as TaskWithRelationsDTO['item'],
+    itemId: task.itemId,
+    machines: (task.taskMachines?.map((tm) => tm.machine) || []) as TaskWithRelationsDTO['machines'],
+    operators: (task.taskOperators?.map((to) => to.operator) || []) as TaskWithRelationsDTO['operators'],
+    timeSlots: task.timeSlots as TaskWithRelationsDTO['timeSlots'],
+    createdAt: task.createdAt.toISOString(),
+    updatedAt: task.updatedAt.toISOString(),
+  };
+}
 
 export async function listScheduledTasks(prisma: PrismaClient, start?: string | null, end?: string | null) {
   // Build where clause for optional date filtering
@@ -18,7 +51,7 @@ export async function listScheduledTasks(prisma: PrismaClient, start?: string | 
     };
   }
 
-  return prisma.task.findMany({
+  const tasks = await prisma.task.findMany({
     where,
     include: {
       item: { include: { project: true } },
@@ -28,15 +61,22 @@ export async function listScheduledTasks(prisma: PrismaClient, start?: string | 
     },
     orderBy: { createdAt: 'asc' },
   });
+
+  return tasks.map(transformTaskWithRelations);
 }
 
 export async function getTask(prisma: PrismaClient, id: string) {
   const task = await prisma.task.findUnique({
     where: { id },
-    include: { taskMachines: { include: { machine: true } }, taskOperators: { include: { operator: true } } },
+    include: {
+      item: { include: { project: true } },
+      taskMachines: { include: { machine: true } },
+      taskOperators: { include: { operator: true } },
+      timeSlots: { orderBy: { startDateTime: 'asc' } },
+    },
   });
   if (!task) throw new ApiError({ code: 'TASK_NOT_FOUND', message: 'Task not found', status: 404 });
-  return task;
+  return transformTaskWithRelations(task);
 }
 
 export async function scheduleTask(prisma: PrismaClient, body: ScheduleTaskRequestDTO) {
@@ -115,15 +155,16 @@ export async function scheduleTask(prisma: PrismaClient, body: ScheduleTaskReque
     return await tx.task.findUnique({
       where: { id: taskId },
       include: {
-        item: true,
+        item: { include: { project: true } },
         taskMachines: { include: { machine: true } },
         taskOperators: { include: { operator: true } },
-        timeSlots: true,
+        timeSlots: { orderBy: { startDateTime: 'asc' } },
       },
     });
   });
 
-  return task;
+  if (!task) throw new ApiError({ code: 'TASK_NOT_FOUND', message: 'Task not found after scheduling', status: 500 });
+  return transformTaskWithRelations(task);
 }
 
 const exported = { listScheduledTasks, getTask, scheduleTask };

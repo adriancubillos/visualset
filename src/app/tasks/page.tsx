@@ -671,6 +671,7 @@ function TasksPageContent({
       <DataTable
         data={filteredTasks}
         columns={columns}
+        tableId="tasks-list"
         loading={loading}
         onRowClick={handleRowClick}
         actions={renderActions}

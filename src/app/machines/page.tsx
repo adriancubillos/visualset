@@ -357,6 +357,7 @@ function MachinesPageContent({
       <DataTable
         data={filteredMachines}
         columns={columns}
+        tableId="machines-list"
         loading={loading}
         onRowClick={handleRowClick}
         actions={renderActions}
