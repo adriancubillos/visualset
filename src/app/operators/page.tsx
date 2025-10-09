@@ -7,6 +7,7 @@ import PageContainer from '@/components/layout/PageContainer';
 import DataTable from '@/components/ui/DataTable';
 import SearchFilter from '@/components/ui/SearchFilter';
 import StatusBadge from '@/components/ui/StatusBadge';
+import { getStatusVariant } from '@/utils/statusStyles';
 import TableActions from '@/components/ui/TableActions';
 import { OperatorColorIndicator } from '@/components/ui/ColorIndicator';
 import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -92,27 +93,12 @@ const createColumns = (availableSkills: { value: string; label: string }[]): Col
     key: 'status',
     header: 'Status',
     sortable: true,
-    render: (status: string) => {
-      const getStatusVariant = (status: string) => {
-        switch (status) {
-          case 'ACTIVE':
-            return 'success';
-          case 'INACTIVE':
-            return 'error';
-          case 'ON_LEAVE':
-            return 'warning';
-          default:
-            return 'default';
-        }
-      };
-
-      return (
-        <StatusBadge
-          status={status ? status.replace(/_/g, ' ') : 'Unknown'}
-          variant={getStatusVariant(status)}
-        />
-      );
-    },
+    render: (status: string) => (
+      <StatusBadge
+        status={status ? status.replace(/_/g, ' ') : 'Unknown'}
+        variant={getStatusVariant(status)}
+      />
+    ),
   },
   {
     key: 'shift',

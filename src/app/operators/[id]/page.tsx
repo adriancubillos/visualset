@@ -8,6 +8,7 @@ import PageContainer from '@/components/layout/PageContainer';
 import { OperatorColorIndicator } from '@/components/ui/ColorIndicator';
 import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import StatusBadge from '@/components/ui/StatusBadge';
+import { getStatusVariant } from '@/utils/statusStyles';
 import { logger } from '@/utils/logger';
 import { extractErrorMessage, getErrorMessage } from '@/utils/errorHandling';
 
@@ -70,18 +71,7 @@ export default function OperatorDetailPage() {
     fetchOperator();
   }, [params.id]);
 
-  const getStatusVariant = (status: string) => {
-    switch (status) {
-      case 'ACTIVE':
-        return 'success';
-      case 'ON_LEAVE':
-        return 'warning';
-      case 'INACTIVE':
-        return 'error';
-      default:
-        return 'default';
-    }
-  };
+  // Using centralized getStatusVariant from utils/statusStyles
 
   const formatSkills = (skills: string[]) => {
     return skills.map((skill) => skill.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()));
@@ -217,11 +207,7 @@ export default function OperatorDetailPage() {
           </div>
         ),
       }}
-      breadcrumbs={[
-        { label: 'Operators', href: '/operators' },
-        { label: operator.name },
-      ]}>
-
+      breadcrumbs={[{ label: 'Operators', href: '/operators' }, { label: operator.name }]}>
       {/* Quick Status Actions */}
       <div className="bg-white shadow rounded-lg p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
@@ -231,10 +217,11 @@ export default function OperatorDetailPage() {
               key={status}
               onClick={() => handleStatusChange(status)}
               disabled={operator.status === status}
-              className={`px-4 py-2 text-sm font-medium rounded-md border ${operator.status === status
-                ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
-                }`}>
+              className={`px-4 py-2 text-sm font-medium rounded-md border ${
+                operator.status === status
+                  ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+              }`}>
               Mark as {status ? status.replace(/_/g, ' ') : 'Unknown'}
             </button>
           ))}
@@ -338,15 +325,36 @@ export default function OperatorDetailPage() {
                       <h3 className="font-medium text-gray-900">{task.title}</h3>
                       {task.item && (
                         <p className="text-sm text-gray-500 mt-1">
-                          Item: <Link href={`/items/${task.item.id}`} className="text-blue-600 hover:text-blue-800" onClick={(e) => e.stopPropagation()}>{task.item.name}</Link>
+                          Item:{' '}
+                          <Link
+                            href={`/items/${task.item.id}`}
+                            className="text-blue-600 hover:text-blue-800"
+                            onClick={(e) => e.stopPropagation()}>
+                            {task.item.name}
+                          </Link>
                           {task.item.project && (
-                            <span> • Project: <Link href={`/projects/${task.item.project.id}`} className="text-blue-600 hover:text-blue-800" onClick={(e) => e.stopPropagation()}>{task.item.project.name}</Link></span>
+                            <span>
+                              {' '}
+                              • Project:{' '}
+                              <Link
+                                href={`/projects/${task.item.project.id}`}
+                                className="text-blue-600 hover:text-blue-800"
+                                onClick={(e) => e.stopPropagation()}>
+                                {task.item.project.name}
+                              </Link>
+                            </span>
                           )}
                         </p>
                       )}
                       {task.machine && (
                         <p className="text-sm text-gray-500 mt-1">
-                          Machine: <Link href={`/machines/${task.machine.id}`} className="text-blue-600 hover:text-blue-800" onClick={(e) => e.stopPropagation()}>{task.machine.name}</Link>
+                          Machine:{' '}
+                          <Link
+                            href={`/machines/${task.machine.id}`}
+                            className="text-blue-600 hover:text-blue-800"
+                            onClick={(e) => e.stopPropagation()}>
+                            {task.machine.name}
+                          </Link>
                         </p>
                       )}
                     </div>
@@ -357,19 +365,20 @@ export default function OperatorDetailPage() {
                           task.status === 'COMPLETED'
                             ? 'success'
                             : task.status === 'IN_PROGRESS'
-                              ? 'info'
-                              : task.status === 'SCHEDULED'
-                                ? 'info'
-                                : 'warning'
+                            ? 'info'
+                            : task.status === 'SCHEDULED'
+                            ? 'info'
+                            : 'warning'
                         }
                       />
                       <span
-                        className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${task.priority === 'HIGH'
-                          ? 'bg-red-100 text-red-800'
-                          : task.priority === 'MEDIUM'
+                        className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                          task.priority === 'HIGH'
+                            ? 'bg-red-100 text-red-800'
+                            : task.priority === 'MEDIUM'
                             ? 'bg-yellow-100 text-yellow-800'
                             : 'bg-green-100 text-green-800'
-                          }`}>
+                        }`}>
                         {task.priority}
                       </span>
                     </div>
@@ -378,9 +387,7 @@ export default function OperatorDetailPage() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 text-gray-500">
-              No tasks currently assigned to this operator.
-            </div>
+            <div className="text-center py-8 text-gray-500">No tasks currently assigned to this operator.</div>
           )}
         </div>
       </div>

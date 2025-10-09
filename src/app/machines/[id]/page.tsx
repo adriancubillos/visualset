@@ -10,6 +10,7 @@ import PageContainer from '@/components/layout/PageContainer';
 import { MachineColorIndicator } from '@/components/ui/ColorIndicator';
 import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import StatusBadge from '@/components/ui/StatusBadge';
+import { getStatusVariant } from '@/utils/statusStyles';
 
 interface Task {
   id: string;
@@ -68,20 +69,7 @@ export default function MachineDetailPage() {
     fetchMachine();
   }, [params.id]);
 
-  const getStatusVariant = (status: string) => {
-    switch (status) {
-      case 'AVAILABLE':
-        return 'success';
-      case 'IN_USE':
-        return 'info';
-      case 'MAINTENANCE':
-        return 'warning';
-      case 'OFFLINE':
-        return 'error';
-      default:
-        return 'default';
-    }
-  };
+  // Using centralized getStatusVariant from utils/statusStyles
 
   const formatMachineType = (type: string) => {
     return type.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
@@ -191,11 +179,7 @@ export default function MachineDetailPage() {
         ),
       }}
       variant="detail"
-      breadcrumbs={[
-        { label: 'Machines', href: '/machines' },
-        { label: machine.name },
-      ]}>
-
+      breadcrumbs={[{ label: 'Machines', href: '/machines' }, { label: machine.name }]}>
       {/* Status and Info */}
       <div className="mb-6 flex items-center space-x-4">
         <StatusBadge
@@ -219,10 +203,11 @@ export default function MachineDetailPage() {
               key={status}
               onClick={() => handleStatusChange(status)}
               disabled={machine.status === status}
-              className={`px-4 py-2 text-sm font-medium rounded-md border ${machine.status === status
+              className={`px-4 py-2 text-sm font-medium rounded-md border ${
+                machine.status === status
                   ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
                   : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
-                }`}>
+              }`}>
               Mark as {status ? status.replace(/_/g, ' ') : 'Unknown'}
             </button>
           ))}
@@ -294,15 +279,36 @@ export default function MachineDetailPage() {
                       <h3 className="font-medium text-gray-900">{task.title}</h3>
                       {task.item && (
                         <p className="text-sm text-gray-500 mt-1">
-                          Item: <Link href={`/items/${task.item.id}`} className="text-blue-600 hover:text-blue-800" onClick={(e) => e.stopPropagation()}>{task.item.name}</Link>
+                          Item:{' '}
+                          <Link
+                            href={`/items/${task.item.id}`}
+                            className="text-blue-600 hover:text-blue-800"
+                            onClick={(e) => e.stopPropagation()}>
+                            {task.item.name}
+                          </Link>
                           {task.item.project && (
-                            <span> • Project: <Link href={`/projects/${task.item.project.id}`} className="text-blue-600 hover:text-blue-800" onClick={(e) => e.stopPropagation()}>{task.item.project.name}</Link></span>
+                            <span>
+                              {' '}
+                              • Project:{' '}
+                              <Link
+                                href={`/projects/${task.item.project.id}`}
+                                className="text-blue-600 hover:text-blue-800"
+                                onClick={(e) => e.stopPropagation()}>
+                                {task.item.project.name}
+                              </Link>
+                            </span>
                           )}
                         </p>
                       )}
                       {task.operator && (
                         <p className="text-sm text-gray-500 mt-1">
-                          Operator: <Link href={`/operators/${task.operator.id}`} className="text-blue-600 hover:text-blue-800" onClick={(e) => e.stopPropagation()}>{task.operator.name}</Link>
+                          Operator:{' '}
+                          <Link
+                            href={`/operators/${task.operator.id}`}
+                            className="text-blue-600 hover:text-blue-800"
+                            onClick={(e) => e.stopPropagation()}>
+                            {task.operator.name}
+                          </Link>
                         </p>
                       )}
                     </div>
@@ -313,19 +319,20 @@ export default function MachineDetailPage() {
                           task.status === 'COMPLETED'
                             ? 'success'
                             : task.status === 'IN_PROGRESS'
-                              ? 'info'
-                              : task.status === 'SCHEDULED'
-                                ? 'info'
-                                : 'warning'
+                            ? 'info'
+                            : task.status === 'SCHEDULED'
+                            ? 'info'
+                            : 'warning'
                         }
                       />
                       <span
-                        className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${task.priority === 'HIGH'
+                        className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                          task.priority === 'HIGH'
                             ? 'bg-red-100 text-red-800'
                             : task.priority === 'MEDIUM'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-green-100 text-green-800'
-                          }`}>
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-green-100 text-green-800'
+                        }`}>
                         {task.priority}
                       </span>
                     </div>
@@ -334,9 +341,7 @@ export default function MachineDetailPage() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 text-gray-500">
-              No tasks currently assigned to this machine.
-            </div>
+            <div className="text-center py-8 text-gray-500">No tasks currently assigned to this machine.</div>
           )}
         </div>
       </div>

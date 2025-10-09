@@ -14,6 +14,7 @@ import Select from '@/components/ui/Select';
 import { PROJECT_STATUS } from '@/config/workshop-properties';
 import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { logger } from '@/utils/logger';
+import { getStatusVariant, getVariantClasses } from '@/utils/statusStyles';
 import { extractErrorMessage, getErrorMessage } from '@/utils/errorHandling';
 import { Column } from '@/types/table';
 import FilterProvider from '@/components/layout/FilterProvider';
@@ -124,22 +125,8 @@ function ProjectsPageContent({
         header: 'Status',
         sortable: true,
         render: (status: string, project: Project) => {
-          const getStatusColors = (status: string) => {
-            switch (status) {
-              case 'COMPLETED':
-                return 'bg-green-200 text-green-900 border-2 border-green-500';
-              case 'ACTIVE':
-                return 'bg-blue-200 text-blue-900 border-2 border-blue-500';
-              case 'PLANNING':
-                return 'bg-purple-200 text-purple-900 border-2 border-purple-500';
-              case 'ON_HOLD':
-                return 'bg-yellow-200 text-yellow-900 border-2 border-yellow-500';
-              case 'CANCELLED':
-                return 'bg-red-200 text-red-900 border-2 border-red-500';
-              default:
-                return 'bg-gray-200 text-gray-900 border-2 border-gray-500';
-            }
-          };
+          const variant = getStatusVariant(status);
+          const classes = getVariantClasses(variant, false);
 
           return (
             <div
@@ -150,7 +137,7 @@ function ProjectsPageContent({
                 onChange={(newStatus) => handleProjectUpdate(project.id, 'status', newStatus)}
                 options={PROJECT_STATUS.map((s) => ({ id: s.value, name: s.label }))}
                 placeholder="Select status"
-                buttonClassName={`font-medium cursor-pointer ${getStatusColors(status)}`}
+                buttonClassName={`font-medium cursor-pointer ${classes}`}
               />
             </div>
           );

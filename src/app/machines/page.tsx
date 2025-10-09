@@ -7,6 +7,7 @@ import PageContainer from '@/components/layout/PageContainer';
 import DataTable from '@/components/ui/DataTable';
 import SearchFilter from '@/components/ui/SearchFilter';
 import StatusBadge from '@/components/ui/StatusBadge';
+import { getStatusVariant } from '@/utils/statusStyles';
 import TableActions from '@/components/ui/TableActions';
 import StatisticsCards from '@/components/ui/StatisticsCards';
 import { MachineColorIndicator } from '@/components/ui/ColorIndicator';
@@ -60,29 +61,12 @@ const defaultColumns: Column<Machine>[] = [
     key: 'status',
     header: 'Status',
     sortable: true,
-    render: (status: string) => {
-      const getStatusVariant = (status: string) => {
-        switch (status) {
-          case 'AVAILABLE':
-            return 'success';
-          case 'IN_USE':
-            return 'info';
-          case 'MAINTENANCE':
-            return 'warning';
-          case 'OFFLINE':
-            return 'error';
-          default:
-            return 'default';
-        }
-      };
-
-      return (
-        <StatusBadge
-          status={status ? status.replace(/_/g, ' ') : 'Unknown'}
-          variant={getStatusVariant(status)}
-        />
-      );
-    },
+    render: (status: string) => (
+      <StatusBadge
+        status={status ? status.replace(/_/g, ' ') : 'Unknown'}
+        variant={getStatusVariant(status)}
+      />
+    ),
   },
   {
     key: 'location',

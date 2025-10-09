@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import StatusBadge from '@/components/ui/StatusBadge';
+import { getStatusVariant } from '@/utils/statusStyles';
 import { logger } from '@/utils/logger';
 import { extractErrorMessage, getErrorMessage } from '@/utils/errorHandling';
 import PageContainer from '@/components/layout/PageContainer';
@@ -99,20 +100,7 @@ export default function ProjectDetailPage() {
     fetchProject();
   }, [params.id]);
 
-  const getStatusVariant = (status: string) => {
-    switch (status) {
-      case 'ACTIVE':
-        return 'success';
-      case 'PLANNING':
-        return 'warning';
-      case 'COMPLETED':
-        return 'info';
-      case 'ON_HOLD':
-        return 'error';
-      default:
-        return 'default';
-    }
-  };
+  // Using centralized getStatusVariant from utils/statusStyles
 
   if (loading) {
     return (

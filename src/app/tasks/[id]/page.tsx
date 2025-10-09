@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import PageContainer from '@/components/layout/PageContainer';
 import StatusBadge from '@/components/ui/StatusBadge';
+import { getStatusVariant } from '@/utils/statusStyles';
 import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { logger } from '@/utils/logger';
 import { extractErrorMessage, getErrorMessage } from '@/utils/errorHandling';
@@ -69,22 +70,7 @@ export default function TaskDetailPage() {
     fetchTask();
   }, [params.id]);
 
-  const getStatusVariant = (status: string) => {
-    switch (status) {
-      case 'COMPLETED':
-        return 'success';
-      case 'IN_PROGRESS':
-        return 'info';
-      case 'SCHEDULED':
-        return 'info';
-      case 'PENDING':
-        return 'warning';
-      case 'BLOCKED':
-        return 'error';
-      default:
-        return 'default';
-    }
-  };
+  // Using centralized getStatusVariant from utils/statusStyles
 
   const handleStatusChange = async (newStatus: string) => {
     try {
@@ -197,11 +183,7 @@ export default function TaskDetailPage() {
         ),
       }}
       variant="detail"
-      breadcrumbs={[
-        { label: 'Tasks', href: '/tasks' },
-        { label: task.title },
-      ]}>
-
+      breadcrumbs={[{ label: 'Tasks', href: '/tasks' }, { label: task.title }]}>
       {/* Status and Progress Info */}
       <div className="mb-6 flex items-center space-x-4">
         <StatusBadge

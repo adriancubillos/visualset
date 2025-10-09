@@ -11,6 +11,7 @@ import ImageViewer from '@/components/ui/ImageViewer';
 import Select from '@/components/ui/Select';
 import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { logger } from '@/utils/logger';
+import { getStatusVariant, getVariantClasses } from '@/utils/statusStyles';
 import { extractErrorMessage, getErrorMessage } from '@/utils/errorHandling';
 import StatisticsCards from '@/components/ui/StatisticsCards';
 import { ITEM_STATUS } from '@/config/workshop-properties';
@@ -193,18 +194,8 @@ function ItemsPageContent({
       key: 'status' as keyof Item,
       header: 'Status',
       render: (value: string, item: Item) => {
-        const getStatusColors = (status: string) => {
-          switch (status) {
-            case 'COMPLETED':
-              return 'bg-green-200 text-green-900 border-2 border-green-500';
-            case 'ACTIVE':
-              return 'bg-blue-200 text-blue-900 border-2 border-blue-500';
-            case 'ON_HOLD':
-              return 'bg-yellow-200 text-yellow-900 border-2 border-yellow-500';
-            default:
-              return 'bg-gray-200 text-gray-900 border-2 border-gray-500';
-          }
-        };
+        const variant = getStatusVariant(value);
+        const classes = getVariantClasses(variant, false);
 
         return (
           <div
@@ -215,7 +206,7 @@ function ItemsPageContent({
               onChange={(newStatus) => handleItemUpdate(item.id, 'status', newStatus)}
               options={ITEM_STATUS.map((s) => ({ id: s.value, name: s.label }))}
               placeholder="Select status"
-              buttonClassName={`font-medium cursor-pointer ${getStatusColors(value)}`}
+              buttonClassName={`font-medium cursor-pointer ${classes}`}
             />
           </div>
         );
