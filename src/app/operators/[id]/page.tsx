@@ -29,6 +29,9 @@ interface Task {
     id: string;
     name: string;
   };
+  machines?: { id: string; name: string }[];
+  operators?: { id: string; name: string }[];
+  timeSlots?: { id: string; startDateTime: string; endDateTime?: string | null; durationMin: number }[];
 }
 
 interface Operator {
@@ -68,6 +71,7 @@ export default function OperatorDetailPage() {
       }
     };
 
+    // start fetch
     fetchOperator();
   }, [params.id]);
 
@@ -320,9 +324,10 @@ export default function OperatorDetailPage() {
                   key={task.id}
                   className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer"
                   onClick={() => router.push(`/tasks/${task.id}`)}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <h3 className="font-medium text-gray-900">{task.title}</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-[minmax(0,480px)_auto_min-content] items-start md:items-center gap-4">
+                    <div className="col-start-1 md:col-start-1 max-w-full md:max-w-[480px] pr-0 md:pr-4 break-words">
+                      <h3 className="font-medium text-gray-900 text-sm sm:text-base">{task.title}</h3>
+
                       {task.item && (
                         <p className="text-sm text-gray-500 mt-1">
                           Item:{' '}
@@ -346,33 +351,101 @@ export default function OperatorDetailPage() {
                           )}
                         </p>
                       )}
-                      {task.machine && (
+
+                      {/* Machines (multiple) */}
+                      {task.machines && task.machines.length > 0 && (
                         <p className="text-sm text-gray-500 mt-1">
-                          Machine:{' '}
-                          <Link
-                            href={`/machines/${task.machine.id}`}
-                            className="text-blue-600 hover:text-blue-800"
-                            onClick={(e) => e.stopPropagation()}>
-                            {task.machine.name}
-                          </Link>
+                          Machine(s):{' '}
+                          {task.machines.map((m, idx) => (
+                            <span
+                              key={m.id}
+                              className="inline">
+                              <Link
+                                href={`/machines/${m.id}`}
+                                className="text-blue-600 hover:text-blue-800"
+                                onClick={(e) => e.stopPropagation()}>
+                                {m.name}
+                              </Link>
+                              {idx < task.machines!.length - 1 ? ', ' : ''}
+                            </span>
+                          ))}
+                        </p>
+                      )}
+
+                      {/* Other assigned operators */}
+                      {task.operators && task.operators.length > 0 && (
+                        <p className="text-sm text-gray-500 mt-1">
+                          Assigned:{' '}
+                          {task.operators.map((op, idx) => (
+                            <span
+                              key={op.id}
+                              className="inline">
+                              <Link
+                                href={`/operators/${op.id}`}
+                                className="text-blue-600 hover:text-blue-800"
+                                onClick={(e) => e.stopPropagation()}>
+                                {op.name}
+                              </Link>
+                              {idx < task.operators!.length - 1 ? ', ' : ''}
+                            </span>
+                          ))}
                         </p>
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
+
+                    <div className="col-start-2 md:col-start-2 justify-self-center w-full md:max-w-[520px] min-h-[72px] flex items-center">
+                      {task.timeSlots && task.timeSlots.length > 0 ? (
+                        <div className="mt-2 flex flex-col justify-center space-y-3 w-full md:w-auto">
+                          {task.timeSlots
+                            .slice()
+                            .sort((a, b) => new Date(a.startDateTime).getTime() - new Date(b.startDateTime).getTime())
+                            .map((slot, index) => {
+                              const startDate = new Date(slot.startDateTime);
+                              const endDate = slot.endDateTime
+                                ? new Date(slot.endDateTime)
+                                : new Date(startDate.getTime() + slot.durationMin * 60 * 1000);
+                              const startDateStr = startDate.toLocaleDateString();
+                              const startTime = startDate.toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              });
+                              const endTime = endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                              return (
+                                <div
+                                  key={slot.id}
+                                  className="p-3 border rounded-lg border-gray-200 bg-white w-full md:w-[260px] lg:w-[300px] text-sm sm:text-base">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-2">
+                                      <span className="text-sm font-medium text-gray-900">Slot {index + 1}</span>
+                                    </div>
+                                    <div className="text-sm text-gray-500">{slot.durationMin} minutes</div>
+                                  </div>
+                                  <div className="mt-2 text-sm text-gray-600">
+                                    <div className="flex items-center space-x-4">
+                                      <span>📅 {startDateStr}</span>
+                                      <span>
+                                        🕐 {startTime} - {endTime}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                        </div>
+                      ) : null}
+                    </div>
+
+                    {/* right column intentionally left minimal (status + priority) */}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 md:justify-end">
+                      <div className="flex items-center gap-2">
                       <StatusBadge
-                        status={task.status.replace(/_/g, ' ')}
-                        variant={
-                          task.status === 'COMPLETED'
-                            ? 'success'
-                            : task.status === 'IN_PROGRESS'
-                            ? 'info'
-                            : task.status === 'SCHEDULED'
-                            ? 'info'
-                            : 'warning'
-                        }
+                        status={task.status}
+                        variant={getStatusVariant(task.status)}
                       />
+                      </div>
                       <span
-                        className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                        className={`inline-flex px-2 py-1 text-xs sm:text-sm font-medium rounded-full ${
                           task.priority === 'HIGH'
                             ? 'bg-red-100 text-red-800'
                             : task.priority === 'MEDIUM'
