@@ -125,20 +125,21 @@ export async function updateProject(prisma: PrismaClient, id: string, data: Proj
     }
   }
 
-  const updateData: Prisma.ProjectUpdateInput = {
-    name: data.name ?? undefined,
-    description: data.description ?? undefined,
-    orderNumber: data.orderNumber ?? null,
-    status: data.status ?? undefined,
-    color: data.color ?? undefined,
-    imageUrl: data.imageUrl ?? undefined,
-    startDate: data.startDate ? new Date(data.startDate) : null,
-    endDate: data.endDate ? new Date(data.endDate) : null,
-  } as Prisma.ProjectUpdateInput;
+  // Only include fields that are explicitly provided in the update
+  const updateData: Record<string, unknown> = {};
+
+  if (data.name !== undefined) updateData.name = data.name;
+  if (data.description !== undefined) updateData.description = data.description ?? null;
+  if (data.orderNumber !== undefined) updateData.orderNumber = data.orderNumber ?? null;
+  if (data.status !== undefined) updateData.status = data.status;
+  if (data.color !== undefined) updateData.color = data.color ?? null;
+  if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl ?? null;
+  if (data.startDate !== undefined) updateData.startDate = data.startDate ? new Date(data.startDate) : null;
+  if (data.endDate !== undefined) updateData.endDate = data.endDate ? new Date(data.endDate) : null;
 
   return prisma.project.update({
     where: { id },
-    data: updateData,
+    data: updateData as Prisma.ProjectUpdateInput,
     include: {
       items: {
         include: {

@@ -181,14 +181,18 @@ describe('projectService', () => {
     });
 
     expect(res).toEqual(fake);
+    // Should only include the name field, not startDate/endDate since they weren't provided
     expect(prismaMock.project.update).toHaveBeenCalledWith({
       where: { id: 'p5' },
       data: expect.objectContaining({
-        startDate: null,
-        endDate: null,
+        name: 'Updated',
       }),
       include: expect.any(Object),
     });
+    // Verify that startDate and endDate are NOT in the update data
+    const updateCall = prismaMock.project.update.mock.calls[0][0];
+    expect(updateCall.data).not.toHaveProperty('startDate');
+    expect(updateCall.data).not.toHaveProperty('endDate');
   });
 
   it('deleteProject throws when project not found', async () => {

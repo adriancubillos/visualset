@@ -35,7 +35,6 @@ export const TASK_STATUS = [
 ] as const;
 
 export const PROJECT_STATUS = [
-  { value: 'PLANNING', label: 'Planning' },
   { value: 'ACTIVE', label: 'Active' },
   { value: 'ON_HOLD', label: 'On Hold' },
   { value: 'COMPLETED', label: 'Completed' },
