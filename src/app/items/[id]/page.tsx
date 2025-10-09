@@ -334,18 +334,29 @@ export default function ItemDetailPage() {
 
     const fetchMachinesAndOperators = async () => {
       try {
+        console.log('Fetching machines and operators...');
         const [machinesRes, operatorsRes] = await Promise.all([fetch('/api/machines'), fetch('/api/operators')]);
+
+        console.log('Machines response:', machinesRes.status, machinesRes.ok);
+        console.log('Operators response:', operatorsRes.status, operatorsRes.ok);
 
         if (machinesRes.ok) {
           const machinesData = await machinesRes.json();
+          console.log('Machines data:', machinesData.length, 'machines');
           setMachines(machinesData.map((m: { id: string; name: string }) => ({ id: m.id, name: m.name })));
+        } else {
+          console.error('Failed to fetch machines:', machinesRes.status, machinesRes.statusText);
         }
 
         if (operatorsRes.ok) {
           const operatorsData = await operatorsRes.json();
+          console.log('Operators data:', operatorsData.length, 'operators');
           setOperators(operatorsData.map((o: { id: string; name: string }) => ({ id: o.id, name: o.name })));
+        } else {
+          console.error('Failed to fetch operators:', operatorsRes.status, operatorsRes.statusText);
         }
       } catch (error) {
+        console.error('Error fetching machines/operators:', error);
         logger.error('Error fetching machines/operators', error);
       }
     };
@@ -612,7 +623,8 @@ export default function ItemDetailPage() {
 
   // Initialize columns when all dependencies are ready
   useEffect(() => {
-    if (machines.length > 0 && operators.length > 0 && item) {
+    // Only require item data - machines and operators can be empty
+    if (item) {
       console.log('=== Column Initialization Debug ===');
       console.log('Machines:', machines.length);
       console.log('Operators:', operators.length);
@@ -636,11 +648,7 @@ export default function ItemDetailPage() {
 
       console.log('=== End Column Initialization ===');
     } else {
-      console.log('Column initialization skipped - missing dependencies:', {
-        machines: machines.length,
-        operators: operators.length,
-        item: !!item,
-      });
+      console.log('Column initialization skipped - missing item data');
     }
   }, [machines, operators, item, params.id, handleTaskUpdate, handleTaskMachineUpdate, handleTaskOperatorUpdate]);
 
