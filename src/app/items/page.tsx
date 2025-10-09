@@ -16,6 +16,7 @@ import StatisticsCards from '@/components/ui/StatisticsCards';
 import { ITEM_STATUS } from '@/config/workshop-properties';
 import { Column } from '@/types/table';
 import FilterProvider from '@/components/layout/FilterProvider';
+import { checkItemCompletionReadiness } from '@/utils/itemValidation';
 
 interface Item {
   id: string;
@@ -35,6 +36,9 @@ interface Item {
   tasks?: Array<{
     id: string;
     status: string;
+    quantity?: number;
+    completed_quantity?: number;
+    title?: string;
   }>;
   createdAt: string;
   updatedAt: string;
@@ -149,11 +153,26 @@ function ItemsPageContent({
       key: '_count' as keyof Item,
       header: 'Tasks',
       render: (value: Item['_count'], item: Item) => {
-        const completedTasks = item.tasks?.filter((t) => t.status === 'COMPLETED').length || 0;
         const totalTasks = item._count.tasks;
+
+        if (!item.tasks || item.tasks.length === 0) {
+          return <span className="text-sm text-gray-600">0/{totalTasks}</span>;
+        }
+
+        // Use the same completion logic as the item detail page
+        const completionStatus = checkItemCompletionReadiness(
+          item.tasks.map((task) => ({
+            id: task.id,
+            title: task.title || 'Untitled Task',
+            status: task.status,
+            quantity: task.quantity,
+            completed_quantity: task.completed_quantity,
+          })),
+        );
+
         return (
           <span className="text-sm text-gray-600">
-            {completedTasks}/{totalTasks}
+            {completionStatus.completedTasks}/{totalTasks}
           </span>
         );
       },

@@ -1,5 +1,6 @@
-import type { PrismaClient, ItemStatus, Prisma } from '@prisma/client';
+import type { PrismaClient, ItemStatus, ProjectStatus, Prisma } from '@prisma/client';
 import { ApiError } from '@/lib/errors';
+import { checkProjectCompletionReadiness } from '@/utils/projectValidation';
 
 export type ItemCreateInput = {
   name: string;
@@ -23,6 +24,15 @@ export async function listItems(prisma: PrismaClient) {
         select: { id: true, name: true },
       },
       _count: { select: { tasks: true } },
+      tasks: {
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          quantity: true,
+          completed_quantity: true,
+        },
+      },
     },
     orderBy: { updatedAt: 'desc' },
   });
@@ -71,6 +81,56 @@ export async function getItem(prisma: PrismaClient, id: string) {
   return item;
 }
 
+// Helper function to check and auto-update project status based on item completion
+async function checkAndUpdateProjectStatus(prisma: PrismaClient, projectId: string) {
+  try {
+    // Get project with all its items
+    const projectWithItems = await prisma.project.findUnique({
+      where: { id: projectId },
+      include: {
+        items: {
+          select: { id: true, name: true, status: true },
+        },
+      },
+    });
+
+    if (!projectWithItems) {
+      return; // Project not found, nothing to update
+    }
+
+    const completionStatus = checkProjectCompletionReadiness(projectWithItems.items);
+    let newProjectStatus = projectWithItems.status;
+
+    // Auto-update project status based on item completion
+    if (
+      completionStatus.canComplete &&
+      completionStatus.completedItems === completionStatus.totalItems &&
+      projectWithItems.status !== 'COMPLETED'
+    ) {
+      newProjectStatus = 'COMPLETED';
+    } else if (
+      completionStatus.completedItems > 0 &&
+      completionStatus.completedItems < completionStatus.totalItems &&
+      projectWithItems.status === 'COMPLETED'
+    ) {
+      newProjectStatus = 'ACTIVE'; // Revert from completed if some items become incomplete
+    }
+
+    // Update project status if it changed
+    if (newProjectStatus !== projectWithItems.status) {
+      await prisma.project.update({
+        where: { id: projectId },
+        data: { status: newProjectStatus as ProjectStatus }, // Cast to handle enum type
+      });
+
+      console.log(`Auto-updated project "${projectWithItems.name}" status to ${newProjectStatus}`);
+    }
+  } catch (error) {
+    console.error('Error auto-updating project status:', error);
+    // Don't throw error to avoid breaking the main item update operation
+  }
+}
+
 export async function updateItem(prisma: PrismaClient, id: string, data: ItemUpdateInput) {
   // If status is being changed to COMPLETED, validate tasks
   if (data.status === 'COMPLETED') {
@@ -98,7 +158,7 @@ export async function updateItem(prisma: PrismaClient, id: string, data: ItemUpd
     }
   }
 
-  return prisma.item.update({
+  const updatedItem = await prisma.item.update({
     where: { id },
     data: ((): Prisma.ItemUpdateInput => {
       const d: Record<string, unknown> = {
@@ -119,6 +179,13 @@ export async function updateItem(prisma: PrismaClient, id: string, data: ItemUpd
       _count: { select: { tasks: true } },
     },
   });
+
+  // If item status changed, check if project status should be auto-updated
+  if (data.status !== undefined && updatedItem.project) {
+    await checkAndUpdateProjectStatus(prisma, updatedItem.project.id);
+  }
+
+  return updatedItem;
 }
 
 export async function deleteItem(prisma: PrismaClient, id: string) {
