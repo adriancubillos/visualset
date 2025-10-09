@@ -11,8 +11,8 @@ export interface TimeSlot {
 
 export interface TaskAssignmentUpdate {
   itemId: string | null;
-  machineId: string | null;
-  operatorId: string | null;
+  machineIds: string[];
+  operatorIds: string[];
   timeSlots: TimeSlot[];
   quantity: number;
   completed_quantity: number;
@@ -30,8 +30,11 @@ export interface Task {
   }[];
   project: { id: string; name: string; color?: string | null } | null;
   item: { id: string; name: string } | null;
-  machine: { id: string; name: string } | null;
-  operator: { id: string; name: string } | null;
+  // Support both old and new formats for backward compatibility
+  machine?: { id: string; name: string } | null;
+  operator?: { id: string; name: string } | null;
+  machines?: { id: string; name: string }[];
+  operators?: { id: string; name: string }[];
 }
 
 export const handleTaskAssignmentUpdate = async (
@@ -51,8 +54,8 @@ export const handleTaskAssignmentUpdate = async (
         title: selectedTask.title, // Required field
         status: update.status,
         itemId: update.itemId,
-        machineId: update.machineId,
-        operatorId: update.operatorId,
+        machineIds: update.machineIds,
+        operatorIds: update.operatorIds,
         quantity: update.quantity,
         completed_quantity: update.completed_quantity,
         timeSlots: update.timeSlots.map((slot) => ({
@@ -74,7 +77,11 @@ export const handleTaskAssignmentUpdate = async (
       if (data.conflict) {
         displayConflictError(data);
       } else {
-        toast.error(data.error || 'Failed to update assignment');
+        const errorMessage =
+          typeof data.error === 'object' && data.error?.message
+            ? data.error.message
+            : data.error || 'Failed to update assignment';
+        toast.error(errorMessage);
       }
     }
   } catch (error) {

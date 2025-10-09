@@ -364,7 +364,11 @@ export default function ScheduleCalendar() {
             displayConflictError(data);
           } else {
             logger.error('Error updating task during drag operation', data.error);
-            toast.error(data.error || 'Failed to reschedule task');
+            const errorMessage =
+              typeof data.error === 'object' && data.error?.message
+                ? data.error.message
+                : data.error || 'Failed to reschedule task';
+            toast.error(errorMessage);
           }
         }
       } catch (err) {

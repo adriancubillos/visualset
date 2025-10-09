@@ -4,12 +4,35 @@ import { logger } from '@/utils/logger';
 import itemService from '@/services/itemService';
 import { mapErrorToResponse } from '@/lib/errors';
 
+// Helper function to transform task data from junction table format to API format
+function transformTaskWithRelations(task: {
+  taskMachines?: Array<{ machine: { id: string; name: string } }>;
+  taskOperators?: Array<{ operator: { id: string; name: string } }>;
+  [key: string]: unknown;
+}) {
+  return {
+    ...task,
+    machines: task.taskMachines?.map((tm) => tm.machine) || [],
+    operators: task.taskOperators?.map((to) => to.operator) || [],
+    // Remove the junction table fields
+    taskMachines: undefined,
+    taskOperators: undefined,
+  };
+}
+
 // GET /api/items/[id]
 export async function GET(req: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await context.params;
     const item = await itemService.getItem(prisma, id);
-    return NextResponse.json(item);
+
+    // Transform task data to include machines and operators arrays
+    const transformedItem = {
+      ...item,
+      tasks: item.tasks.map(transformTaskWithRelations),
+    };
+
+    return NextResponse.json(transformedItem);
   } catch (error) {
     logger.apiError('Fetch item', '/api/items/[id]', error);
     const mapped = mapErrorToResponse(error);

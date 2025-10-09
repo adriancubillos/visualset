@@ -86,8 +86,9 @@ export default function ConfigurationPage() {
   const handleDelete = (id: string, configLabel?: string) => {
     showConfirmDialog({
       title: 'Delete Configuration',
-      message: `Are you sure you want to delete configuration "${configLabel || 'this entry'
-        }"? This action cannot be undone.`,
+      message: `Are you sure you want to delete configuration "${
+        configLabel || 'this entry'
+      }"? This action cannot be undone.`,
       confirmLabel: 'Delete',
       cancelLabel: 'Cancel',
       variant: 'danger',
@@ -130,7 +131,7 @@ export default function ConfigurationPage() {
       if (!response.ok) {
         const errorMessage = await extractErrorMessage(
           response,
-          `Failed to ${isCreating ? 'create' : 'update'} configuration`
+          `Failed to ${isCreating ? 'create' : 'update'} configuration`,
         );
         throw new Error(errorMessage);
       }
@@ -171,7 +172,7 @@ export default function ConfigurationPage() {
       <PageContainer>
         <div className="text-center text-red-600">
           <h2 className="text-xl font-semibold">Error Loading Configurations</h2>
-          <p>{error}</p>
+          <p>{typeof error === 'object' ? JSON.stringify(error) : error}</p>
         </div>
       </PageContainer>
     );
@@ -191,10 +192,11 @@ export default function ConfigurationPage() {
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${activeTab === tab.key
+                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                    activeTab === tab.key
                       ? 'bg-blue-50 text-blue-700 border border-blue-200'
                       : 'text-gray-700 hover:bg-gray-50'
-                    }`}>
+                  }`}>
                   <div className="flex justify-between items-center">
                     <span className="font-medium">{tab.label}</span>
                     <span className="text-sm text-gray-500">
@@ -239,14 +241,13 @@ export default function ConfigurationPage() {
                     type="text"
                     value={formData.label}
                     onChange={(e) => setFormData({ label: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${formData.label.trim() === '' ? 'border-red-300' : 'border-gray-300'
-                      }`}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                      formData.label.trim() === '' ? 'border-red-300' : 'border-gray-300'
+                    }`}
                     placeholder="Enter label (e.g., 'Machine Type A')"
                     required
                   />
-                  {formData.label.trim() === '' && (
-                    <p className="text-red-500 text-xs mt-1">This field is required</p>
-                  )}
+                  {formData.label.trim() === '' && <p className="text-red-500 text-xs mt-1">This field is required</p>}
                   {generatedValue && (
                     <p className="text-gray-500 text-xs mt-1">
                       Value will be: <span className="font-mono font-semibold">{generatedValue}</span>
@@ -265,8 +266,9 @@ export default function ConfigurationPage() {
                     type="button"
                     onClick={handleSave}
                     disabled={!isFormValid}
-                    className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${isFormValid ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'
-                      }`}>
+                    className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                      isFormValid ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'
+                    }`}>
                     {isCreating ? 'Create' : 'Update'}
                   </button>
                 </div>
@@ -296,8 +298,9 @@ export default function ConfigurationPage() {
               {filteredConfigurations.map((config) => (
                 <div
                   key={config.id}
-                  className={`bg-white rounded-lg border p-4 hover:shadow-md transition-shadow ${editingConfig?.id === config.id ? 'ring-2 ring-blue-500' : ''
-                    }`}>
+                  className={`bg-white rounded-lg border p-4 hover:shadow-md transition-shadow ${
+                    editingConfig?.id === config.id ? 'ring-2 ring-blue-500' : ''
+                  }`}>
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3">

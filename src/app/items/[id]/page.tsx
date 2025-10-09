@@ -27,14 +27,14 @@ interface Task {
   actualHours: number;
   startDate: string;
   endDate: string;
-  machine: {
+  machines: {
     id: string;
     name: string;
-  } | null;
-  operator: {
+  }[];
+  operators: {
     id: string;
     name: string;
-  } | null;
+  }[];
   timeSlots: {
     id: string;
     startDateTime: string;
@@ -108,7 +108,7 @@ export default function ItemDetailPage() {
         const response = await fetch(`/api/items/${params.id}`);
         if (response.ok) {
           const data = await response.json();
-          
+
           // Restore saved task order from localStorage
           const savedOrder = localStorage.getItem(`item-${params.id}-task-order`);
           if (savedOrder) {
@@ -127,7 +127,7 @@ export default function ItemDetailPage() {
               logger.error('Error parsing saved task order', e);
             }
           }
-          
+
           setItem(data);
         }
       } catch (error) {
@@ -139,10 +139,7 @@ export default function ItemDetailPage() {
 
     const fetchMachinesAndOperators = async () => {
       try {
-        const [machinesRes, operatorsRes] = await Promise.all([
-          fetch('/api/machines'),
-          fetch('/api/operators'),
-        ]);
+        const [machinesRes, operatorsRes] = await Promise.all([fetch('/api/machines'), fetch('/api/operators')]);
 
         if (machinesRes.ok) {
           const machinesData = await machinesRes.json();
@@ -231,16 +228,116 @@ export default function ItemDetailPage() {
     }
   };
 
+  const handleTaskMachineUpdate = async (taskId: string, machineId: string | null) => {
+    try {
+      // Fetch current task data from API to ensure we have the latest state
+      const currentTaskResponse = await fetch(`/api/tasks/${taskId}`);
+      if (!currentTaskResponse.ok) {
+        throw new Error('Failed to fetch current task data');
+      }
+      const currentTask = await currentTaskResponse.json();
+
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: currentTask.title,
+          description: currentTask.description,
+          status: currentTask.status,
+          quantity: currentTask.quantity || 1,
+          completed_quantity: currentTask.completed_quantity || 0,
+          machineIds: machineId ? [machineId] : [],
+          operatorIds: currentTask.operators?.map((op: { id: string }) => op.id) || [], // Preserve existing operators
+          timeSlots: currentTask.timeSlots || [], // Preserve existing timeSlots
+        }),
+      });
+
+      if (response.ok && item) {
+        const updatedTaskData = await response.json();
+        const updatedTasks = item.tasks.map((task) =>
+          task.id === taskId
+            ? {
+                ...task,
+                machines: updatedTaskData.machines || [],
+                operators: updatedTaskData.operators || [],
+                timeSlots: updatedTaskData.timeSlots || [],
+              }
+            : task,
+        );
+        setItem({ ...item, tasks: updatedTasks });
+        toast.success('Machine assignment updated successfully');
+      } else {
+        const errorMessage = await extractErrorMessage(response, 'Failed to update machine assignment');
+        toast.error(errorMessage);
+      }
+    } catch (error) {
+      logger.error('Error updating machine assignment:', error);
+      toast.error(getErrorMessage(error, 'Error updating machine assignment'));
+    }
+  };
+
+  const handleTaskOperatorUpdate = async (taskId: string, operatorId: string | null) => {
+    try {
+      // Fetch current task data from API to ensure we have the latest state
+      const currentTaskResponse = await fetch(`/api/tasks/${taskId}`);
+      if (!currentTaskResponse.ok) {
+        throw new Error('Failed to fetch current task data');
+      }
+      const currentTask = await currentTaskResponse.json();
+
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: currentTask.title,
+          description: currentTask.description,
+          status: currentTask.status,
+          quantity: currentTask.quantity || 1,
+          completed_quantity: currentTask.completed_quantity || 0,
+          machineIds: currentTask.machines?.map((m: { id: string }) => m.id) || [], // Preserve existing machines
+          operatorIds: operatorId ? [operatorId] : [],
+          timeSlots: currentTask.timeSlots || [], // Preserve existing timeSlots
+        }),
+      });
+
+      if (response.ok && item) {
+        const updatedTaskData = await response.json();
+        const updatedTasks = item.tasks.map((task) =>
+          task.id === taskId
+            ? {
+                ...task,
+                machines: updatedTaskData.machines || [],
+                operators: updatedTaskData.operators || [],
+                timeSlots: updatedTaskData.timeSlots || [],
+              }
+            : task,
+        );
+        setItem({ ...item, tasks: updatedTasks });
+        toast.success('Operator assignment updated successfully');
+      } else {
+        const errorMessage = await extractErrorMessage(response, 'Failed to update operator assignment');
+        toast.error(errorMessage);
+      }
+    } catch (error) {
+      logger.error('Error updating operator assignment:', error);
+      toast.error(getErrorMessage(error, 'Error updating operator assignment'));
+    }
+  };
+
   const handleTaskReorder = (reorderedTasks: Task[]) => {
     if (!item) return;
-    
+
     // Update local state immediately for smooth UX
     setItem({ ...item, tasks: reorderedTasks });
-    
+
     // Save the task order to localStorage
     const taskOrder = reorderedTasks.map((task) => task.id);
     localStorage.setItem(`item-${item.id}-task-order`, JSON.stringify(taskOrder));
-    
+
     toast.success('Task order updated');
   };
 
@@ -299,41 +396,44 @@ export default function ItemDetailPage() {
       header: 'Priority',
       render: (value: string) => (
         <span
-          className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${value === 'HIGH'
+          className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+            value === 'HIGH'
               ? 'bg-red-100 text-red-800'
               : value === 'MEDIUM'
-                ? 'bg-yellow-100 text-yellow-800'
-                : 'bg-green-100 text-green-800'
-            }`}>
+              ? 'bg-yellow-100 text-yellow-800'
+              : 'bg-green-100 text-green-800'
+          }`}>
           {value}
         </span>
       ),
     },
     {
-      key: 'machine' as keyof Task,
+      key: 'machines' as keyof Task,
       header: 'Machine',
-      render: (value: Task['machine'], task: Task) => (
+      render: (value: Task['machines'], task: Task) => (
         <div className="w-48">
           <Select
-            value={value?.id || null}
-            onChange={(machineId) => handleTaskUpdate(task.id, 'machineId', machineId)}
+            value={value && value.length > 0 ? value[0].id : null}
+            onChange={(machineId) => handleTaskMachineUpdate(task.id, machineId)}
             options={machines}
             placeholder="-- None --"
           />
+          {value && value.length > 1 && <span className="text-xs text-gray-500 mt-1">+{value.length - 1} more</span>}
         </div>
       ),
     },
     {
-      key: 'operator' as keyof Task,
+      key: 'operators' as keyof Task,
       header: 'Operator',
-      render: (value: Task['operator'], task: Task) => (
+      render: (value: Task['operators'], task: Task) => (
         <div className="w-48">
           <Select
-            value={value?.id || null}
-            onChange={(operatorId) => handleTaskUpdate(task.id, 'operatorId', operatorId)}
+            value={value && value.length > 0 ? value[0].id : null}
+            onChange={(operatorId) => handleTaskOperatorUpdate(task.id, operatorId)}
             options={operators}
             placeholder="-- None --"
           />
+          {value && value.length > 1 && <span className="text-xs text-gray-500 mt-1">+{value.length - 1} more</span>}
         </div>
       ),
     },
@@ -344,18 +444,20 @@ export default function ItemDetailPage() {
         if (!value || value.length === 0) {
           return <span className="text-sm text-gray-400 italic">Not scheduled</span>;
         }
-        
+
         // Show all time slots in a compact format
         return (
           <div className="space-y-1.5">
             {value.map((slot, index) => {
               const start = new Date(slot.startDateTime);
-              const end = slot.endDateTime 
+              const end = slot.endDateTime
                 ? new Date(slot.endDateTime)
                 : new Date(start.getTime() + slot.durationMin * 60000);
-              
+
               return (
-                <div key={slot.id || index} className="text-xs">
+                <div
+                  key={slot.id || index}
+                  className="text-xs">
                   <div className="font-medium text-gray-700">
                     {start.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
                   </div>
@@ -562,12 +664,13 @@ export default function ItemDetailPage() {
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div
-                          className={`h-2 rounded-full transition-all duration-300 ${completionStatus.completionPercentage === 100
+                          className={`h-2 rounded-full transition-all duration-300 ${
+                            completionStatus.completionPercentage === 100
                               ? 'bg-green-500'
                               : completionStatus.completionPercentage > 50
-                                ? 'bg-blue-500'
-                                : 'bg-yellow-500'
-                            }`}
+                              ? 'bg-blue-500'
+                              : 'bg-yellow-500'
+                          }`}
                           style={{ width: `${completionStatus.completionPercentage}%` }}></div>
                       </div>
                     </div>

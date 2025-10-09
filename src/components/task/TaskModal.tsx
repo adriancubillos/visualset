@@ -13,8 +13,8 @@ interface TaskModalProps {
   selectedSlotIndex?: number | null; // Index of the time slot that was clicked
   onSave: (update: {
     itemId: string | null;
-    machineId: string | null;
-    operatorId: string | null;
+    machineIds: string[];
+    operatorIds: string[];
     timeSlots: TimeSlot[];
     quantity: number;
     completed_quantity: number;
@@ -35,8 +35,8 @@ export default function TaskModal({
   operators,
 }: TaskModalProps) {
   const [itemId, setItemId] = useState<string | null>(null);
-  const [machineId, setMachineId] = useState<string | null>(null);
-  const [operatorId, setOperatorId] = useState<string | null>(null);
+  const [machineIds, setMachineIds] = useState<string[]>([]);
+  const [operatorIds, setOperatorIds] = useState<string[]>([]);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [quantity, setQuantity] = useState<number>(1);
   const [completedQuantity, setCompletedQuantity] = useState<number>(0);
@@ -59,8 +59,24 @@ export default function TaskModal({
   useEffect(() => {
     if (isOpen && task) {
       setItemId(task.item?.id ?? null);
-      setMachineId(task.machine?.id ?? null);
-      setOperatorId(task.operator?.id ?? null);
+      
+      // Handle both old and new data formats
+      if (task.machines && Array.isArray(task.machines)) {
+        setMachineIds(task.machines.map((m: any) => m.id));
+      } else if (task.machine) {
+        setMachineIds([task.machine.id]);
+      } else {
+        setMachineIds([]);
+      }
+
+      if (task.operators && Array.isArray(task.operators)) {
+        setOperatorIds(task.operators.map((o: any) => o.id));
+      } else if (task.operator) {
+        setOperatorIds([task.operator.id]);
+      } else {
+        setOperatorIds([]);
+      }
+
       setQuantity(task.quantity ?? 1);
       setCompletedQuantity(task.completed_quantity ?? 0);
       setStatus(task.status ?? 'PENDING');
@@ -163,15 +179,15 @@ export default function TaskModal({
         <div className="grid grid-cols-2 gap-4 mb-4">
           <Select
             label="Operator"
-            value={operatorId}
-            onChange={setOperatorId}
+            value={operatorIds[0] || null}
+            onChange={(value) => setOperatorIds(value ? [value] : [])}
             options={sortByName(operators)}
             placeholder="-- None --"
           />
           <Select
             label="Machine"
-            value={machineId}
-            onChange={setMachineId}
+            value={machineIds[0] || null}
+            onChange={(value) => setMachineIds(value ? [value] : [])}
             options={sortByName(machines)}
             placeholder="-- None --"
           />
@@ -239,8 +255,8 @@ export default function TaskModal({
             onClick={() => {
               onSave({
                 itemId,
-                machineId,
-                operatorId,
+                machineIds,
+                operatorIds,
                 timeSlots,
                 quantity,
                 completed_quantity: completedQuantity,
