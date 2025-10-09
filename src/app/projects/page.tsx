@@ -1,16 +1,16 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import PageContainer from '@/components/layout/PageContainer';
 import DataTable from '@/components/ui/DataTable';
 import SearchFilter from '@/components/ui/SearchFilter';
-import StatusBadge from '@/components/ui/StatusBadge';
 import TableActions from '@/components/ui/TableActions';
 import { ProjectColorIndicator } from '@/components/ui/ColorIndicator';
 import StatisticsCards from '@/components/ui/StatisticsCards';
 import ImageViewer from '@/components/ui/ImageViewer';
+import Select from '@/components/ui/Select';
 import { PROJECT_STATUS } from '@/config/workshop-properties';
 import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { logger } from '@/utils/logger';
@@ -35,123 +35,6 @@ interface Project {
   }>;
 }
 
-// Default column configuration
-const defaultColumns: Column<Project>[] = [
-  {
-    key: 'color',
-    header: 'Color',
-    render: (_: unknown, project: Project) => (
-      <ProjectColorIndicator
-        project={project}
-        size="md"
-        showTooltip={true}
-        tooltipText={`${project.name} color`}
-      />
-    ),
-  },
-  {
-    key: 'imageUrl',
-    header: 'Image',
-    render: (_: unknown, project: Project) => (
-      <ImageViewer
-        imageUrl={project.imageUrl}
-        alt={project.name}
-        size="small"
-      />
-    ),
-  },
-  {
-    key: 'name',
-    header: 'Project Name',
-    align: 'left',
-    sortable: true,
-  },
-  {
-    key: 'orderNumber',
-    header: 'Order #',
-    render: (value: string | null | undefined) => <span className="text-sm text-gray-600">{value || '-'}</span>,
-  },
-  {
-    key: 'description',
-    header: 'Description',
-    align: 'left',
-    sortable: false,
-  },
-  {
-    key: 'status',
-    header: 'Status',
-    sortable: true,
-    render: (status: string) => {
-      const getStatusVariant = (status: string) => {
-        switch (status) {
-          case 'ACTIVE':
-            return 'success';
-          case 'PLANNING':
-            return 'info';
-          case 'ON_HOLD':
-            return 'warning';
-          case 'COMPLETED':
-            return 'success';
-          case 'CANCELLED':
-            return 'error';
-          default:
-            return 'default';
-        }
-      };
-
-      return (
-        <StatusBadge
-          status={status ? status.replace(/_/g, ' ') : 'Unknown'}
-          variant={getStatusVariant(status)}
-        />
-      );
-    },
-  },
-  {
-    key: 'updatedAt',
-    header: 'Last Updated',
-    sortable: true,
-    render: (date: string) => new Date(date).toLocaleDateString(),
-  },
-];
-
-// Function to get initial column order from localStorage
-const getInitialColumns = (): Column<Project>[] => {
-  if (typeof window === 'undefined') return defaultColumns;
-
-  try {
-    const saved = localStorage.getItem('projectsColumnOrder');
-    if (!saved) return defaultColumns;
-
-    const savedOrder = JSON.parse(saved);
-    if (!Array.isArray(savedOrder)) return defaultColumns;
-
-    // Reorder columns based on saved order
-    const orderedColumns: Column<Project>[] = [];
-
-    // Add columns in saved order
-    for (const savedCol of savedOrder) {
-      const matchingColumn = defaultColumns.find((col) => (col.id || col.key) === (savedCol.id || savedCol.key));
-      if (matchingColumn) {
-        orderedColumns.push(matchingColumn);
-      }
-    }
-
-    // Add any new columns that weren't in saved order
-    for (const defaultCol of defaultColumns) {
-      const exists = orderedColumns.some((col) => (col.id || col.key) === (defaultCol.id || defaultCol.key));
-      if (!exists) {
-        orderedColumns.push(defaultCol);
-      }
-    }
-
-    return orderedColumns;
-  } catch (error) {
-    logger.error('Error loading column order,', error);
-    return defaultColumns;
-  }
-};
-
 // Force dynamic rendering since we use useSearchParams
 export const dynamic = 'force-dynamic';
 
@@ -165,7 +48,160 @@ function ProjectsPageContent({
 }: ReturnType<typeof import('@/hooks/useSimpleFilters').useSimpleFilters>) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
-  const [columns, setColumns] = useState<Column<Project>[]>(getInitialColumns);
+
+  // Project update function
+  const handleProjectUpdate = useCallback(async (projectId: string, field: string, value: string | null) => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ [field]: value }),
+      });
+
+      if (response.ok) {
+        setProjects((prevProjects) =>
+          prevProjects.map((project) => (project.id === projectId ? { ...project, [field]: value } : project)),
+        );
+        toast.success(`Project ${field} updated successfully`);
+      } else {
+        const errorMessage = await extractErrorMessage(response, `Failed to update project ${field}`);
+        logger.error(`Failed to update project ${field}:`, errorMessage);
+        toast.error(errorMessage);
+      }
+    } catch (error) {
+      logger.error(`Error updating project ${field}`, error);
+      toast.error(getErrorMessage(error, `Error updating project ${field}`));
+    }
+  }, []);
+
+  // Dynamic column configuration with update handler
+  const getProjectColumns = useCallback(
+    (): Column<Project>[] => [
+      {
+        key: 'color',
+        header: 'Color',
+        render: (_: unknown, project: Project) => (
+          <ProjectColorIndicator
+            project={project}
+            size="md"
+            showTooltip={true}
+            tooltipText={`${project.name} color`}
+          />
+        ),
+      },
+      {
+        key: 'imageUrl',
+        header: 'Image',
+        render: (_: unknown, project: Project) => (
+          <ImageViewer
+            imageUrl={project.imageUrl}
+            alt={project.name}
+            size="small"
+          />
+        ),
+      },
+      {
+        key: 'name',
+        header: 'Project Name',
+        align: 'left',
+        sortable: true,
+      },
+      {
+        key: 'orderNumber',
+        header: 'Order #',
+        render: (value: string | null | undefined) => <span className="text-sm text-gray-600">{value || '-'}</span>,
+      },
+      {
+        key: 'description',
+        header: 'Description',
+        align: 'left',
+        sortable: false,
+      },
+      {
+        key: 'status',
+        header: 'Status',
+        sortable: true,
+        render: (status: string, project: Project) => {
+          const getStatusColors = (status: string) => {
+            switch (status) {
+              case 'COMPLETED':
+                return 'bg-green-200 text-green-900 border-2 border-green-500';
+              case 'ACTIVE':
+                return 'bg-blue-200 text-blue-900 border-2 border-blue-500';
+              case 'PLANNING':
+                return 'bg-purple-200 text-purple-900 border-2 border-purple-500';
+              case 'ON_HOLD':
+                return 'bg-yellow-200 text-yellow-900 border-2 border-yellow-500';
+              case 'CANCELLED':
+                return 'bg-red-200 text-red-900 border-2 border-red-500';
+              default:
+                return 'bg-gray-200 text-gray-900 border-2 border-gray-500';
+            }
+          };
+
+          return (
+            <div
+              className="w-32"
+              onClick={(e) => e.stopPropagation()}>
+              <Select
+                value={status}
+                onChange={(newStatus) => handleProjectUpdate(project.id, 'status', newStatus)}
+                options={PROJECT_STATUS.map((s) => ({ id: s.value, name: s.label }))}
+                placeholder="Select status"
+                buttonClassName={`font-medium cursor-pointer ${getStatusColors(status)}`}
+              />
+            </div>
+          );
+        },
+      },
+      {
+        key: 'updatedAt',
+        header: 'Last Updated',
+        sortable: true,
+        render: (date: string) => new Date(date).toLocaleDateString(),
+      },
+    ],
+    [handleProjectUpdate],
+  );
+
+  const [columns, setColumns] = useState<Column<Project>[]>(() => {
+    if (typeof window === 'undefined') return getProjectColumns();
+
+    try {
+      const saved = localStorage.getItem('projectsColumnOrder');
+      if (!saved) return getProjectColumns();
+
+      const savedOrder = JSON.parse(saved);
+      if (!Array.isArray(savedOrder)) return getProjectColumns();
+
+      const baseColumns = getProjectColumns();
+      // Reorder columns based on saved order
+      const orderedColumns: Column<Project>[] = [];
+
+      // Add columns in saved order
+      for (const savedCol of savedOrder) {
+        const matchingColumn = baseColumns.find((col) => (col.id || col.key) === (savedCol.id || savedCol.key));
+        if (matchingColumn) {
+          orderedColumns.push(matchingColumn);
+        }
+      }
+
+      // Add any new columns that weren't in saved order
+      for (const defaultCol of baseColumns) {
+        const exists = orderedColumns.some((col) => (col.id || col.key) === (defaultCol.id || defaultCol.key));
+        if (!exists) {
+          orderedColumns.push(defaultCol);
+        }
+      }
+
+      return orderedColumns;
+    } catch (error) {
+      logger.error('Error loading column order,', error);
+      return getProjectColumns();
+    }
+  });
 
   // Filter projects based on search and filters
   const filteredProjects = useMemo(() => {
@@ -224,7 +260,8 @@ function ProjectsPageContent({
   };
 
   const handleResetColumns = () => {
-    setColumns(defaultColumns);
+    const defaultCols = getProjectColumns();
+    setColumns(defaultCols);
     localStorage.removeItem('projectsColumnOrder');
   };
 
