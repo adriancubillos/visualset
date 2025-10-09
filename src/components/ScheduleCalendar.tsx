@@ -586,6 +586,11 @@ export default function ScheduleCalendar() {
                 <div
                   className="relative w-full h-full rounded-lg cursor-pointer"
                   title="" // Disable browser's default tooltip
+                  onClick={(e) => {
+                    // Explicitly handle click to open modal
+                    e.stopPropagation();
+                    handleSelectEvent(event);
+                  }}
                   onMouseEnter={(e) => {
                     // Immediately show this event's tooltip
                     setHoveredEventId(event.id);
@@ -627,12 +632,15 @@ export default function ScheduleCalendar() {
                       setIsLongPress(false);
                     }
                   }}
-                  onTouchEnd={() => {
-                    // Only cancel if it wasn't a long press yet
+                  onTouchEnd={(e) => {
+                    // If it wasn't a long press, treat it as a click to open modal
                     if (touchTimer && !isLongPress) {
                       clearTimeout(touchTimer);
                       setTouchTimer(null);
                       setIsLongPress(false);
+                      // Open modal on tap
+                      e.preventDefault();
+                      handleSelectEvent(event);
                     }
                   }}>
                   {/* Split background: top half operator, bottom half machine */}

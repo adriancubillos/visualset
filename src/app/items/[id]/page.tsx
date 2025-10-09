@@ -208,10 +208,23 @@ const getBaseColumns = (
 // Helper function to get initial column order
 const getInitialColumns = (baseColumns: Column<Task>[], itemId: string): Column<Task>[] => {
   const saved = localStorage.getItem(`item-${itemId}-columnOrder`);
-  if (!saved) return baseColumns;
+
+  // Debug: log the saved data
+  console.log('Saved column order:', saved);
+  console.log(
+    'Base columns:',
+    baseColumns.map((col) => ({ key: col.key, id: col.id })),
+  );
+
+  if (!saved) {
+    console.log('No saved column order, returning base columns');
+    return baseColumns;
+  }
 
   try {
     const savedOrder: { key: string; id?: string }[] = JSON.parse(saved);
+    console.log('Parsed saved order:', savedOrder);
+
     const orderedColumns: Column<Task>[] = [];
 
     // First, add columns in saved order
@@ -219,6 +232,8 @@ const getInitialColumns = (baseColumns: Column<Task>[], itemId: string): Column<
       const matchingColumn = baseColumns.find((col: Column<Task>) => (col.id || col.key) === savedCol.key);
       if (matchingColumn) {
         orderedColumns.push(matchingColumn);
+      } else {
+        console.warn('Could not find matching column for:', savedCol);
       }
     }
 
@@ -226,11 +241,17 @@ const getInitialColumns = (baseColumns: Column<Task>[], itemId: string): Column<
     for (const col of baseColumns) {
       if (!orderedColumns.find((orderedCol) => (orderedCol.id || orderedCol.key) === (col.id || col.key))) {
         orderedColumns.push(col);
+        console.log('Added missing column:', col.key);
       }
     }
 
+    console.log(
+      'Final ordered columns:',
+      orderedColumns.map((col) => ({ key: col.key, id: col.id })),
+    );
     return orderedColumns;
-  } catch {
+  } catch (error) {
+    console.error('Error parsing saved column order, using base columns:', error);
     return baseColumns;
   }
 };
@@ -592,7 +613,12 @@ export default function ItemDetailPage() {
   // Initialize columns when all dependencies are ready
   useEffect(() => {
     if (machines.length > 0 && operators.length > 0 && item) {
-      console.log('Initializing columns with all data ready');
+      console.log('=== Column Initialization Debug ===');
+      console.log('Machines:', machines.length);
+      console.log('Operators:', operators.length);
+      console.log('Item:', item?.name);
+      console.log('Tasks:', item?.tasks?.length);
+
       const baseColumns = getBaseColumns(
         machines,
         operators,
@@ -600,8 +626,21 @@ export default function ItemDetailPage() {
         handleTaskMachineUpdate,
         handleTaskOperatorUpdate,
       );
+
+      console.log('Generated base columns:', baseColumns.length);
+
       const initialColumns = getInitialColumns(baseColumns, params.id as string);
+
+      console.log('Final columns to set:', initialColumns.length);
       setColumns(initialColumns);
+
+      console.log('=== End Column Initialization ===');
+    } else {
+      console.log('Column initialization skipped - missing dependencies:', {
+        machines: machines.length,
+        operators: operators.length,
+        item: !!item,
+      });
     }
   }, [machines, operators, item, params.id, handleTaskUpdate, handleTaskMachineUpdate, handleTaskOperatorUpdate]);
 
