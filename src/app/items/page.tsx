@@ -362,9 +362,9 @@ function ItemsPageContent({
       <StatisticsCards
         stats={[
           { label: 'Total Items', value: items.length, color: 'gray' },
-          { label: 'Active', value: items.filter((item) => item.status === 'ACTIVE').length, color: 'green' },
-          { label: 'Completed', value: items.filter((item) => item.status === 'COMPLETED').length, color: 'blue' },
-          { label: 'On Hold', value: items.filter((item) => item.status === 'ON_HOLD').length, color: 'orange' },
+          { label: 'Active', value: items.filter((item) => item.status === 'ACTIVE').length, color: 'blue' },
+          { label: 'Completed', value: items.filter((item) => item.status === 'COMPLETED').length, color: 'green' },
+          { label: 'On Hold', value: items.filter((item) => item.status === 'ON_HOLD').length, color: 'yellow' },
         ]}
         loading={loading}
         columns={4}

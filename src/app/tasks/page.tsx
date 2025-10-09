@@ -625,17 +625,20 @@ function TasksPageContent({
           { label: 'Total Tasks', value: stats.total, color: 'gray' },
           ...TASK_STATUS.map((status) => {
             const key = status.value.toLowerCase().replace('_', '');
-            const colorMap: { [key: string]: 'yellow' | 'blue' | 'green' | 'red' | 'gray' } = {
-              pending: 'yellow',
-              scheduled: 'blue',
-              inprogress: 'blue',
-              completed: 'green',
-              blocked: 'red',
+            const variant = getStatusVariant(status.value);
+            // Map status variants to StatisticsCards colors
+            const variantColorMap: Record<string, 'yellow' | 'blue' | 'green' | 'red' | 'gray' | 'purple'> = {
+              success: 'green',    // COMPLETED
+              info: 'blue',        // IN_PROGRESS
+              warning: 'yellow',   // PENDING
+              error: 'red',        // BLOCKED
+              scheduled: 'purple', // SCHEDULED
+              default: 'gray',
             };
             return {
               label: status.label,
               value: (stats as Record<string, number>)[key] || 0,
-              color: colorMap[key] || ('gray' as const),
+              color: variantColorMap[variant] || ('gray' as const),
             };
           }),
         ]}

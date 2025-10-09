@@ -9,6 +9,7 @@ export const STATUS_VARIANTS: Record<string, StatusVariant> = {
   SCHEDULED: 'scheduled',
   ON_HOLD: 'warning',
   PENDING: 'warning',
+  CANCELLED: 'error',
   BLOCKED: 'error',
 
   // Machines

@@ -24,19 +24,19 @@ interface Task {
   item?: {
     id: string;
     name: string;
-    project?: {
-      id: string;
-      name: string;
-    };
   };
-  machine?: {
+  project?: {
     id: string;
     name: string;
   };
-  operator?: {
+  machines?: Array<{
     id: string;
     name: string;
-  };
+  }>;
+  operators?: Array<{
+    id: string;
+    name: string;
+  }>;
   timeSlots: {
     id: string;
     startDateTime: string;
@@ -84,8 +84,9 @@ export default function TaskDetailPage() {
         }),
       });
 
-      if (response.ok && task) {
-        setTask({ ...task, status: newStatus });
+      if (response.ok) {
+        const updatedTask = await response.json();
+        setTask(updatedTask);
         toast.success('Task status updated successfully');
       } else {
         const errorMessage = await extractErrorMessage(response, 'Failed to update task status');
@@ -267,11 +268,11 @@ export default function TaskDetailPage() {
             <div>
               <dt className="text-sm font-medium text-gray-500">Project</dt>
               <dd className="mt-1 text-sm text-gray-900">
-                {task.item?.project ? (
+                {task.project ? (
                   <Link
-                    href={`/projects/${task.item.project.id}`}
+                    href={`/projects/${task.project.id}`}
                     className="text-blue-600 hover:text-blue-800">
-                    {task.item.project.name}
+                    {task.project.name}
                   </Link>
                 ) : (
                   'No project assigned'
@@ -293,28 +294,38 @@ export default function TaskDetailPage() {
               </dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-gray-500">Machine</dt>
+              <dt className="text-sm font-medium text-gray-500">Machines</dt>
               <dd className="mt-1 text-sm text-gray-900">
-                {task.machine ? (
-                  <Link
-                    href={`/machines/${task.machine.id}`}
-                    className="text-blue-600 hover:text-blue-800">
-                    {task.machine.name}
-                  </Link>
+                {task.machines && task.machines.length > 0 ? (
+                  <div className="flex flex-col space-y-1">
+                    {task.machines.map((machine) => (
+                      <Link
+                        key={machine.id}
+                        href={`/machines/${machine.id}`}
+                        className="text-blue-600 hover:text-blue-800">
+                        {machine.name}
+                      </Link>
+                    ))}
+                  </div>
                 ) : (
                   'No machine required'
                 )}
               </dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-gray-500">Operator</dt>
+              <dt className="text-sm font-medium text-gray-500">Operators</dt>
               <dd className="mt-1 text-sm text-gray-900">
-                {task.operator ? (
-                  <Link
-                    href={`/operators/${task.operator.id}`}
-                    className="text-blue-600 hover:text-blue-800">
-                    {task.operator.name}
-                  </Link>
+                {task.operators && task.operators.length > 0 ? (
+                  <div className="flex flex-col space-y-1">
+                    {task.operators.map((operator) => (
+                      <Link
+                        key={operator.id}
+                        href={`/operators/${operator.id}`}
+                        className="text-blue-600 hover:text-blue-800">
+                        {operator.name}
+                      </Link>
+                    ))}
+                  </div>
                 ) : (
                   'Unassigned'
                 )}

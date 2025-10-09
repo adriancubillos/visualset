@@ -478,7 +478,21 @@ export async function patchTask(db: PrismaClient, id: string, body: Partial<Task
     const dataRec: Record<string, unknown> = {};
     if (body.title !== undefined) dataRec.title = body.title as string;
     if (body.description !== undefined) dataRec.description = body.description ?? null;
-    if (body.status !== undefined) dataRec.status = body.status as TaskStatus;
+    if (body.status !== undefined) {
+      dataRec.status = body.status as TaskStatus;
+      // Auto-manage completed_quantity based on status change
+      // unless completed_quantity is explicitly provided in the update
+      if (body.completed_quantity === undefined) {
+        if (body.status === 'COMPLETED') {
+          // When marking as COMPLETED, set completed_quantity to match quantity
+          const currentQuantity = body.quantity ?? existingTask.quantity;
+          dataRec.completed_quantity = currentQuantity;
+        } else {
+          // When changing away from COMPLETED, reset to 0
+          dataRec.completed_quantity = 0;
+        }
+      }
+    }
     if (body.quantity !== undefined) dataRec.quantity = body.quantity;
     if (body.completed_quantity !== undefined) dataRec.completed_quantity = body.completed_quantity;
     if (body.itemId !== undefined) dataRec.item = body.itemId ? { connect: { id: body.itemId } } : { disconnect: true };

@@ -332,19 +332,21 @@ function ProjectsPageContent({
       <StatisticsCards
         stats={[
           { label: 'Total Projects', value: projects.length, color: 'gray' },
-          ...PROJECT_STATUS.slice(1).map((status) => {
-            const statusKey = status.value.toLowerCase();
-            const colorMap: { [key: string]: 'yellow' | 'green' | 'blue' | 'orange' | 'red' | 'gray' } = {
-              planning: 'yellow',
-              active: 'green',
-              on_hold: 'orange',
-              completed: 'blue',
-              cancelled: 'red',
+          ...PROJECT_STATUS.map((status) => {
+            const variant = getStatusVariant(status.value);
+            // Map status variants to StatisticsCards colors
+            const variantColorMap: Record<string, 'yellow' | 'green' | 'blue' | 'orange' | 'red' | 'gray' | 'purple'> = {
+              success: 'green',    // COMPLETED
+              info: 'blue',        // ACTIVE
+              warning: 'yellow',   // ON_HOLD
+              error: 'red',        // CANCELLED
+              scheduled: 'purple',
+              default: 'gray',
             };
             return {
               label: status.label,
               value: projects.filter((project) => project.status === status.value).length,
-              color: colorMap[statusKey] || ('gray' as const),
+              color: variantColorMap[variant] || ('gray' as const),
             };
           }),
         ]}
