@@ -62,7 +62,7 @@ export default function TaskModal({
       
       // Handle both old and new data formats
       if (task.machines && Array.isArray(task.machines)) {
-        setMachineIds(task.machines.map((m: any) => m.id));
+        setMachineIds(task.machines.map((m: { id: string }) => m.id));
       } else if (task.machine) {
         setMachineIds([task.machine.id]);
       } else {
@@ -70,7 +70,7 @@ export default function TaskModal({
       }
 
       if (task.operators && Array.isArray(task.operators)) {
-        setOperatorIds(task.operators.map((o: any) => o.id));
+        setOperatorIds(task.operators.map((o: { id: string }) => o.id));
       } else if (task.operator) {
         setOperatorIds([task.operator.id]);
       } else {
