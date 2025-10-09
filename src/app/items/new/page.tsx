@@ -34,6 +34,14 @@ function NewItemPageContent() {
   const [projectsLoading, setProjectsLoading] = useState(true);
   const isProjectLocked = !!projectIdFromUrl; // Lock project selection if coming from project detail
 
+  // If the project id arrives after initial render (client navigation / hydration),
+  // ensure the formData reflects it so the select shows the preselected project.
+  useEffect(() => {
+    if (projectIdFromUrl) {
+      setFormData((prev) => ({ ...prev, projectId: projectIdFromUrl }));
+    }
+  }, [projectIdFromUrl]);
+
   useEffect(() => {
     const fetchProjects = async () => {
       try {
@@ -42,7 +50,20 @@ function NewItemPageContent() {
           const data = await response.json();
           // Only show active projects
           const activeProjects = data.filter((project: Project) => project.status === 'ACTIVE');
-          setProjects(activeProjects);
+          // If a projectId was passed in the URL but it's not in the active list, try to fetch it
+          let projectsToSet = activeProjects;
+          if (projectIdFromUrl && !activeProjects.find((p: Project) => p.id === projectIdFromUrl)) {
+            try {
+              const singleResp = await fetch(`/api/projects/${projectIdFromUrl}`);
+              if (singleResp.ok) {
+                const singleProject = await singleResp.json();
+                projectsToSet = [singleProject, ...activeProjects];
+              }
+                    } catch {
+                      // ignore - we'll still show the active projects
+                    }
+          }
+          setProjects(projectsToSet);
         } else {
           logger.apiError('Fetch projects', '/api/projects', 'Failed to fetch');
         }
@@ -54,7 +75,7 @@ function NewItemPageContent() {
     };
 
     fetchProjects();
-  }, []);
+  }, [projectIdFromUrl]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
