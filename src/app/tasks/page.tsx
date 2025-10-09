@@ -628,10 +628,10 @@ function TasksPageContent({
             const variant = getStatusVariant(status.value);
             // Map status variants to StatisticsCards colors
             const variantColorMap: Record<string, 'yellow' | 'blue' | 'green' | 'red' | 'gray' | 'purple'> = {
-              success: 'green',    // COMPLETED
-              info: 'blue',        // IN_PROGRESS
-              warning: 'yellow',   // PENDING
-              error: 'red',        // BLOCKED
+              success: 'green', // COMPLETED
+              info: 'blue', // IN_PROGRESS
+              warning: 'yellow', // PENDING
+              error: 'red', // BLOCKED
               scheduled: 'purple', // SCHEDULED
               default: 'gray',
             };
