@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import MultiSelect from '@/components/ui/MultiSelect';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import StatusBadge from '@/components/ui/StatusBadge';
@@ -62,6 +63,177 @@ interface Item {
   updatedAt: string;
 }
 
+// Helper function to get base columns
+const getBaseColumns = (
+  machines: { id: string; name: string }[],
+  operators: { id: string; name: string }[],
+  handleTaskUpdate: (taskId: string, field: string, value: string | null) => Promise<void>,
+  handleTaskMachineUpdate: (taskId: string, machineIds: string[]) => Promise<void>,
+  handleTaskOperatorUpdate: (taskId: string, operatorIds: string[]) => Promise<void>,
+): Column<Task>[] => [
+  {
+    key: 'title' as keyof Task,
+    header: 'Task',
+    align: 'left' as const,
+    render: (value: string, task: Task) => (
+      <div>
+        <Link
+          href={`/tasks/${task.id}`}
+          className="font-medium text-blue-600 hover:text-blue-800">
+          {task.title}
+        </Link>
+        {task.description && <p className="text-sm text-gray-500 mt-1">{task.description}</p>}
+      </div>
+    ),
+  },
+  {
+    key: 'status' as keyof Task,
+    header: 'Status',
+    render: (value: string, task: Task) => {
+      const getStatusColors = (status: string) => {
+        switch (status) {
+          case 'COMPLETED':
+            return 'bg-green-200 text-green-900 border-2 border-green-500';
+          case 'IN_PROGRESS':
+            return 'bg-blue-200 text-blue-900 border-2 border-blue-500';
+          case 'SCHEDULED':
+            return 'bg-purple-200 text-purple-900 border-2 border-purple-500';
+          case 'PENDING':
+            return 'bg-yellow-200 text-yellow-900 border-2 border-yellow-500';
+          case 'BLOCKED':
+            return 'bg-red-200 text-red-900 border-2 border-red-500';
+          default:
+            return 'bg-gray-200 text-gray-900 border-2 border-gray-500';
+        }
+      };
+
+      return (
+        <div className="w-40">
+          <Select
+            value={value}
+            onChange={(newStatus) => handleTaskUpdate(task.id, 'status', newStatus)}
+            options={TASK_STATUS.map((s) => ({ id: s.value, name: s.label }))}
+            placeholder="Select status"
+            buttonClassName={`font-medium cursor-pointer ${getStatusColors(value)}`}
+          />
+        </div>
+      );
+    },
+  },
+  {
+    key: 'priority' as keyof Task,
+    header: 'Priority',
+    render: (value: string) => (
+      <span
+        className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+          value === 'HIGH'
+            ? 'bg-red-100 text-red-800'
+            : value === 'MEDIUM'
+            ? 'bg-yellow-100 text-yellow-800'
+            : 'bg-green-100 text-green-800'
+        }`}>
+        {value}
+      </span>
+    ),
+  },
+  {
+    key: 'machines' as keyof Task,
+    header: 'Machines',
+    render: (value: Task['machines'], task: Task) => (
+      <div className="w-64">
+        <MultiSelect
+          value={value?.map((m) => m.id) || []}
+          onChange={(machineIds) => handleTaskMachineUpdate(task.id, machineIds)}
+          options={machines}
+          placeholder="-- None --"
+          maxDisplayItems={2}
+        />
+      </div>
+    ),
+  },
+  {
+    key: 'operators' as keyof Task,
+    header: 'Operators',
+    render: (value: Task['operators'], task: Task) => (
+      <div className="w-64">
+        <MultiSelect
+          value={value?.map((op) => op.id) || []}
+          onChange={(operatorIds) => handleTaskOperatorUpdate(task.id, operatorIds)}
+          options={operators}
+          placeholder="-- None --"
+          maxDisplayItems={2}
+        />
+      </div>
+    ),
+  },
+  {
+    key: 'timeSlots' as keyof Task,
+    header: 'Scheduled',
+    render: (value: Task['timeSlots']) => {
+      if (!value || value.length === 0) {
+        return <span className="text-sm text-gray-400 italic">Not scheduled</span>;
+      }
+
+      // Show all time slots in a compact format
+      return (
+        <div className="space-y-1.5">
+          {value.map((slot, index) => {
+            const start = new Date(slot.startDateTime);
+            const end = slot.endDateTime
+              ? new Date(slot.endDateTime)
+              : new Date(start.getTime() + slot.durationMin * 60000);
+
+            return (
+              <div
+                key={slot.id || index}
+                className="text-xs">
+                <div className="font-medium text-gray-700">
+                  {start.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
+                </div>
+                <div className="text-gray-600">
+                  {start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {' - '}
+                  {end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    },
+  },
+];
+
+// Helper function to get initial column order
+const getInitialColumns = (baseColumns: Column<Task>[], itemId: string): Column<Task>[] => {
+  const saved = localStorage.getItem(`item-${itemId}-columnOrder`);
+  if (!saved) return baseColumns;
+
+  try {
+    const savedOrder: { key: string; id?: string }[] = JSON.parse(saved);
+    const orderedColumns: Column<Task>[] = [];
+
+    // First, add columns in saved order
+    for (const savedCol of savedOrder) {
+      const matchingColumn = baseColumns.find((col: Column<Task>) => (col.id || col.key) === savedCol.key);
+      if (matchingColumn) {
+        orderedColumns.push(matchingColumn);
+      }
+    }
+
+    // Then, add any new columns that weren't in the saved order
+    for (const col of baseColumns) {
+      if (!orderedColumns.find((orderedCol) => (orderedCol.id || orderedCol.key) === (col.id || col.key))) {
+        orderedColumns.push(col);
+      }
+    }
+
+    return orderedColumns;
+  } catch {
+    return baseColumns;
+  }
+};
+
 export default function ItemDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -69,6 +241,8 @@ export default function ItemDetailPage() {
   const [loading, setLoading] = useState(true);
   const [machines, setMachines] = useState<{ id: string; name: string }[]>([]);
   const [operators, setOperators] = useState<{ id: string; name: string }[]>([]);
+  const [columns, setColumns] = useState<Column<Task>[]>([]);
+  const [columnsInitialized, setColumnsInitialized] = useState(false);
 
   const handleDelete = () => {
     showConfirmDialog({
@@ -191,142 +365,175 @@ export default function ItemDetailPage() {
     }
   };
 
-  const handleTaskUpdate = async (taskId: string, field: string, value: string | null) => {
-    try {
-      const response = await fetch(`/api/tasks/${taskId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ [field]: value }),
-      });
+  const handleTaskUpdate = useCallback(
+    async (taskId: string, field: string, value: string | null) => {
+      try {
+        const response = await fetch(`/api/tasks/${taskId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ [field]: value }),
+        });
 
-      if (response.ok && item) {
-        const updatedTasks = item.tasks.map((task) =>
-          task.id === taskId
-            ? {
-                ...task,
-                [field]: value,
-                ...(field === 'machineId' && {
-                  machine: value ? machines.find((m) => m.id === value) || null : null,
-                }),
-                ...(field === 'operatorId' && {
-                  operator: value ? operators.find((o) => o.id === value) || null : null,
-                }),
-              }
-            : task,
-        );
-        setItem({ ...item, tasks: updatedTasks });
-        toast.success('Task updated successfully');
-      } else {
-        const errorMessage = await extractErrorMessage(response, 'Failed to update task');
-        toast.error(errorMessage);
+        if (response.ok && item) {
+          const updatedTasks = item.tasks.map((task) =>
+            task.id === taskId
+              ? {
+                  ...task,
+                  [field]: value,
+                  ...(field === 'machineId' && {
+                    machine: value ? machines.find((m) => m.id === value) || null : null,
+                  }),
+                  ...(field === 'operatorId' && {
+                    operator: value ? operators.find((o) => o.id === value) || null : null,
+                  }),
+                }
+              : task,
+          );
+          setItem({ ...item, tasks: updatedTasks });
+          toast.success('Task updated successfully');
+        } else {
+          const errorMessage = await extractErrorMessage(response, 'Failed to update task');
+          toast.error(errorMessage);
+        }
+      } catch (error) {
+        logger.error('Error updating task:', error);
+        toast.error(getErrorMessage(error, 'Error updating task'));
       }
-    } catch (error) {
-      logger.error('Error updating task:', error);
-      toast.error(getErrorMessage(error, 'Error updating task'));
+    },
+    [item, machines, operators],
+  );
+
+  const handleTaskMachineUpdate = useCallback(
+    async (taskId: string, machineIds: string[]) => {
+      try {
+        // Fetch current task data from API to ensure we have the latest state
+        const currentTaskResponse = await fetch(`/api/tasks/${taskId}`);
+        if (!currentTaskResponse.ok) {
+          throw new Error('Failed to fetch current task data');
+        }
+        const currentTask = await currentTaskResponse.json();
+
+        const response = await fetch(`/api/tasks/${taskId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: currentTask.title,
+            description: currentTask.description,
+            status: currentTask.status,
+            quantity: currentTask.quantity || 1,
+            completed_quantity: currentTask.completed_quantity || 0,
+            machineIds: machineIds,
+            operatorIds: currentTask.operators?.map((op: { id: string }) => op.id) || [], // Preserve existing operators
+            timeSlots: currentTask.timeSlots || [], // Preserve existing timeSlots
+          }),
+        });
+
+        if (response.ok && item) {
+          const updatedTaskData = await response.json();
+          const updatedTasks = item.tasks.map((task) =>
+            task.id === taskId
+              ? {
+                  ...task,
+                  machines: updatedTaskData.machines || [],
+                  operators: updatedTaskData.operators || [],
+                  timeSlots: updatedTaskData.timeSlots || [],
+                }
+              : task,
+          );
+          setItem({ ...item, tasks: updatedTasks });
+          toast.success('Machine assignments updated successfully');
+        } else {
+          const errorMessage = await extractErrorMessage(response, 'Failed to update machine assignments');
+          toast.error(errorMessage);
+        }
+      } catch (error) {
+        logger.error('Error updating machine assignments:', error);
+        toast.error(getErrorMessage(error, 'Error updating machine assignments'));
+      }
+    },
+    [item],
+  );
+
+  const handleTaskOperatorUpdate = useCallback(
+    async (taskId: string, operatorIds: string[]) => {
+      try {
+        // Fetch current task data from API to ensure we have the latest state
+        const currentTaskResponse = await fetch(`/api/tasks/${taskId}`);
+        if (!currentTaskResponse.ok) {
+          throw new Error('Failed to fetch current task data');
+        }
+        const currentTask = await currentTaskResponse.json();
+
+        const response = await fetch(`/api/tasks/${taskId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: currentTask.title,
+            description: currentTask.description,
+            status: currentTask.status,
+            quantity: currentTask.quantity || 1,
+            completed_quantity: currentTask.completed_quantity || 0,
+            machineIds: currentTask.machines?.map((m: { id: string }) => m.id) || [], // Preserve existing machines
+            operatorIds: operatorIds,
+            timeSlots: currentTask.timeSlots || [], // Preserve existing timeSlots
+          }),
+        });
+
+        if (response.ok && item) {
+          const updatedTaskData = await response.json();
+          const updatedTasks = item.tasks.map((task) =>
+            task.id === taskId
+              ? {
+                  ...task,
+                  machines: updatedTaskData.machines || [],
+                  operators: updatedTaskData.operators || [],
+                  timeSlots: updatedTaskData.timeSlots || [],
+                }
+              : task,
+          );
+          setItem({ ...item, tasks: updatedTasks });
+          toast.success('Operator assignments updated successfully');
+        } else {
+          const errorMessage = await extractErrorMessage(response, 'Failed to update operator assignments');
+          toast.error(errorMessage);
+        }
+      } catch (error) {
+        logger.error('Error updating operator assignments:', error);
+        toast.error(getErrorMessage(error, 'Error updating operator assignments'));
+      }
+    },
+    [item],
+  );
+
+  // Initialize columns
+  useEffect(() => {
+    if (!columnsInitialized && machines.length > 0 && operators.length > 0) {
+      const baseColumns = getBaseColumns(
+        machines,
+        operators,
+        handleTaskUpdate,
+        handleTaskMachineUpdate,
+        handleTaskOperatorUpdate,
+      );
+      const initialColumns = getInitialColumns(baseColumns, params.id as string);
+      setColumns(initialColumns);
+      setColumnsInitialized(true);
     }
-  };
-
-  const handleTaskMachineUpdate = async (taskId: string, machineId: string | null) => {
-    try {
-      // Fetch current task data from API to ensure we have the latest state
-      const currentTaskResponse = await fetch(`/api/tasks/${taskId}`);
-      if (!currentTaskResponse.ok) {
-        throw new Error('Failed to fetch current task data');
-      }
-      const currentTask = await currentTaskResponse.json();
-
-      const response = await fetch(`/api/tasks/${taskId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: currentTask.title,
-          description: currentTask.description,
-          status: currentTask.status,
-          quantity: currentTask.quantity || 1,
-          completed_quantity: currentTask.completed_quantity || 0,
-          machineIds: machineId ? [machineId] : [],
-          operatorIds: currentTask.operators?.map((op: { id: string }) => op.id) || [], // Preserve existing operators
-          timeSlots: currentTask.timeSlots || [], // Preserve existing timeSlots
-        }),
-      });
-
-      if (response.ok && item) {
-        const updatedTaskData = await response.json();
-        const updatedTasks = item.tasks.map((task) =>
-          task.id === taskId
-            ? {
-                ...task,
-                machines: updatedTaskData.machines || [],
-                operators: updatedTaskData.operators || [],
-                timeSlots: updatedTaskData.timeSlots || [],
-              }
-            : task,
-        );
-        setItem({ ...item, tasks: updatedTasks });
-        toast.success('Machine assignment updated successfully');
-      } else {
-        const errorMessage = await extractErrorMessage(response, 'Failed to update machine assignment');
-        toast.error(errorMessage);
-      }
-    } catch (error) {
-      logger.error('Error updating machine assignment:', error);
-      toast.error(getErrorMessage(error, 'Error updating machine assignment'));
-    }
-  };
-
-  const handleTaskOperatorUpdate = async (taskId: string, operatorId: string | null) => {
-    try {
-      // Fetch current task data from API to ensure we have the latest state
-      const currentTaskResponse = await fetch(`/api/tasks/${taskId}`);
-      if (!currentTaskResponse.ok) {
-        throw new Error('Failed to fetch current task data');
-      }
-      const currentTask = await currentTaskResponse.json();
-
-      const response = await fetch(`/api/tasks/${taskId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: currentTask.title,
-          description: currentTask.description,
-          status: currentTask.status,
-          quantity: currentTask.quantity || 1,
-          completed_quantity: currentTask.completed_quantity || 0,
-          machineIds: currentTask.machines?.map((m: { id: string }) => m.id) || [], // Preserve existing machines
-          operatorIds: operatorId ? [operatorId] : [],
-          timeSlots: currentTask.timeSlots || [], // Preserve existing timeSlots
-        }),
-      });
-
-      if (response.ok && item) {
-        const updatedTaskData = await response.json();
-        const updatedTasks = item.tasks.map((task) =>
-          task.id === taskId
-            ? {
-                ...task,
-                machines: updatedTaskData.machines || [],
-                operators: updatedTaskData.operators || [],
-                timeSlots: updatedTaskData.timeSlots || [],
-              }
-            : task,
-        );
-        setItem({ ...item, tasks: updatedTasks });
-        toast.success('Operator assignment updated successfully');
-      } else {
-        const errorMessage = await extractErrorMessage(response, 'Failed to update operator assignment');
-        toast.error(errorMessage);
-      }
-    } catch (error) {
-      logger.error('Error updating operator assignment:', error);
-      toast.error(getErrorMessage(error, 'Error updating operator assignment'));
-    }
-  };
+  }, [
+    columnsInitialized,
+    machines,
+    operators,
+    params.id,
+    handleTaskUpdate,
+    handleTaskMachineUpdate,
+    handleTaskOperatorUpdate,
+  ]);
 
   const handleTaskReorder = (reorderedTasks: Task[]) => {
     if (!item) return;
@@ -341,139 +548,61 @@ export default function ItemDetailPage() {
     toast.success('Task order updated');
   };
 
-  const taskColumns: Column<Task>[] = [
-    {
-      key: 'title' as keyof Task,
-      header: 'Task',
-      align: 'left' as const,
-      render: (value: string, task: Task) => (
-        <div>
-          <Link
-            href={`/tasks/${task.id}`}
-            className="font-medium text-blue-600 hover:text-blue-800">
-            {task.title}
-          </Link>
-          {task.description && <p className="text-sm text-gray-500 mt-1">{task.description}</p>}
-        </div>
+  // Column management functions
+  const handleColumnReorder = (reorderedColumns: Column<Task>[]) => {
+    setColumns(reorderedColumns);
+    localStorage.setItem(
+      `item-${params.id}-columnOrder`,
+      JSON.stringify(
+        reorderedColumns.map((col) => ({
+          key: col.key,
+          id: col.id,
+        })),
       ),
-    },
-    {
-      key: 'status' as keyof Task,
-      header: 'Status',
-      render: (value: string, task: Task) => {
-        const getStatusColors = (status: string) => {
-          switch (status) {
-            case 'COMPLETED':
-              return 'bg-green-200 text-green-900 border-2 border-green-500';
-            case 'IN_PROGRESS':
-              return 'bg-blue-200 text-blue-900 border-2 border-blue-500';
-            case 'SCHEDULED':
-              return 'bg-purple-200 text-purple-900 border-2 border-purple-500';
-            case 'PENDING':
-              return 'bg-yellow-200 text-yellow-900 border-2 border-yellow-500';
-            case 'BLOCKED':
-              return 'bg-red-200 text-red-900 border-2 border-red-500';
-            default:
-              return 'bg-gray-200 text-gray-900 border-2 border-gray-500';
-          }
-        };
+    );
+  };
 
-        return (
-          <div className="w-40">
-            <Select
-              value={value}
-              onChange={(newStatus) => handleTaskUpdate(task.id, 'status', newStatus)}
-              options={TASK_STATUS.map((s) => ({ id: s.value, name: s.label }))}
-              placeholder="Select status"
-              buttonClassName={`font-medium cursor-pointer ${getStatusColors(value)}`}
-            />
-          </div>
-        );
-      },
-    },
-    {
-      key: 'priority' as keyof Task,
-      header: 'Priority',
-      render: (value: string) => (
-        <span
-          className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-            value === 'HIGH'
-              ? 'bg-red-100 text-red-800'
-              : value === 'MEDIUM'
-              ? 'bg-yellow-100 text-yellow-800'
-              : 'bg-green-100 text-green-800'
-          }`}>
-          {value}
-        </span>
-      ),
-    },
-    {
-      key: 'machines' as keyof Task,
-      header: 'Machine',
-      render: (value: Task['machines'], task: Task) => (
-        <div className="w-48">
-          <Select
-            value={value && value.length > 0 ? value[0].id : null}
-            onChange={(machineId) => handleTaskMachineUpdate(task.id, machineId)}
-            options={machines}
-            placeholder="-- None --"
-          />
-          {value && value.length > 1 && <span className="text-xs text-gray-500 mt-1">+{value.length - 1} more</span>}
-        </div>
-      ),
-    },
-    {
-      key: 'operators' as keyof Task,
-      header: 'Operator',
-      render: (value: Task['operators'], task: Task) => (
-        <div className="w-48">
-          <Select
-            value={value && value.length > 0 ? value[0].id : null}
-            onChange={(operatorId) => handleTaskOperatorUpdate(task.id, operatorId)}
-            options={operators}
-            placeholder="-- None --"
-          />
-          {value && value.length > 1 && <span className="text-xs text-gray-500 mt-1">+{value.length - 1} more</span>}
-        </div>
-      ),
-    },
-    {
-      key: 'timeSlots' as keyof Task,
-      header: 'Scheduled',
-      render: (value: Task['timeSlots']) => {
-        if (!value || value.length === 0) {
-          return <span className="text-sm text-gray-400 italic">Not scheduled</span>;
-        }
+  const handleResetColumns = () => {
+    const baseColumns = getBaseColumns(
+      machines,
+      operators,
+      handleTaskUpdate,
+      handleTaskMachineUpdate,
+      handleTaskOperatorUpdate,
+    );
+    setColumns(baseColumns);
+    setColumnsInitialized(false);
+    localStorage.removeItem(`item-${params.id}-columnOrder`);
+    // Re-initialize with base columns
+    setTimeout(() => {
+      setColumns(getInitialColumns(baseColumns, params.id as string));
+      setColumnsInitialized(true);
+    }, 0);
+  };
 
-        // Show all time slots in a compact format
-        return (
-          <div className="space-y-1.5">
-            {value.map((slot, index) => {
-              const start = new Date(slot.startDateTime);
-              const end = slot.endDateTime
-                ? new Date(slot.endDateTime)
-                : new Date(start.getTime() + slot.durationMin * 60000);
-
-              return (
-                <div
-                  key={slot.id || index}
-                  className="text-xs">
-                  <div className="font-medium text-gray-700">
-                    {start.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
-                  </div>
-                  <div className="text-gray-600">
-                    {start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    {' - '}
-                    {end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        );
-      },
-    },
-  ];
+  // Initialize columns
+  useEffect(() => {
+    if (!columnsInitialized && machines.length > 0 && operators.length > 0) {
+      const baseColumns = getBaseColumns(
+        machines,
+        operators,
+        handleTaskUpdate,
+        handleTaskMachineUpdate,
+        handleTaskOperatorUpdate,
+      );
+      const initialColumns = getInitialColumns(baseColumns, params.id as string);
+      setColumns(initialColumns);
+      setColumnsInitialized(true);
+    }
+  }, [
+    columnsInitialized,
+    machines,
+    operators,
+    params.id,
+    handleTaskUpdate,
+    handleTaskMachineUpdate,
+    handleTaskOperatorUpdate,
+  ]);
 
   if (loading) {
     return (
@@ -696,9 +825,12 @@ export default function ItemDetailPage() {
         {item.tasks.length > 0 ? (
           <DataTable
             data={item.tasks}
-            columns={taskColumns}
+            columns={columns}
             enableRowReorder={true}
             onRowReorder={handleTaskReorder}
+            onColumnReorder={handleColumnReorder}
+            onResetColumns={handleResetColumns}
+            showResetColumns={true}
             actions={(task: Task) => (
               <TableActions
                 itemId={task.id}

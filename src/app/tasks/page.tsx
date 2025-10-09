@@ -164,9 +164,23 @@ function TasksPageContent({
         width: '15%',
         minWidth: '120px',
         render: (operators: Task['operators']) => (
-          <span className="text-sm">
-            {operators && operators.length > 0 ? operators.map((op) => op.name).join(', ') : 'Unassigned'}
-          </span>
+          <div className="text-sm">
+            {operators && operators.length > 0 ? (
+              operators.length <= 2 ? (
+                operators.map((op) => op.name).join(', ')
+              ) : (
+                <span title={operators.map((op) => op.name).join(', ')}>
+                  {operators
+                    .slice(0, 2)
+                    .map((op) => op.name)
+                    .join(', ')}{' '}
+                  <span className="text-gray-500">+{operators.length - 2}</span>
+                </span>
+              )
+            ) : (
+              'Unassigned'
+            )}
+          </div>
         ),
       },
       {
@@ -176,9 +190,23 @@ function TasksPageContent({
         width: '15%',
         minWidth: '120px',
         render: (machines: Task['machines']) => (
-          <span className="text-sm">
-            {machines && machines.length > 0 ? machines.map((machine) => machine.name).join(', ') : 'Unassigned'}
-          </span>
+          <div className="text-sm">
+            {machines && machines.length > 0 ? (
+              machines.length <= 2 ? (
+                machines.map((machine) => machine.name).join(', ')
+              ) : (
+                <span title={machines.map((machine) => machine.name).join(', ')}>
+                  {machines
+                    .slice(0, 2)
+                    .map((machine) => machine.name)
+                    .join(', ')}{' '}
+                  <span className="text-gray-500">+{machines.length - 2}</span>
+                </span>
+              )
+            ) : (
+              'Unassigned'
+            )}
+          </div>
         ),
       },
       {
