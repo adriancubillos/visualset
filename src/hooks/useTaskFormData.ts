@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { logger } from '@/utils/logger';
-import { useTaskTitles } from '@/hooks/useConfiguration';
 
 export interface DropdownOption {
   id: string;
@@ -18,24 +17,24 @@ export interface TaskFormData {
   items: ItemOption[];
   machines: DropdownOption[];
   operators: DropdownOption[];
-  taskTitles: DropdownOption[];
   loading: boolean;
   error: string | null;
 }
 
 export function useTaskFormData() {
-  const { options: taskTitlesConfig } = useTaskTitles();
   const [data, setData] = useState<TaskFormData>({
     projects: [],
     items: [],
     machines: [],
     operators: [],
-    taskTitles: [],
     loading: true,
     error: null,
   });
 
+  // Fetch API data only once on mount
   useEffect(() => {
+    let isMounted = true;
+
     const fetchData = async () => {
       try {
         const [projectsRes, machinesRes, operatorsRes] = await Promise.all([
@@ -55,6 +54,8 @@ export function useTaskFormData() {
             ? operatorsRes.json()
             : Promise.reject(`Failed to fetch operators - Status: ${operatorsRes.status}`),
         ]);
+
+        if (!isMounted) return;
 
         const [projectsData, machinesData, operatorsData] = results;
 
@@ -83,21 +84,17 @@ export function useTaskFormData() {
           name: o.name,
         }));
 
-        const taskTitles = taskTitlesConfig.map((title) => ({
-          id: title.value,
-          name: title.label,
-        }));
-
-        setData({
+        setData((prev) => ({
+          ...prev,
           projects,
           items,
           machines,
           operators,
-          taskTitles,
           loading: false,
           error: null,
-        });
+        }));
       } catch (error) {
+        if (!isMounted) return;
         logger.error('Error fetching task form data,', error);
         setData((prev) => ({
           ...prev,
@@ -108,7 +105,11 @@ export function useTaskFormData() {
     };
 
     fetchData();
-  }, [taskTitlesConfig]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return data;
 }

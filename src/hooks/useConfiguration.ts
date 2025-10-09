@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ConfigurationCategory } from '@prisma/client';
 
 interface Configuration {
@@ -45,18 +45,22 @@ export const useConfiguration = (category: ConfigurationCategory) => {
     fetchConfigurations();
   }, [fetchConfigurations]);
 
-  // Convert configurations to options format for dropdowns
-  const options: ConfigurationOption[] = configurations.map((config) => ({
-    value: config.value,
-    label: config.label,
-  }));
+  // Memoize options to prevent unnecessary re-renders
+  const options = useMemo<ConfigurationOption[]>(
+    () =>
+      configurations.map((config) => ({
+        value: config.value,
+        label: config.label,
+      })),
+    [configurations],
+  );
 
   return {
     configurations,
     options,
     loading,
     error,
-    refetch: fetchConfigurations, // Now properly calls the fetch function
+    refetch: fetchConfigurations,
   };
 };
 
