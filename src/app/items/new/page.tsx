@@ -19,7 +19,7 @@ function NewItemPageContent() {
   const searchParams = useSearchParams();
   const projectIdFromUrl = searchParams.get('project');
   const returnUrl = searchParams.get('returnUrl');
-  
+
   const [projects, setProjects] = useState<Project[]>([]);
   const [formData, setFormData] = useState({
     name: '',
@@ -59,9 +59,9 @@ function NewItemPageContent() {
                 const singleProject = await singleResp.json();
                 projectsToSet = [singleProject, ...activeProjects];
               }
-                    } catch {
-                      // ignore - we'll still show the active projects
-                    }
+            } catch {
+              // ignore - we'll still show the active projects
+            }
           }
           setProjects(projectsToSet);
         } else {
@@ -248,7 +248,7 @@ function NewItemPageContent() {
             onImageRemoved={() => setFormData({ ...formData, imageUrl: null })}
             entityType="item"
             entityName={formData.name}
-            projectName={projects.find(p => p.id === formData.projectId)?.name}
+            projectName={projects.find((p) => p.id === formData.projectId)?.name}
           />
 
           {/* Status */}
@@ -280,10 +280,11 @@ function NewItemPageContent() {
             <button
               type="submit"
               disabled={loading || !formData.name.trim() || !formData.projectId}
-              className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${loading || !formData.name.trim() || !formData.projectId
+              className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                loading || !formData.name.trim() || !formData.projectId
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700'
-                }`}>
+              }`}>
               {loading ? 'Creating...' : 'Create Item'}
             </button>
           </div>
