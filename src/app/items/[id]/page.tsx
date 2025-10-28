@@ -11,6 +11,7 @@ import ImageViewer from '@/components/ui/ImageViewer';
 import PageContainer from '@/components/layout/PageContainer';
 import { checkItemCompletionReadiness } from '@/utils/itemValidation';
 import { showConfirmDialog } from '@/components/ui/ConfirmDialog';
+import TaskTitleSelect from '@/components/forms/TaskTitleSelect';
 import { logger } from '@/utils/logger';
 import { updateTaskWithConfirm, sendTaskUpdate } from '@/utils/taskApi';
 import { getStatusVariant, getVariantClasses } from '@/utils/statusStyles';
@@ -239,6 +240,8 @@ export default function ItemDetailPage() {
   const [machines, setMachines] = useState<{ id: string; name: string }[]>([]);
   const [operators, setOperators] = useState<{ id: string; name: string }[]>([]);
   const [columns, setColumns] = useState<Column<Task>[]>([]);
+  const [showMultiTaskForm, setShowMultiTaskForm] = useState(false);
+  const [multiTaskLoading, setMultiTaskLoading] = useState(false);
 
   const handleDelete = () => {
     showConfirmDialog({
@@ -707,6 +710,98 @@ export default function ItemDetailPage() {
     }, 0);
   };
 
+  // Multi-task creation logic
+  interface MultiTaskFormData {
+    title: string;
+    description: string;
+  }
+
+  const [multiTasks, setMultiTasks] = useState<MultiTaskFormData[]>([{ title: '', description: '' }]);
+
+  const addNewTaskRow = () => {
+    setMultiTasks([...multiTasks, { title: '', description: '' }]);
+  };
+
+  const removeTaskRow = (index: number) => {
+    if (multiTasks.length > 1) {
+      setMultiTasks(multiTasks.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateTaskRow = (index: number, field: keyof MultiTaskFormData, value: string) => {
+    setMultiTasks(multiTasks.map((task, i) => (i === index ? { ...task, [field]: value } : task)));
+  };
+
+  const handleCreateMultipleTasks = async () => {
+    if (!item) return;
+
+    const validTasks = multiTasks.filter((task) => task.title.trim());
+    if (validTasks.length === 0) {
+      toast.error('Please enter at least one task title');
+      return;
+    }
+
+    setMultiTaskLoading(true);
+    try {
+      const results = await Promise.allSettled(
+        validTasks.map(async (taskData) => {
+          const response = await fetch('/api/tasks', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              title: taskData.title,
+              description: taskData.description,
+              status: 'PENDING',
+              priority: 'MEDIUM',
+              quantity: 1,
+              completed_quantity: 0,
+              projectId: item.project.id,
+              itemId: item.id,
+              machineIds: [],
+              operatorIds: [],
+              timeSlots: [],
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`Failed to create task "${taskData.title}"`);
+          }
+          return await response.json();
+        }),
+      );
+
+      const successful = results.filter((result) => result.status === 'fulfilled').length;
+      const failed = results.filter((result) => result.status === 'rejected').length;
+
+      if (successful > 0) {
+        // Refresh the item to get updated tasks
+        const response = await fetch(`/api/items/${params.id}`);
+        if (response.ok) {
+          const updatedItem = await response.json();
+          setItem(updatedItem);
+        }
+
+        toast.success(`Created ${successful} task${successful !== 1 ? 's' : ''} successfully`);
+
+        if (failed === 0) {
+          setShowMultiTaskForm(false);
+          setMultiTasks([{ title: '', description: '' }]);
+        }
+      }
+
+      if (failed > 0) {
+        toast.error(`Failed to create ${failed} task${failed !== 1 ? 's' : ''}`);
+      }
+    } catch (error) {
+      logger.error('Error creating multiple tasks', error);
+      toast.error('Error creating tasks. Please try again.');
+    } finally {
+      setMultiTaskLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-64">
@@ -928,11 +1023,42 @@ export default function ItemDetailPage() {
       <div className="bg-white rounded-lg shadow">
         <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
           <h2 className="text-lg font-medium text-gray-900">Tasks</h2>
-          <Link
-            href={`/tasks/new?project=${item.project.id}&item=${item.id}&returnUrl=/items/${item.id}`}
-            className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
-            Add Task
-          </Link>
+          <div className="flex space-x-3">
+            <button
+              onClick={() => setShowMultiTaskForm(true)}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
+              <svg
+                className="h-4 w-4 mr-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"
+                />
+              </svg>
+              Add Multiple Tasks
+            </button>
+            <Link
+              href={`/tasks/new?project=${item.project.id}&item=${item.id}&returnUrl=/items/${item.id}`}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
+              <svg
+                className="h-4 w-4 mr-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                />
+              </svg>
+              Add Task
+            </Link>
+          </div>
         </div>
 
         {item.tasks.length > 0 ? (
@@ -965,6 +1091,232 @@ export default function ItemDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Multi-Task Creation Modal */}
+      {showMultiTaskForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-200">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <svg
+                      className="h-5 w-5 text-blue-600"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-gray-900">Add Multiple Tasks</h3>
+                    <p className="text-sm text-gray-500">Create multiple tasks for {item.name}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowMultiTaskForm(false);
+                    setMultiTasks([{ title: '', description: '' }]);
+                  }}
+                  className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg p-2 transition-colors duration-200">
+                  <span className="sr-only">Close</span>
+                  <svg
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+              <div className="space-y-4">
+                {multiTasks.map((task, index) => (
+                  <div
+                    key={index}
+                    className="group relative bg-white border-2 border-gray-100 rounded-xl p-6 hover:border-blue-200 hover:shadow-md transition-all duration-200">
+                    {/* Task Number Badge */}
+                    <div className="absolute -top-3 -left-3 w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-full flex items-center justify-center text-sm font-semibold shadow-lg">
+                      {index + 1}
+                    </div>
+
+                    <div className="flex items-start space-x-4">
+                      <div className="flex-1 space-y-4">
+                        <div>
+                          <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+                            <svg
+                              className="h-4 w-4 mr-2 text-gray-500"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor">
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                              />
+                            </svg>
+                            Task Title *
+                          </label>
+                          <div className="relative">
+                            <TaskTitleSelect
+                              value={task.title}
+                              onChange={(title) => updateTaskRow(index, 'title', title)}
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+                            <svg
+                              className="h-4 w-4 mr-2 text-gray-500"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor">
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M4 6h16M4 12h16M4 18h7"
+                              />
+                            </svg>
+                            Description (optional)
+                          </label>
+                          <textarea
+                            rows={3}
+                            value={task.description}
+                            onChange={(e) => updateTaskRow(index, 'description', e.target.value)}
+                            className="w-full border border-gray-300 rounded-lg shadow-sm py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 resize-none"
+                            placeholder="Enter a detailed description for this task..."
+                          />
+                        </div>
+                      </div>
+
+                      {/* Remove Button */}
+                      <div className="flex flex-col items-center pt-8">
+                        <button
+                          onClick={() => removeTaskRow(index)}
+                          disabled={multiTasks.length === 1}
+                          className={`group relative p-3 rounded-xl transition-all duration-200 ${
+                            multiTasks.length === 1
+                              ? 'text-gray-300 cursor-not-allowed bg-gray-50'
+                              : 'text-red-500 hover:text-red-700 hover:bg-red-50 hover:scale-110'
+                          }`}
+                          title={multiTasks.length === 1 ? 'Cannot remove the last task' : 'Remove this task'}>
+                          <svg
+                            className="h-5 w-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+              <button
+                onClick={addNewTaskRow}
+                className="inline-flex items-center px-4 py-2 border-2 border-dashed border-gray-300 text-sm font-medium rounded-lg text-gray-600 bg-white hover:bg-gray-50 hover:border-blue-300 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200">
+                <svg
+                  className="h-5 w-5 mr-2"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                  />
+                </svg>
+                Add Another Task
+              </button>
+
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => {
+                    setShowMultiTaskForm(false);
+                    setMultiTasks([{ title: '', description: '' }]);
+                  }}
+                  className="inline-flex items-center px-6 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreateMultipleTasks}
+                  disabled={multiTaskLoading || multiTasks.every((task) => !task.title.trim())}
+                  className={`inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 ${
+                    multiTaskLoading || multiTasks.every((task) => !task.title.trim())
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transform hover:scale-105'
+                  }`}>
+                  {multiTaskLoading ? (
+                    <>
+                      <svg
+                        className="animate-spin -ml-1 mr-3 h-4 w-4 text-white"
+                        fill="none"
+                        viewBox="0 0 24 24">
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        className="h-4 w-4 mr-2"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                      Create {multiTasks.filter((task) => task.title.trim()).length} Task
+                      {multiTasks.filter((task) => task.title.trim()).length !== 1 ? 's' : ''}
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Metadata */}
       <div className="bg-gray-50 rounded-lg p-4">
